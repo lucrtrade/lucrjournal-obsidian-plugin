@@ -1,0 +1,815 @@
+{
+  "imagePath": "dev/ocr-fixtures/images/metatrader-history-multiple-xauusd-buy.jpg",
+  "modelSource": "local",
+  "parsedResult": {
+    "entry_price": 4495.46,
+    "exit_price": 4497.76,
+    "notional_value": 0.05
+  },
+  "recognition": {
+    "lines": [
+      {
+        "box": {
+          "height": 40,
+          "width": 305,
+          "x": 38,
+          "y": 38
+        },
+        "text": "01:13 /"
+      },
+      {
+        "box": {
+          "height": 51,
+          "width": 176,
+          "x": 863,
+          "y": 34
+        },
+        "text": "ull 68"
+      },
+      {
+        "box": {
+          "height": 50,
+          "width": 118,
+          "x": 92,
+          "y": 130
+        },
+        "text": "History"
+      },
+      {
+        "box": {
+          "height": 62,
+          "width": 213,
+          "x": 709,
+          "y": 151
+        },
+        "text": "$ ↓↑"
+      },
+      {
+        "box": {
+          "height": 51,
+          "width": 207,
+          "x": 97,
+          "y": 183
+        },
+        "text": "All symbols"
+      },
+      {
+        "box": {
+          "height": 22,
+          "width": 52,
+          "x": 984,
+          "y": 182
+        },
+        "text": "..•."
+      },
+      {
+        "box": {
+          "height": 34,
+          "width": 170,
+          "x": 96,
+          "y": 303
+        },
+        "text": "POSITIONS"
+      },
+      {
+        "box": {
+          "height": 40,
+          "width": 133,
+          "x": 475,
+          "y": 300
+        },
+        "text": "ORDERS"
+      },
+      {
+        "box": {
+          "height": 40,
+          "width": 112,
+          "x": 845,
+          "y": 300
+        },
+        "text": "DEALS"
+      },
+      {
+        "box": {
+          "height": 40,
+          "width": 327,
+          "x": 31,
+          "y": 380
+        },
+        "text": "XAUUSD+, buy 0.05"
+      },
+      {
+        "box": {
+          "height": 32,
+          "width": 270,
+          "x": 778,
+          "y": 385
+        },
+        "text": "2026.05.22 17:28:24"
+      },
+      {
+        "box": {
+          "height": 33,
+          "width": 345,
+          "x": 33,
+          "y": 426
+        },
+        "text": "4 495.46 → 4 497.76"
+      },
+      {
+        "box": {
+          "height": 43,
+          "width": 96,
+          "x": 960,
+          "y": 425
+        },
+        "text": "11.50"
+      },
+      {
+        "box": {
+          "height": 39,
+          "width": 323,
+          "x": 31,
+          "y": 506
+        },
+        "text": "XAUUSD+, buy 0.05"
+      },
+      {
+        "box": {
+          "height": 32,
+          "width": 270,
+          "x": 778,
+          "y": 511
+        },
+        "text": "2026.05.22 17:32:46"
+      },
+      {
+        "box": {
+          "height": 34,
+          "width": 342,
+          "x": 33,
+          "y": 552
+        },
+        "text": "4 499.43 → 4 500.31"
+      },
+      {
+        "box": {
+          "height": 43,
+          "width": 83,
+          "x": 975,
+          "y": 551
+        },
+        "text": "4.40"
+      },
+      {
+        "box": {
+          "height": 33,
+          "width": 202,
+          "x": 31,
+          "y": 613
+        },
+        "text": "#10015359531"
+      },
+      {
+        "box": {
+          "height": 46,
+          "width": 100,
+          "x": 546,
+          "y": 610
+        },
+        "text": "Open:"
+      },
+      {
+        "box": {
+          "height": 32,
+          "width": 268,
+          "x": 778,
+          "y": 614
+        },
+        "text": "2026.05.22 17:31:11"
+      },
+      {
+        "box": {
+          "height": 43,
+          "width": 88,
+          "x": 25,
+          "y": 662
+        },
+        "text": "S/L:"
+      },
+      {
+        "box": {
+          "height": 45,
+          "width": 242,
+          "x": 405,
+          "y": 663
+        },
+        "text": "4 495.00 Swap:"
+      },
+      {
+        "box": {
+          "height": 43,
+          "width": 80,
+          "x": 976,
+          "y": 662
+        },
+        "text": "0.00"
+      },
+      {
+        "box": {
+          "height": 43,
+          "width": 89,
+          "x": 25,
+          "y": 715
+        },
+        "text": "T/P:"
+      },
+      {
+        "box": {
+          "height": 33,
+          "width": 232,
+          "x": 496,
+          "y": 720
+        },
+        "text": "— Commission:"
+      },
+      {
+        "box": {
+          "height": 43,
+          "width": 88,
+          "x": 967,
+          "y": 715
+        },
+        "text": "-0.30"
+      },
+      {
+        "box": {
+          "height": 43,
+          "width": 323,
+          "x": 30,
+          "y": 789
+        },
+        "text": "XAUUSD+, buy 0.05"
+      },
+      {
+        "box": {
+          "height": 32,
+          "width": 270,
+          "x": 778,
+          "y": 796
+        },
+        "text": "2026.05.22 17:32:48"
+      },
+      {
+        "box": {
+          "height": 32,
+          "width": 344,
+          "x": 33,
+          "y": 839
+        },
+        "text": "4 499.43 → 4 500.34"
+      },
+      {
+        "box": {
+          "height": 43,
+          "width": 81,
+          "x": 976,
+          "y": 837
+        },
+        "text": "4.55"
+      },
+      {
+        "box": {
+          "height": 32,
+          "width": 202,
+          "x": 32,
+          "y": 899
+        },
+        "text": "#10015359530"
+      },
+      {
+        "box": {
+          "height": 50,
+          "width": 100,
+          "x": 546,
+          "y": 893
+        },
+        "text": "Open:"
+      },
+      {
+        "box": {
+          "height": 28,
+          "width": 272,
+          "x": 778,
+          "y": 902
+        },
+        "text": "2026.05.2217:31:10"
+      },
+      {
+        "box": {
+          "height": 45,
+          "width": 93,
+          "x": 23,
+          "y": 947
+        },
+        "text": "S/L:"
+      },
+      {
+        "box": {
+          "height": 45,
+          "width": 243,
+          "x": 405,
+          "y": 950
+        },
+        "text": "4 495.00 Swap:"
+      },
+      {
+        "box": {
+          "height": 44,
+          "width": 79,
+          "x": 977,
+          "y": 947
+        },
+        "text": "0.00"
+      },
+      {
+        "box": {
+          "height": 39,
+          "width": 88,
+          "x": 26,
+          "y": 1003
+        },
+        "text": "T/P:"
+      },
+      {
+        "box": {
+          "height": 35,
+          "width": 180,
+          "x": 550,
+          "y": 1005
+        },
+        "text": "Commission:"
+      },
+      {
+        "box": {
+          "height": 39,
+          "width": 87,
+          "x": 968,
+          "y": 1003
+        },
+        "text": "-0.30"
+      },
+      {
+        "box": {
+          "height": 43,
+          "width": 323,
+          "x": 31,
+          "y": 1074
+        },
+        "text": "XAUUSD+, buy 0.05"
+      },
+      {
+        "box": {
+          "height": 32,
+          "width": 269,
+          "x": 778,
+          "y": 1083
+        },
+        "text": "2026.05.22 17:32:57"
+      },
+      {
+        "box": {
+          "height": 33,
+          "width": 344,
+          "x": 33,
+          "y": 1125
+        },
+        "text": "4 499.36 → 4 501.40"
+      },
+      {
+        "box": {
+          "height": 43,
+          "width": 93,
+          "x": 962,
+          "y": 1123
+        },
+        "text": "10.20"
+      },
+      {
+        "box": {
+          "height": 33,
+          "width": 204,
+          "x": 31,
+          "y": 1185
+        },
+        "text": "#10015359529"
+      },
+      {
+        "box": {
+          "height": 49,
+          "width": 100,
+          "x": 546,
+          "y": 1180
+        },
+        "text": "Open:"
+      },
+      {
+        "box": {
+          "height": 32,
+          "width": 270,
+          "x": 778,
+          "y": 1186
+        },
+        "text": "2026.05.22 17:31:09"
+      },
+      {
+        "box": {
+          "height": 43,
+          "width": 88,
+          "x": 25,
+          "y": 1234
+        },
+        "text": "S/L:"
+      },
+      {
+        "box": {
+          "height": 46,
+          "width": 243,
+          "x": 405,
+          "y": 1235
+        },
+        "text": "4 495.00 Swap:"
+      },
+      {
+        "box": {
+          "height": 40,
+          "width": 79,
+          "x": 977,
+          "y": 1235
+        },
+        "text": "0.00"
+      },
+      {
+        "box": {
+          "height": 44,
+          "width": 94,
+          "x": 23,
+          "y": 1287
+        },
+        "text": "T/P:"
+      },
+      {
+        "box": {
+          "height": 33,
+          "width": 176,
+          "x": 552,
+          "y": 1292
+        },
+        "text": "Commission:"
+      },
+      {
+        "box": {
+          "height": 40,
+          "width": 89,
+          "x": 967,
+          "y": 1288
+        },
+        "text": "-0.30"
+      },
+      {
+        "box": {
+          "height": 40,
+          "width": 318,
+          "x": 30,
+          "y": 1363
+        },
+        "text": "XAUUSD+, sell 0.05"
+      },
+      {
+        "box": {
+          "height": 32,
+          "width": 270,
+          "x": 778,
+          "y": 1368
+        },
+        "text": "2026.05.22 18:48:32"
+      },
+      {
+        "box": {
+          "height": 32,
+          "width": 342,
+          "x": 33,
+          "y": 1411
+        },
+        "text": "4 518.82 → 4 515.68"
+      },
+      {
+        "box": {
+          "height": 43,
+          "width": 95,
+          "x": 961,
+          "y": 1409
+        },
+        "text": "15.70"
+      },
+      {
+        "box": {
+          "height": 32,
+          "width": 202,
+          "x": 32,
+          "y": 1472
+        },
+        "text": "#10015362740"
+      },
+      {
+        "box": {
+          "height": 50,
+          "width": 98,
+          "x": 548,
+          "y": 1465
+        },
+        "text": "Open:"
+      },
+      {
+        "box": {
+          "height": 32,
+          "width": 270,
+          "x": 778,
+          "y": 1472
+        },
+        "text": "2026.05.22 18:34:45"
+      },
+      {
+        "box": {
+          "height": 43,
+          "width": 87,
+          "x": 26,
+          "y": 1520
+        },
+        "text": "S/L:"
+      },
+      {
+        "box": {
+          "height": 46,
+          "width": 243,
+          "x": 405,
+          "y": 1522
+        },
+        "text": "4 524.64 Swap:"
+      },
+      {
+        "box": {
+          "height": 43,
+          "width": 79,
+          "x": 977,
+          "y": 1520
+        },
+        "text": "0.00"
+      },
+      {
+        "box": {
+          "height": 43,
+          "width": 91,
+          "x": 25,
+          "y": 1573
+        },
+        "text": "T/P:"
+      },
+      {
+        "box": {
+          "height": 35,
+          "width": 324,
+          "x": 404,
+          "y": 1576
+        },
+        "text": "4 513.29 Commission:"
+      },
+      {
+        "box": {
+          "height": 43,
+          "width": 88,
+          "x": 968,
+          "y": 1573
+        },
+        "text": "-0.30"
+      },
+      {
+        "box": {
+          "height": 39,
+          "width": 318,
+          "x": 31,
+          "y": 1648
+        },
+        "text": "XAUUSD+, sell 0.05"
+      },
+      {
+        "box": {
+          "height": 32,
+          "width": 272,
+          "x": 778,
+          "y": 1655
+        },
+        "text": "2026.05.22 18:49:12"
+      },
+      {
+        "box": {
+          "height": 33,
+          "width": 346,
+          "x": 32,
+          "y": 1697
+        },
+        "text": "4 518.86 → 4 516.03"
+      },
+      {
+        "box": {
+          "height": 43,
+          "width": 96,
+          "x": 960,
+          "y": 1694
+        },
+        "text": "14.15"
+      },
+      {
+        "box": {
+          "height": 33,
+          "width": 204,
+          "x": 31,
+          "y": 1757
+        },
+        "text": "#10015362737"
+      },
+      {
+        "box": {
+          "height": 51,
+          "width": 102,
+          "x": 545,
+          "y": 1752
+        },
+        "text": "Open:"
+      },
+      {
+        "box": {
+          "height": 32,
+          "width": 270,
+          "x": 778,
+          "y": 1758
+        },
+        "text": "2026.05.22 18:34:44"
+      },
+      {
+        "box": {
+          "height": 44,
+          "width": 91,
+          "x": 25,
+          "y": 1805
+        },
+        "text": "S/L:"
+      },
+      {
+        "box": {
+          "height": 46,
+          "width": 244,
+          "x": 404,
+          "y": 1806
+        },
+        "text": "4 522.72 Swap:"
+      },
+      {
+        "box": {
+          "height": 43,
+          "width": 80,
+          "x": 976,
+          "y": 1805
+        },
+        "text": "0.00"
+      },
+      {
+        "box": {
+          "height": 44,
+          "width": 92,
+          "x": 25,
+          "y": 1858
+        },
+        "text": "T/P:"
+      },
+      {
+        "box": {
+          "height": 35,
+          "width": 326,
+          "x": 404,
+          "y": 1862
+        },
+        "text": "4 513.42 Commission:"
+      },
+      {
+        "box": {
+          "height": 43,
+          "width": 91,
+          "x": 965,
+          "y": 1858
+        },
+        "text": "-0.30"
+      },
+      {
+        "box": {
+          "height": 40,
+          "width": 321,
+          "x": 30,
+          "y": 1934
+        },
+        "text": "XAUUSD+, sell 0.05"
+      },
+      {
+        "box": {
+          "height": 32,
+          "width": 270,
+          "x": 778,
+          "y": 1940
+        },
+        "text": "2026.05.22 18:55:14"
+      },
+      {
+        "box": {
+          "height": 34,
+          "width": 345,
+          "x": 32,
+          "y": 1982
+        },
+        "text": "4 518.88 → 4 518.67"
+      },
+      {
+        "box": {
+          "height": 40,
+          "width": 81,
+          "x": 975,
+          "y": 1982
+        },
+        "text": "1.05"
+      },
+      {
+        "box": {
+          "height": 57,
+          "width": 81,
+          "x": 80,
+          "y": 2227
+        },
+        "text": "↑L"
+      },
+      {
+        "box": {
+          "height": 72,
+          "width": 84,
+          "x": 289,
+          "y": 2222
+        },
+        "text": "$$"
+      },
+      {
+        "box": {
+          "height": 56,
+          "width": 77,
+          "x": 503,
+          "y": 2228
+        },
+        "text": "N"
+      },
+      {
+        "box": {
+          "height": 79,
+          "width": 104,
+          "x": 907,
+          "y": 2216
+        },
+        "text": "A"
+      },
+      {
+        "box": {
+          "height": 47,
+          "width": 983,
+          "x": 60,
+          "y": 2307
+        },
+        "text": "Quotes Charts Trade History Messages"
+      },
+      {
+        "box": {
+          "height": 51,
+          "width": 67,
+          "x": 210,
+          "y": 2430
+        },
+        "text": "111"
+      },
+      {
+        "box": {
+          "height": 55,
+          "width": 67,
+          "x": 513,
+          "y": 2429
+        },
+        "text": "0"
+      }
+    ],
+    "text": "01:13 /\null 68\nHistory\n$ ↓↑\nAll symbols\n..•.\nPOSITIONS\nORDERS\nDEALS\nXAUUSD+, buy 0.05\n2026.05.22 17:28:24\n4 495.46 → 4 497.76\n11.50\nXAUUSD+, buy 0.05\n2026.05.22 17:32:46\n4 499.43 → 4 500.31\n4.40\n#10015359531\nOpen:\n2026.05.22 17:31:11\nS/L:\n4 495.00 Swap:\n0.00\nT/P:\n— Commission:\n-0.30\nXAUUSD+, buy 0.05\n2026.05.22 17:32:48\n4 499.43 → 4 500.34\n4.55\n#10015359530\nOpen:\n2026.05.2217:31:10\nS/L:\n4 495.00 Swap:\n0.00\nT/P:\nCommission:\n-0.30\nXAUUSD+, buy 0.05\n2026.05.22 17:32:57\n4 499.36 → 4 501.40\n10.20\n#10015359529\nOpen:\n2026.05.22 17:31:09\nS/L:\n4 495.00 Swap:\n0.00\nT/P:\nCommission:\n-0.30\nXAUUSD+, sell 0.05\n2026.05.22 18:48:32\n4 518.82 → 4 515.68\n15.70\n#10015362740\nOpen:\n2026.05.22 18:34:45\nS/L:\n4 524.64 Swap:\n0.00\nT/P:\n4 513.29 Commission:\n-0.30\nXAUUSD+, sell 0.05\n2026.05.22 18:49:12\n4 518.86 → 4 516.03\n14.15\n#10015362737\nOpen:\n2026.05.22 18:34:44\nS/L:\n4 522.72 Swap:\n0.00\nT/P:\n4 513.42 Commission:\n-0.30\nXAUUSD+, sell 0.05\n2026.05.22 18:55:14\n4 518.88 → 4 518.67\n1.05\n↑L\n$$\nN\nA\nQuotes Charts Trade History Messages\n111\n0"
+  }
+}

@@ -1,0 +1,29 @@
+{
+	"$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+	"entry": [
+		"src/main.ts",
+		"src/styles/main.css",
+		"scripts/*.mjs"
+	],
+	"project": [
+		"src/**/*.{ts,tsx}",
+		"scripts/**/*.mjs",
+		"eslint-rules/**/*.ts",
+		"test/**/*.js",
+		"*.config.{mjs,mts}"
+	],
+	"ignoreDependencies": [
+		"@fontsource-variable/inter",
+		"@fontsource-variable/jetbrains-mono",
+		"@fontsource-variable/noto-sans-sc",
+		"protobufjs"
+	],
+	"ignoreIssues": {
+		"test/mocks/obsidian.js": [
+			"unlisted"
+		]
+	},
+	"tags": [
+		"-knipignore"
+	]
+}

@@ -1,0 +1,222 @@
+{
+  "imagePath": "dev/ocr-fixtures/images/tradingview-long-rr-1.65.jpg",
+  "modelSource": "local",
+  "parsedResult": {
+    "notional_value": 0.147,
+    "stop_loss": 74520,
+    "target_price": 75420,
+    "entry_price": 74860
+  },
+  "recognition": {
+    "lines": [
+      {
+        "box": {
+          "height": 10,
+          "width": 50,
+          "x": 502,
+          "y": 17
+        },
+        "text": "-75600.0"
+      },
+      {
+        "box": {
+          "height": 11,
+          "width": 232,
+          "x": 74,
+          "y": 50
+        },
+        "text": "Farge Amount 1082.35"
+      },
+      {
+        "box": {
+          "height": 118,
+          "width": 147,
+          "x": 411,
+          "y": 49
+        },
+        "text": "1 pHigh 75500.0 75420.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 49,
+          "x": 503,
+          "y": 119
+        },
+        "text": "-75300.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 50,
+          "x": 502,
+          "y": 153
+        },
+        "text": "-75200.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 49,
+          "x": 503,
+          "y": 188
+        },
+        "text": "-75100.0"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 95,
+          "x": 141,
+          "y": 218
+        },
+        "text": "Long, Qty: 0.147"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 49,
+          "x": 503,
+          "y": 222
+        },
+        "text": "-75000.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 101,
+          "x": 139,
+          "y": 232
+        },
+        "text": "Open P&L: 80.000"
+      },
+      {
+        "box": {
+          "height": 10,
+          "width": 101,
+          "x": 139,
+          "y": 246
+        },
+        "text": "Risk/Reward; 1.65"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 55,
+          "x": 500,
+          "y": 242
+        },
+        "text": "74935.9"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 50,
+          "x": 504,
+          "y": 256
+        },
+        "text": "74900.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 51,
+          "x": 501,
+          "y": 269
+        },
+        "text": "74860.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 49,
+          "x": 503,
+          "y": 291
+        },
+        "text": "-74800.0"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 39,
+          "x": 459,
+          "y": 320
+        },
+        "text": "pVAH"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 53,
+          "x": 500,
+          "y": 331
+        },
+        "text": "74680.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 50,
+          "x": 502,
+          "y": 359
+        },
+        "text": "-74600.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 52,
+          "x": 499,
+          "y": 386
+        },
+        "text": "74520.0"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 56,
+          "x": 499,
+          "y": 403
+        },
+        "text": "74470.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 225,
+          "x": 78,
+          "y": 416
+        },
+        "text": "Stop: 340 (0.45%) 3400, Amount: 950.00"
+      },
+      {
+        "box": {
+          "height": 10,
+          "width": 49,
+          "x": 503,
+          "y": 429
+        },
+        "text": "-74400.0"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 57,
+          "x": 499,
+          "y": 441
+        },
+        "text": "74360.0"
+      },
+      {
+        "box": {
+          "height": 11,
+          "width": 57,
+          "x": 499,
+          "y": 462
+        },
+        "text": "-74300 0"
+      }
+    ],
+    "text": "-75600.0\nFarge Amount 1082.35\n1 pHigh 75500.0 75420.0\n-75300.0\n-75200.0\n-75100.0\nLong, Qty: 0.147\n-75000.0\nOpen P&L: 80.000\nRisk/Reward; 1.65\n74935.9\n74900.0\n74860.0\n-74800.0\npVAH\n74680.0\n-74600.0\n74520.0\n74470.0\nStop: 340 (0.45%) 3400, Amount: 950.00\n-74400.0\n74360.0\n-74300 0"
+  }
+}

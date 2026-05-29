@@ -1,0 +1,962 @@
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme) prefix(lj);
+/* Import utilities only so Tailwind Preflight stays disabled in Obsidian. */
+@import 'tailwindcss/utilities.css' layer(utilities) prefix(lj) source(none) important;
+@source '../../src';
+@custom-variant dark (&:where(.theme-dark, .theme-dark *));
+
+@theme {
+	--font-sans:
+		'Inter Variable',
+		'Noto Sans SC Variable',
+		'PingFang SC',
+		'Hiragino Sans GB',
+		'Microsoft YaHei',
+		'Segoe UI Sans',
+		ui-sans-serif,
+		system-ui,
+		sans-serif;
+	--font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, monospace;
+}
+
+@theme inline {
+	--color-lj-bg: var(--lj-bg);
+	--color-lj-text: var(--lj-text);
+	--color-lj-text-secondary: var(--lj-text-secondary);
+	--color-lj-text-muted: var(--lj-text-muted);
+	--color-lj-text-faint: var(--lj-text-faint);
+	--color-lj-border: var(--lj-border);
+	--color-lj-profit-text: var(--lj-profit-text);
+	--color-lj-loss-text: var(--lj-loss-text);
+	--color-lj-circle-track: var(--lj-circle-track);
+	--color-lj-circle-stroke: var(--lj-circle-stroke);
+	--color-lj-btn-bg: var(--lj-btn-bg);
+	--color-lj-btn-text: var(--lj-btn-text);
+	--color-lj-btn-text-muted: var(--lj-btn-text-muted);
+	--color-lj-weekly-bg: var(--lj-weekly-bg);
+	--color-lj-calendar-grid-line: var(--lj-calendar-grid-line);
+	--color-lj-calendar-header-bg: var(--lj-calendar-header-bg);
+	--color-lj-calendar-header-text: var(--lj-calendar-header-text);
+	--color-lj-calendar-cell-bg: var(--lj-calendar-cell-bg);
+	--color-lj-calendar-cell-hover: var(--lj-calendar-cell-hover);
+	--color-lj-profit-dot: var(--lj-profit-dot);
+	--color-lj-loss-dot: var(--lj-loss-dot);
+	--color-lj-pnl-loss: var(--lj-pnl-loss);
+	--color-lj-playbook-border: var(--lj-playbook-border);
+	--color-lj-hover-bg: var(--lj-hover-bg);
+	--color-lj-c-strong: var(--lj-c-strong);
+	--color-lj-alpha-10: var(--lj-alpha-10);
+	--color-lj-c-muted: var(--lj-c-muted);
+	--color-lj-c-hint: var(--lj-c-hint);
+	--color-lj-alpha-5: var(--lj-alpha-5);
+	--color-lj-c-secondary: var(--lj-c-secondary);
+	--color-lj-c-tertiary: var(--lj-c-tertiary);
+	--color-lj-c-inv: var(--lj-c-inv);
+	--color-lj-alpha-5-10: var(--lj-alpha-5-10);
+	--color-lj-c-hint-vivid: var(--lj-c-hint-vivid);
+	--color-lj-c-hint-dim: var(--lj-c-hint-dim);
+	--color-lj-alpha-20: var(--lj-alpha-20);
+	--color-lj-c-muted-vivid: var(--lj-c-muted-vivid);
+	--color-lj-surf: var(--lj-surf);
+	--color-lj-c-disabled: var(--lj-c-disabled);
+	--color-lj-c-secondary-vivid: var(--lj-c-secondary-vivid);
+	--color-lj-alpha-8: var(--lj-alpha-8);
+	--color-lj-c-muted-dim: var(--lj-c-muted-dim);
+	--color-lj-c-secondary-max: var(--lj-c-secondary-max);
+	--color-lj-c-hint-faint: var(--lj-c-hint-faint);
+	--color-lj-alpha-8-10: var(--lj-alpha-8-10);
+	--color-lj-c-muted-bright: var(--lj-c-muted-bright);
+	--color-lj-fill-contrast-soft: var(--lj-fill-contrast-soft);
+	--color-lj-c-hint-mid: var(--lj-c-hint-mid);
+	--color-lj-c-tertiary-dim: var(--lj-c-tertiary-dim);
+	--color-lj-surf-inset: var(--lj-surf-inset);
+	--color-lj-c-secondary-bright: var(--lj-c-secondary-bright);
+	--color-lj-ring-soft: var(--lj-ring-soft);
+	--color-lj-ring-faint: var(--lj-ring-faint);
+	--color-lj-alpha-inv-5: var(--lj-alpha-inv-5);
+	--color-lj-fill-toggle: var(--lj-fill-toggle);
+	--color-lj-surf-alt: var(--lj-surf-alt);
+	--color-lj-c-muted-half: var(--lj-c-muted-half);
+	--color-lj-c-strong-soft: var(--lj-c-strong-soft);
+	--color-lj-c-tertiary-muted: var(--lj-c-tertiary-muted);
+	--color-lj-c-muted-faint: var(--lj-c-muted-faint);
+	--color-lj-surf-deep: var(--lj-surf-deep);
+	--color-lj-alpha-6: var(--lj-alpha-6);
+	--color-lj-c-strong-secondary: var(--lj-c-strong-secondary);
+	--color-lj-c-tertiary-vivid: var(--lj-c-tertiary-vivid);
+	--color-lj-b-gray: var(--lj-b-gray);
+	--color-lj-surf-fill-dim: var(--lj-surf-fill-dim);
+	--color-lj-c-on-fill: var(--lj-c-on-fill);
+	--color-lj-fill-contrast: var(--lj-fill-contrast);
+	--color-lj-alpha-6-8: var(--lj-alpha-6-8);
+	--color-lj-alpha-15: var(--lj-alpha-15);
+	--color-lj-ring-accent: var(--lj-ring-accent);
+	--color-lj-surf-raised: var(--lj-surf-raised);
+	--color-lj-surf-wash-solid: var(--lj-surf-wash-solid);
+	--color-lj-alpha-12: var(--lj-alpha-12);
+	--color-lj-surf-tint: var(--lj-surf-tint);
+	--color-lj-alpha-12-10: var(--lj-alpha-12-10);
+	--color-lj-surf-elevated: var(--lj-surf-elevated);
+	--color-lj-fill-hover: var(--lj-fill-hover);
+	--color-lj-surf-on-accent: var(--lj-surf-on-accent);
+	--color-lj-surf-neutral: var(--lj-surf-neutral);
+	--color-lj-c-secondary-dim: var(--lj-c-secondary-dim);
+	--color-lj-c-muted-ghost: var(--lj-c-muted-ghost);
+	--color-lj-alpha-10-5: var(--lj-alpha-10-5);
+	--color-lj-ring-emphasis: var(--lj-ring-emphasis);
+	--color-lj-shadow-subtle: var(--lj-shadow-subtle);
+	--color-lj-ring-subtle: var(--lj-ring-subtle);
+	--color-lj-c-secondary-half: var(--lj-c-secondary-half);
+	--color-lj-surf-mid: var(--lj-surf-mid);
+	--color-lj-b-on-accent: var(--lj-b-on-accent);
+	--color-lj-overlay-media: var(--lj-overlay-media);
+	--color-lj-overlay-media-hover: var(--lj-overlay-media-hover);
+	--color-lj-b-on-accent-hover: var(--lj-b-on-accent-hover);
+	--color-lj-alpha-5-8: var(--lj-alpha-5-8);
+	--color-lj-surf-canvas: var(--lj-surf-canvas);
+	--color-lj-surf-canvas-alt: var(--lj-surf-canvas-alt);
+	--color-lj-grad-from: var(--lj-grad-from);
+	--color-lj-grad-to: var(--lj-grad-to);
+	--color-lj-c-faint-dim: var(--lj-c-faint-dim);
+	--color-lj-c-strong-dim: var(--lj-c-strong-dim);
+	--color-lj-surf-tint-strong: var(--lj-surf-tint-strong);
+	--color-lj-c-muted-mid: var(--lj-c-muted-mid);
+	--color-lj-c-on-accent: var(--lj-c-on-accent);
+	--color-lj-c-on-accent-vivid: var(--lj-c-on-accent-vivid);
+	--color-lj-c-hint-soft: var(--lj-c-hint-soft);
+	--color-lj-overlay-backdrop: var(--lj-overlay-backdrop);
+	--color-lj-lightbox-backdrop: var(--lj-lightbox-backdrop);
+	--color-lj-c-danger: var(--lj-c-danger);
+	--color-lj-c-danger-strong: var(--lj-c-danger-strong);
+	--color-lj-c-interactive: var(--lj-c-interactive);
+	--color-lj-surf-danger-soft: var(--lj-surf-danger-soft);
+	--color-lj-c-tertiary-bright: var(--lj-c-tertiary-bright);
+	--color-lj-c-inv-disabled: var(--lj-c-inv-disabled);
+	--color-lj-surf-popover: var(--lj-surf-popover);
+	--color-lj-surf-input: var(--lj-surf-input);
+	--color-lj-surf-field: var(--lj-surf-field);
+	--color-lj-surf-field-muted: var(--lj-surf-field-muted);
+	--color-lj-surf-card-muted: var(--lj-surf-card-muted);
+	--color-lj-surf-panel-subtle: var(--lj-surf-panel-subtle);
+	--color-lj-surf-panel: var(--lj-surf-panel);
+	--color-lj-surf-panel-faint: var(--lj-surf-panel-faint);
+	--color-lj-surf-panel-soft: var(--lj-surf-panel-soft);
+	--color-lj-surf-empty: var(--lj-surf-empty);
+	--color-lj-surf-button: var(--lj-surf-button);
+	--color-lj-surf-button-subtle: var(--lj-surf-button-subtle);
+	--color-lj-surf-button-hover: var(--lj-surf-button-hover);
+	--color-lj-surf-button-hover-soft: var(--lj-surf-button-hover-soft);
+	--color-lj-surf-button-hover-faint: var(--lj-surf-button-hover-faint);
+	--color-lj-surf-segmented: var(--lj-surf-segmented);
+	--color-lj-surf-segmented-active: var(--lj-surf-segmented-active);
+	--color-lj-surf-segmented-muted: var(--lj-surf-segmented-muted);
+	--color-lj-overlay-border: var(--lj-overlay-border);
+	--color-lj-overlay-border-soft: var(--lj-overlay-border-soft);
+	--color-lj-overlay-surface: var(--lj-overlay-surface);
+	--color-lj-overlay-surface-soft: var(--lj-overlay-surface-soft);
+	--color-lj-overlay-surface-panel: var(--lj-overlay-surface-panel);
+	--color-lj-overlay-text: var(--lj-overlay-text);
+	--color-lj-overlay-text-soft: var(--lj-overlay-text-soft);
+	--color-lj-overlay-text-muted: var(--lj-overlay-text-muted);
+	--color-lj-overlay-text-dim: var(--lj-overlay-text-dim);
+	--color-lj-overlay-text-strong: var(--lj-overlay-text-strong);
+}
+
+body {
+	& .workspace-leaf:has(.lucrjournal-dashboard-view) .view-header {
+		display: none;
+	}
+
+	& .workspace-leaf:has(.lucrjournal-view) .view-content {
+		padding: 0;
+	}
+
+	& .metadata-property[data-property-key="lucr_type"].is-lucrjournal-readonly-property .metadata-property-key,
+	& .metadata-property[data-property-key="lucr_type"].is-lucrjournal-readonly-property .metadata-property-value {
+		pointer-events: none;
+	}
+
+	& .metadata-property[data-property-key="lucr_type"].is-lucrjournal-readonly-property .metadata-property-value {
+		display: flex;
+		align-items: center;
+	}
+
+	& .metadata-property[data-property-key="lucr_type"].is-lucrjournal-readonly-property .lucrjournal-lucr-type-icon {
+		display: flex;
+		color: var(--text-muted);
+	}
+
+	& .metadata-property[data-property-key="lucr_type"].is-lucrjournal-readonly-property .lucrjournal-lucr-type-icon > span {
+		display: flex;
+	}
+}
+
+.lj-scrollbar-hidden {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+}
+
+.lj-scrollbar-hidden::-webkit-scrollbar {
+	display: none;
+	inline-size: 0;
+	block-size: 0;
+}
+
+.lucrjournal-view {
+	padding: 16px;
+	background-color: var(--lj-bg);
+	block-size: 100%;
+	overflow-y: auto;
+	line-height: normal;
+	color-scheme: dark;
+
+	--lj-bg: #030303;
+	--lj-text: #eaeaea;
+	--lj-text-secondary: rgba(234, 234, 234, 0.7);
+	--lj-text-muted: rgba(234, 234, 234, 0.4);
+	--lj-text-faint: rgba(234, 234, 234, 0.2);
+	--lj-border: rgba(255, 255, 255, 0.1);
+	--lj-profit-text: #ffffff;
+	--lj-loss-text: rgba(255, 255, 255, 0.3);
+	--lj-circle-track: rgba(255, 255, 255, 0.05);
+	--lj-circle-stroke: #ffffff;
+	--lj-btn-bg: #ffffff;
+	--lj-btn-text: #000000;
+	--lj-btn-text-muted: rgba(0, 0, 0, 0.4);
+	--lj-weekly-bg: #0a0a0a;
+	--lj-calendar-grid-line: rgba(255, 255, 255, 0.04);
+	--lj-calendar-header-bg: #0a0a0a;
+	--lj-calendar-header-text: rgba(255, 255, 255, 0.3);
+	--lj-calendar-cell-bg: #030303;
+	--lj-calendar-cell-hover: rgba(255, 255, 255, 0.03);
+	--lj-profit-dot: #ffffff;
+	--lj-loss-dot: rgba(255, 255, 255, 0.2);
+	--lj-pnl-loss: rgba(255, 255, 255, 0.3);
+	--lj-playbook-border: rgba(255, 255, 255, 0.12);
+	--lj-hover-bg: rgba(255, 255, 255, 0.05);
+	--lj-c-strong: #ffffff;
+	--lj-alpha-10: rgba(255, 255, 255, 0.1);
+	--lj-c-muted: rgba(255, 255, 255, 0.4);
+	--lj-c-hint: rgba(255, 255, 255, 0.3);
+	--lj-alpha-5: rgba(255, 255, 255, 0.05);
+	--lj-c-secondary: rgba(255, 255, 255, 0.7);
+	--lj-c-tertiary: rgba(255, 255, 255, 0.6);
+	--lj-c-inv: #000000;
+	--lj-alpha-5-10: rgba(255, 255, 255, 0.1);
+	--lj-c-hint-vivid: rgba(255, 255, 255, 0.4);
+	--lj-c-hint-dim: rgba(255, 255, 255, 0.25);
+	--lj-alpha-20: rgba(255, 255, 255, 0.2);
+	--lj-c-muted-vivid: rgba(255, 255, 255, 0.45);
+	--lj-surf: #0a0a0a;
+	--lj-c-disabled: rgba(255, 255, 255, 0.2);
+	--lj-c-secondary-vivid: rgba(255, 255, 255, 0.75);
+	--lj-alpha-8: rgba(255, 255, 255, 0.08);
+	--lj-c-muted-dim: rgba(255, 255, 255, 0.35);
+	--lj-c-secondary-max: #ffffff;
+	--lj-c-hint-faint: rgba(255, 255, 255, 0.2);
+	--lj-alpha-8-10: rgba(255, 255, 255, 0.1);
+	--lj-c-muted-bright: rgba(255, 255, 255, 0.6);
+	--lj-fill-contrast-soft: #f3f4f6;
+	--lj-c-hint-mid: rgba(255, 255, 255, 0.35);
+	--lj-c-tertiary-dim: rgba(255, 255, 255, 0.45);
+	--lj-surf-inset: #0a0a0a;
+	--lj-c-secondary-bright: rgba(255, 255, 255, 0.8);
+	--lj-ring-soft: rgba(255, 255, 255, 0.15);
+	--lj-ring-faint: rgba(255, 255, 255, 0.1);
+	--lj-alpha-inv-5: rgba(0, 0, 0, 0.05);
+	--lj-fill-toggle: #e5e7eb;
+	--lj-surf-alt: #111;
+	--lj-c-muted-half: rgba(255, 255, 255, 0.5);
+	--lj-c-strong-soft: rgba(255, 255, 255, 0.8);
+	--lj-c-tertiary-muted: rgba(255, 255, 255, 0.4);
+	--lj-c-muted-faint: rgba(255, 255, 255, 0.2);
+	--lj-surf-deep: #0b0b0b;
+	--lj-alpha-6: rgba(255, 255, 255, 0.06);
+	--lj-c-strong-secondary: rgba(255, 255, 255, 0.7);
+	--lj-c-tertiary-vivid: rgba(255, 255, 255, 0.65);
+	--lj-b-gray: rgba(255, 255, 255, 0.1);
+	--lj-surf-fill-dim: rgba(255, 255, 255, 0.05);
+	--lj-c-on-fill: #ffffff;
+	--lj-fill-contrast: #ffffff;
+	--lj-alpha-6-8: rgba(255, 255, 255, 0.08);
+	--lj-alpha-15: rgba(255, 255, 255, 0.15);
+	--lj-ring-accent: rgba(255, 255, 255, 0.2);
+	--lj-surf-raised: #121212;
+	--lj-surf-wash-solid: #121212;
+	--lj-alpha-12: rgba(255, 255, 255, 0.12);
+	--lj-surf-tint: rgba(255, 255, 255, 0.05);
+	--lj-alpha-12-10: rgba(255, 255, 255, 0.1);
+	--lj-surf-elevated: #141414;
+	--lj-fill-hover: #1a1a1a;
+	--lj-surf-on-accent: rgba(0, 0, 0, 0.1);
+	--lj-surf-neutral: #171717;
+	--lj-c-secondary-dim: rgba(255, 255, 255, 0.6);
+	--lj-c-muted-ghost: rgba(255, 255, 255, 0.3);
+	--lj-alpha-10-5: rgba(255, 255, 255, 0.05);
+	--lj-ring-emphasis: rgba(255, 255, 255, 0.2);
+	--lj-shadow-subtle: rgba(255, 255, 255, 0.05);
+	--lj-ring-subtle: rgba(255, 255, 255, 0.1);
+	--lj-c-secondary-half: rgba(255, 255, 255, 0.5);
+	--lj-surf-mid: #0f0f0f;
+	--lj-b-on-accent: rgba(255, 255, 255, 0.12);
+	--lj-overlay-media: rgba(255, 255, 255, 0.1);
+	--lj-overlay-media-hover: rgba(255, 255, 255, 0.14);
+	--lj-b-on-accent-hover: rgba(255, 255, 255, 0.18);
+	--lj-alpha-5-8: rgba(255, 255, 255, 0.08);
+	--lj-surf-canvas: #030303;
+	--lj-surf-canvas-alt: #050505;
+	--lj-grad-from: rgba(0, 0, 0, 0.1);
+	--lj-grad-to: rgba(0, 0, 0, 0.28);
+	--lj-c-faint-dim: rgba(255, 255, 255, 0.1);
+	--lj-c-strong-dim: rgba(255, 255, 255, 0.8);
+	--lj-surf-tint-strong: rgba(255, 255, 255, 0.1);
+	--lj-c-muted-mid: rgba(255, 255, 255, 0.42);
+	--lj-c-on-accent: rgba(255, 255, 255, 0.28);
+	--lj-c-on-accent-vivid: rgba(255, 255, 255, 0.32);
+	--lj-c-hint-soft: rgba(255, 255, 255, 0.28);
+	--lj-overlay-backdrop: rgba(0, 0, 0, 0.6);
+	--lj-lightbox-backdrop: rgba(0, 0, 0, 0.95);
+	--lj-c-danger: rgba(255, 107, 107, 0.88);
+	--lj-c-danger-strong: rgba(255, 138, 138, 0.98);
+	--lj-c-warning: #c88a11;
+	--lj-c-success: #0b8f52;
+	--lj-c-interactive: #818cf8;
+	--lj-surf-danger-soft: rgba(255, 107, 107, 0.1);
+	--lj-surf-warning-soft: rgba(245, 190, 59, 0.18);
+	--lj-surf-success-soft: rgba(52, 211, 153, 0.16);
+	--lj-c-tertiary-bright: rgba(255, 255, 255, 0.7);
+	--lj-c-inv-disabled: rgba(0, 0, 0, 0.4);
+	--lj-surf-popover: rgba(10, 10, 10, 0.95);
+	--lj-surf-input: rgba(255, 255, 255, 0.03);
+	--lj-surf-field: rgba(255, 255, 255, 0.04);
+	--lj-surf-field-muted: rgba(255, 255, 255, 0.05);
+	--lj-surf-card-muted: rgba(255, 255, 255, 0.06);
+	--lj-surf-panel-subtle: rgba(255, 255, 255, 0.02);
+	--lj-surf-panel: rgba(255, 255, 255, 0.03);
+	--lj-surf-panel-faint: rgba(255, 255, 255, 0.02);
+	--lj-surf-panel-soft: rgba(255, 255, 255, 0.04);
+	--lj-surf-empty: rgba(255, 255, 255, 0.03);
+	--lj-surf-button: rgba(255, 255, 255, 0.04);
+	--lj-surf-button-subtle: rgba(255, 255, 255, 0.04);
+	--lj-surf-button-hover: rgba(255, 255, 255, 0.08);
+	--lj-surf-button-hover-soft: rgba(255, 255, 255, 0.06);
+	--lj-surf-button-hover-faint: rgba(255, 255, 255, 0.04);
+	--lj-surf-segmented: rgba(255, 255, 255, 0.03);
+	--lj-surf-segmented-active: rgba(255, 255, 255, 0.05);
+	--lj-surf-segmented-muted: rgba(255, 255, 255, 0.02);
+	--lj-overlay-border: rgba(255, 255, 255, 0.1);
+	--lj-overlay-border-soft: rgba(255, 255, 255, 0.08);
+	--lj-overlay-surface: rgba(0, 0, 0, 0.26);
+	--lj-overlay-surface-soft: rgba(0, 0, 0, 0.24);
+	--lj-overlay-surface-panel: rgba(0, 0, 0, 0.22);
+	--lj-overlay-text: rgba(255, 255, 255, 0.8);
+	--lj-overlay-text-soft: rgba(255, 255, 255, 0.74);
+	--lj-overlay-text-muted: rgba(255, 255, 255, 0.75);
+	--lj-overlay-text-dim: rgba(255, 255, 255, 0.4);
+	--lj-overlay-text-strong: rgba(255, 255, 255, 0.92);
+
+	.theme-light & {
+		color-scheme: light;
+
+		--lj-bg: #f5f5f5;
+		--lj-text: #111111;
+		--lj-text-secondary: rgba(17, 17, 17, 0.7);
+		--lj-text-muted: rgba(17, 17, 17, 0.4);
+		--lj-text-faint: rgba(17, 17, 17, 0.2);
+		--lj-border: rgba(0, 0, 0, 0.1);
+		--lj-profit-text: #111111;
+		--lj-loss-text: rgba(17, 17, 17, 0.38);
+		--lj-circle-track: rgba(0, 0, 0, 0.05);
+		--lj-circle-stroke: #111111;
+		--lj-btn-bg: #111111;
+		--lj-btn-text: #ffffff;
+		--lj-btn-text-muted: rgba(255, 255, 255, 0.5);
+		--lj-weekly-bg: #f9fafb;
+		--lj-calendar-grid-line: rgba(0, 0, 0, 0.05);
+		--lj-calendar-header-bg: #f9fafb;
+		--lj-calendar-header-text: #6b7280;
+		--lj-calendar-cell-bg: #ffffff;
+		--lj-calendar-cell-hover: #f9fafb;
+		--lj-profit-dot: #111111;
+		--lj-loss-dot: rgba(17, 17, 17, 0.22);
+		--lj-pnl-loss: rgba(17, 17, 17, 0.38);
+		--lj-playbook-border: rgba(0, 0, 0, 0.12);
+		--lj-hover-bg: rgba(0, 0, 0, 0.05);
+		--lj-c-strong: #111827;
+		--lj-alpha-10: rgba(0, 0, 0, 0.1);
+		--lj-c-muted: #6b7280;
+		--lj-c-hint: #9ca3af;
+		--lj-alpha-5: rgba(0, 0, 0, 0.05);
+		--lj-c-secondary: #374151;
+		--lj-c-tertiary: #4b5563;
+		--lj-c-inv: #ffffff;
+		--lj-alpha-5-10: rgba(0, 0, 0, 0.05);
+		--lj-c-hint-vivid: #9ca3af;
+		--lj-c-hint-dim: #9ca3af;
+		--lj-alpha-20: rgba(0, 0, 0, 0.2);
+		--lj-c-muted-vivid: #6b7280;
+		--lj-surf: #ffffff;
+		--lj-c-disabled: #d1d5db;
+		--lj-c-secondary-vivid: #374151;
+		--lj-alpha-8: rgba(0, 0, 0, 0.08);
+		--lj-c-muted-dim: #6b7280;
+		--lj-c-secondary-max: #374151;
+		--lj-c-hint-faint: #9ca3af;
+		--lj-alpha-8-10: rgba(0, 0, 0, 0.08);
+		--lj-c-muted-bright: #6b7280;
+		--lj-fill-contrast-soft: #000000;
+		--lj-c-hint-mid: #9ca3af;
+		--lj-c-tertiary-dim: #4b5563;
+		--lj-surf-inset: rgba(249, 250, 251, 0.8);
+		--lj-c-secondary-bright: #374151;
+		--lj-ring-soft: rgba(17, 24, 39, 0.15);
+		--lj-ring-faint: rgba(17, 24, 39, 0.05);
+		--lj-alpha-inv-5: rgba(255, 255, 255, 0.1);
+		--lj-fill-toggle: #d1d5db;
+		--lj-surf-alt: #ffffff;
+		--lj-c-muted-half: #6b7280;
+		--lj-c-strong-soft: #111827;
+		--lj-c-tertiary-muted: #4b5563;
+		--lj-c-muted-faint: #6b7280;
+		--lj-surf-deep: #ffffff;
+		--lj-alpha-6: rgba(0, 0, 0, 0.06);
+		--lj-c-strong-secondary: #111827;
+		--lj-c-tertiary-vivid: #4b5563;
+		--lj-b-gray: #e5e7eb;
+		--lj-surf-fill-dim: #f3f4f6;
+		--lj-c-on-fill: #ffffff;
+		--lj-fill-contrast: #000000;
+		--lj-alpha-6-8: rgba(0, 0, 0, 0.06);
+		--lj-alpha-15: rgba(0, 0, 0, 0.15);
+		--lj-ring-accent: rgba(17, 24, 39, 0.15);
+		--lj-surf-raised: #ffffff;
+		--lj-surf-wash-solid: rgba(249, 250, 251, 0.95);
+		--lj-alpha-12: rgba(0, 0, 0, 0.12);
+		--lj-surf-tint: #ffffff;
+		--lj-alpha-12-10: rgba(0, 0, 0, 0.12);
+		--lj-surf-elevated: #ffffff;
+		--lj-fill-hover: #f3f4f6;
+		--lj-surf-on-accent: rgba(255, 255, 255, 0.2);
+		--lj-surf-neutral: #ffffff;
+		--lj-c-secondary-dim: #374151;
+		--lj-c-muted-ghost: #6b7280;
+		--lj-alpha-10-5: rgba(0, 0, 0, 0.1);
+		--lj-ring-emphasis: rgba(17, 24, 39, 0.2);
+		--lj-shadow-subtle: rgba(17, 24, 39, 0.1);
+		--lj-ring-subtle: rgba(17, 24, 39, 0.1);
+		--lj-c-secondary-half: #374151;
+		--lj-surf-mid: #ffffff;
+		--lj-b-on-accent: rgba(255, 255, 255, 0.18);
+		--lj-overlay-media: rgba(0, 0, 0, 0.72);
+		--lj-overlay-media-hover: rgba(0, 0, 0, 0.82);
+		--lj-b-on-accent-hover: rgba(255, 255, 255, 0.24);
+		--lj-alpha-5-8: rgba(0, 0, 0, 0.05);
+		--lj-surf-canvas: #f2f4f7;
+		--lj-surf-canvas-alt: #eef2f6;
+		--lj-grad-from: rgba(0, 0, 0, 0.05);
+		--lj-grad-to: rgba(0, 0, 0, 0.16);
+		--lj-c-faint-dim: #d1d5db;
+		--lj-c-strong-dim: #1f2937;
+		--lj-surf-tint-strong: #ffffff;
+		--lj-c-muted-mid: #6b7280;
+		--lj-c-on-accent: rgba(255, 255, 255, 0.48);
+		--lj-c-on-accent-vivid: rgba(255, 255, 255, 0.68);
+		--lj-c-hint-soft: #9ca3af;
+		--lj-overlay-backdrop: rgba(0, 0, 0, 0.4);
+		--lj-lightbox-backdrop: rgba(0, 0, 0, 0.94);
+		--lj-c-danger: #d14343;
+		--lj-c-danger-strong: #b52f2f;
+		--lj-c-warning: #b7791f;
+		--lj-c-success: #0f8a4b;
+		--lj-c-interactive: #4f46e5;
+		--lj-surf-danger-soft: rgba(209, 67, 67, 0.08);
+		--lj-surf-warning-soft: rgba(245, 190, 59, 0.34);
+		--lj-surf-success-soft: rgba(16, 185, 129, 0.18);
+		--lj-c-tertiary-bright: #4b5563;
+		--lj-c-inv-disabled: rgba(255, 255, 255, 0.5);
+		--lj-surf-popover: rgba(255, 255, 255, 0.95);
+		--lj-surf-input: #ffffff;
+		--lj-surf-field: rgba(249, 250, 251, 0.8);
+		--lj-surf-field-muted: #f9fafb;
+		--lj-surf-card-muted: #f3f4f6;
+		--lj-surf-panel-subtle: rgba(249, 250, 251, 0.5);
+		--lj-surf-panel: rgba(249, 250, 251, 0.7);
+		--lj-surf-panel-faint: rgba(255, 255, 255, 0.5);
+		--lj-surf-panel-soft: rgba(255, 255, 255, 0.8);
+		--lj-surf-empty: rgba(255, 255, 255, 0.6);
+		--lj-surf-button: #ffffff;
+		--lj-surf-button-subtle: rgba(255, 255, 255, 0.8);
+		--lj-surf-button-hover: rgba(0, 0, 0, 0.05);
+		--lj-surf-button-hover-soft: rgba(0, 0, 0, 0.03);
+		--lj-surf-button-hover-faint: rgba(0, 0, 0, 0.01);
+		--lj-surf-segmented: rgba(0, 0, 0, 0.03);
+		--lj-surf-segmented-active: rgba(0, 0, 0, 0.04);
+		--lj-surf-segmented-muted: rgba(0, 0, 0, 0.015);
+		--lj-overlay-border: rgba(255, 255, 255, 0.1);
+		--lj-overlay-border-soft: rgba(255, 255, 255, 0.08);
+		--lj-overlay-surface: rgba(0, 0, 0, 0.26);
+		--lj-overlay-surface-soft: rgba(0, 0, 0, 0.24);
+		--lj-overlay-surface-panel: rgba(0, 0, 0, 0.22);
+		--lj-overlay-text: rgba(255, 255, 255, 0.8);
+		--lj-overlay-text-soft: rgba(255, 255, 255, 0.74);
+		--lj-overlay-text-muted: rgba(255, 255, 255, 0.75);
+		--lj-overlay-text-dim: rgba(255, 255, 255, 0.4);
+		--lj-overlay-text-strong: rgba(255, 255, 255, 0.92);
+	}
+
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+
+	:where(h1, h2, h3, h4, h5, h6) {
+		all: unset;
+		display: block;
+	}
+
+	:where(h1, h2, h3, h4, h5, h6)::before {
+		content: none !important;
+		display: none !important;
+	}
+
+	:is(.heading-collapse-indicator, .collapse-indicator) {
+		display: none !important;
+	}
+
+	:where(input, textarea, select) {
+		font: inherit;
+		color: inherit;
+		outline: none;
+		box-shadow: none;
+		-webkit-appearance: none;
+		appearance: none;
+	}
+
+	:is(button, button:not(.clickable-icon)) {
+		cursor: pointer;
+		pointer-events: auto;
+		margin: 0;
+		border: 0;
+		padding: 0;
+		border-radius: 0;
+		background: none;
+		background-color: transparent;
+		font: inherit;
+		color: inherit;
+		line-height: inherit;
+		outline: none;
+		box-shadow: none;
+		-webkit-appearance: none;
+		appearance: none;
+	}
+
+	input::placeholder {
+		color: var(--lj-color-gray-500);
+		opacity: 1;
+	}
+
+	table {
+		border-collapse: collapse;
+		border-spacing: 0;
+	}
+
+	:where(th, td) {
+		padding: 0;
+		border: 0;
+		background: none;
+		font-weight: inherit;
+		text-align: start;
+	}
+
+	nav {
+		all: unset;
+		display: flex;
+	}
+
+	.lj-tab-nav {
+		position: relative;
+	}
+
+	.lj-tab-indicator {
+		position: absolute;
+		left: 0;
+		bottom: 0;
+		height: 2px;
+		background: var(--lj-text);
+		transition:
+			transform 360ms cubic-bezier(0.16, 1, 0.3, 1) 70ms,
+			width 360ms cubic-bezier(0.16, 1, 0.3, 1) 70ms,
+			opacity 180ms ease;
+		pointer-events: none;
+	}
+
+	.lj-modal-open & {
+		overflow: hidden;
+	}
+
+	svg {
+		display: inline-block;
+		vertical-align: middle;
+	}
+
+	.lj-embedded-editor-content {
+		block-size: 100%;
+		inline-size: 100%;
+		--file-margins: 16px;
+		--view-top-spacing: 0px;
+		--view-top-spacing-markdown: var(--file-margins);
+	}
+
+	.lj-embedded-editor-content.view-content {
+		background-color: transparent !important;
+		background-image: none !important;
+	}
+
+	.lj-embedded-editor-content :where(.inline-title, .inline-title-input, .inline-title-row) {
+		display: none !important;
+	}
+
+	.lj-embedded-editor-content :where(.cm-contentContainer) {
+		padding-block-start: 0;
+	}
+
+}
+
+.lj-modal-surface-shadow {
+	box-shadow: 0 20px 48px rgba(0, 0, 0, 0.14);
+}
+
+.lucrjournal-release-notes {
+	max-height: min(70vh, 42rem);
+	overflow-y: auto;
+}
+
+.lucrjournal-release-notes-footer {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 1.5rem;
+}
+
+.lj-status-dot-highlight-glow {
+	box-shadow: 0 0 8px rgba(17, 17, 17, 0.4);
+}
+
+.theme-dark .lj-status-dot-highlight-glow {
+	box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+.lj-dashboard-floating-nav-shell {
+	box-shadow: 0 0 40px rgba(0, 0, 0, 0.15);
+}
+
+.lj-dashboard-floating-nav-shell:hover {
+	box-shadow: 0 0 60px rgba(0, 0, 0, 0.25);
+}
+
+.theme-dark .lj-dashboard-floating-nav-shell {
+	box-shadow: 0 0 40px rgba(255, 255, 255, 0.15);
+}
+
+.theme-dark .lj-dashboard-floating-nav-shell:hover {
+	box-shadow: 0 0 60px rgba(255, 255, 255, 0.25);
+}
+
+	.lj-dashboard-header-elevated {
+		box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+	}
+
+	.lj-calendar-grid-cell {
+		box-shadow: inset -1px 0 0 var(--lj-calendar-grid-line), inset 0 -1px 0 var(--lj-calendar-grid-line);
+	}
+
+	.theme-dark .lj-dashboard-header-elevated {
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+	}
+
+.lj-dashboard-playbook-card-shadow {
+	box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.lj-dashboard-playbook-card-shadow:hover {
+	box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+}
+
+.theme-dark .lj-dashboard-playbook-card-shadow:hover {
+	box-shadow: 0 18px 44px rgba(0, 0, 0, 0.35);
+}
+
+.lj-dashboard-meta-tab-shadow {
+	box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+}
+
+.lj-dashboard-hero-ring-glow {
+	filter: drop-shadow(0 0 12px rgba(0, 0, 0, 0.3));
+}
+
+.theme-dark .lj-dashboard-hero-ring-glow {
+	filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.3));
+}
+
+.lj-position-details-media-vignette {
+	background: radial-gradient(circle at center, transparent 18%, rgba(255, 255, 255, 0.5) 100%);
+}
+
+.theme-dark .lj-position-details-media-vignette {
+	background: radial-gradient(circle at center, transparent 18%, rgba(0, 0, 0, 0.42) 100%);
+}
+
+.lj-position-details-media-image-shadow {
+	box-shadow: 0 24px 54px rgba(15, 23, 42, 0.18);
+}
+
+.theme-dark .lj-position-details-media-image-shadow {
+	box-shadow: 0 28px 70px rgba(0, 0, 0, 0.42);
+}
+
+.lj-position-details-media-carousel {
+	opacity: 1;
+	visibility: visible;
+	transform: translateY(0);
+	transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
+}
+
+.lj-position-details-media-carousel-pill {
+	min-height: 44px;
+	border: 1px solid rgba(255, 255, 255, 0.06);
+	border-radius: 999px;
+	padding: 0 8px;
+	background: rgba(10, 10, 10, 0.86);
+	color: rgba(255, 255, 255, 0.94);
+	backdrop-filter: blur(18px);
+	box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+.lj-position-details-media-carousel-pill button {
+	color: rgba(255, 255, 255, 0.72);
+}
+
+.lj-position-details-media-carousel-pill button:hover,
+.lj-position-details-media-carousel-pill button:focus-visible {
+	background: rgba(255, 255, 255, 0.08);
+	color: rgba(255, 255, 255, 0.98);
+}
+
+.lj-position-details-media-carousel-counter {
+	color: rgba(255, 255, 255, 0.84);
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.lj-position-details-media-carousel {
+		opacity: 0;
+		visibility: hidden;
+		transform: translateY(8px);
+	}
+
+	.lj\:group:hover .lj-position-details-media-carousel,
+	.lj\:group:focus-within .lj-position-details-media-carousel {
+		opacity: 1;
+		visibility: visible;
+		transform: translateY(0);
+	}
+}
+
+.theme-dark .lj-position-details-media-carousel-pill {
+	border-color: rgba(255, 255, 255, 0.08);
+	background: rgba(5, 5, 5, 0.88);
+	box-shadow: 0 22px 48px rgba(0, 0, 0, 0.42);
+}
+
+/* === Bundled Fonts === */
+@font-face {
+	font-family: 'Inter Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/inter/files/inter-latin-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+@font-face {
+	font-family: 'JetBrains Mono Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 800;
+	src: url('@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+/*
+ * Bundled Simplified Chinese subset derived from the repo's current zh docs
+ * and user-facing copy. Characters outside these ranges fall back to system CJK fonts.
+ */
+@font-face {
+	font-family: 'Noto Sans SC Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/noto-sans-sc/files/noto-sans-sc-86-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+279F-27A2,U+27A4-27A5,U+27A8,U+27B0,U+27B2-27B3,U+27B9,U+27E8-27E9,U+27F6,U+2800,U+28EC,U+2913,U+2921-2922,U+2934-2935,U+2A2F,U+2B05-2B07,U+2B50,U+2B55,U+2BC5-2BC6,U+2E1C-2E1D,U+2EBB,U+2F00,U+2F08,U+2F24,U+2F2D,U+2F2F-2F30,U+2F3C,U+2F45,U+2F63-2F64,U+2F74,U+2F83,U+2F8F,U+2FBC,U+3003,U+3005-3007,U+3012-3013,U+301C-301E,U+3021,U+3023-3024,U+3030,U+3034-3035,U+3041,U+3043,U+3045,U+3047,U+3049,U+3056,U+3058,U+305C,U+305E,U+3062,U+306C,U+3074,U+3077,U+307A,U+307C-307D,U+3080,U+308E,U+3090-3091,U+3099-309B,U+309D-309E,U+30A5,U+30BC,U+30BE,U+30C2,U+30C5,U+30CC,U+30D8,U+30E2,U+30E8,U+30EE,U+30F0-30F2,U+30F4-30F6,U+30FD-30FE,U+3105-3126,U+3128;
+}
+
+@font-face {
+	font-family: 'Noto Sans SC Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/noto-sans-sc/files/noto-sans-sc-87-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+2651-2655,U+2658,U+265A-265B,U+265D-265E,U+2660-266D,U+266F,U+267B,U+2688,U+2693-2696,U+2698-2699,U+269C,U+26A0-26A1,U+26A4,U+26AA-26AB,U+26BD-26BE,U+26C4-26C5,U+26D4,U+26E9,U+26F0-26F1,U+26F3,U+26F5,U+26FD,U+2702,U+2704-2706,U+2708-270F,U+2712-2718,U+271A-271B,U+271D,U+271F,U+2721,U+2724-2730,U+2732-2734,U+273A,U+273D-2744,U+2747-2749,U+274C,U+274E-274F,U+2753-2757,U+275B,U+275D-275E,U+2763,U+2765-2767,U+276E-276F,U+2776-277E,U+2780-2782,U+278A-278C,U+278E,U+2794-2796,U+279C;
+}
+
+@font-face {
+	font-family: 'Noto Sans SC Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/noto-sans-sc/files/noto-sans-sc-89-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+23F0,U+23F3,U+2445,U+2449,U+2465-2471,U+2474-249B,U+24B8,U+24C2,U+24C7,U+24C9,U+24D0,U+24D2,U+24D4,U+24D8,U+24DD-24DE,U+24E3,U+24E6,U+24E8,U+2500-2509,U+250B-2526,U+2528-2534,U+2536-2537,U+253B-2548,U+254A-254B;
+}
+
+@font-face {
+	font-family: 'Noto Sans SC Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/noto-sans-sc/files/noto-sans-sc-101-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+0161,U+0926,U+0928,U+0939,U+093F-0940,U+094D,U+0E17,U+0E22,U+0E44,U+25C7,U+25CE,U+2764,U+3009,U+3016-3017,U+4E4D,U+4E53,U+4F5A,U+4F70,U+4FAE,U+4FD8,U+4FFA,U+5011,U+501A,U+51C4,U+5225,U+547B,U+5495,U+54E8,U+54EE,U+5594,U+55D3,U+55DC,U+55FD,U+560E,U+565C,U+5662,U+5669,U+566C,U+56BC,U+5742,U+5824,U+5834,U+598A,U+5992,U+59A9,U+5A04,U+5AC9,U+5B75,U+5B7D,U+5BC5,U+5C49,U+5C90,U+5E1C,U+5E27,U+5E2B,U+5E37,U+5E90,U+618B,U+61F5,U+620A,U+620C,U+6273,U+62C7,U+62F7,U+6320,U+6342,U+6401-6402,U+6413,U+6512,U+655B,U+65A7,U+65F1,U+65F7,U+665F,U+6687,U+66A7,U+673D,U+67B8,U+6854,U+68D8,U+68FA,U+696D,U+6A02,U+6A0A,U+6A80,U+6B7C,U+6BD9,U+6C2E,U+6C76,U+6CF8,U+6D4A,U+6D85,U+6E24,U+6E32,U+6EC7,U+6F88,U+700F,U+701A,U+7078,U+707C,U+70AC,U+70C1,U+72E9,U+7409,U+7422,U+745A,U+7480,U+74A8,U+752B,U+7574,U+7656,U+7699,U+7737,U+785D,U+78BE,U+79B9,U+7A3D,U+7A91,U+7A9F,U+7AE3,U+7B77,U+7C3F,U+7D1A,U+7D50,U+7D93,U+8042,U+808B,U+8236,U+82B8-82B9,U+82EF,U+8309,U+836B,U+83EF,U+8431,U+85C9,U+865E,U+868C,U+8759,U+8760,U+8845,U+89BA,U+8A2A,U+8AAA,U+8C41,U+8D2C,U+8D4E,U+8E66,U+8E6D,U+8EAF,U+902E,U+914B,U+916E,U+919B,U+949B,U+94A0,U+94B0,U+9541-9542,U+9556,U+95EB,U+95F5,U+964B,U+968B,U+96CC-96CD,U+96CF,U+9713,U+9890,U+98A8,U+9985,U+9992,U+9A6D,U+9A81,U+9A86,U+9AB8,U+9CA4,U+E606-E607,U+E60A,U+E60C,U+E60E,U+FE0F,U+FF02,U+FF1E;
+}
+
+@font-face {
+	font-family: 'Noto Sans SC Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/noto-sans-sc/files/noto-sans-sc-104-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+2003,U+2193,U+2462,U+4E19,U+4E2B,U+4E36,U+4EA8,U+4ED1,U+4ED7,U+4F51,U+4F63,U+4F83,U+50E7,U+5112,U+5167,U+51A4,U+51B6,U+5239,U+5265,U+532A,U+5351,U+537F,U+5401,U+548F,U+5492,U+54AF,U+54B3,U+54BD,U+54D1,U+54DF,U+554F,U+5564,U+5598,U+5632,U+56A3,U+56E7,U+574E,U+575D-575E,U+57D4,U+584C,U+58E4,U+5937,U+5955,U+5A05,U+5A1F,U+5A49,U+5AC2,U+5C39,U+5C61,U+5D0E,U+5DE9,U+5E9A,U+5EB8,U+5F0A,U+5F13,U+5F6C,U+5F8C,U+603C,U+608D,U+611B,U+6127,U+62A0,U+62D0,U+634F,U+635E,U+63FD,U+6577,U+658B,U+65BC,U+660A,U+6643,U+6656,U+6703,U+6760,U+67AF,U+67C4,U+67E0,U+6817,U+68CD,U+690E,U+6960,U+69B4,U+6A71,U+6AAC,U+6B67,U+6BB4,U+6C55,U+6C70,U+6C82,U+6CA6,U+6CB8,U+6CBE,U+6EDE,U+6EE5,U+6F4D,U+6F84,U+6F9C,U+7115,U+7121,U+722A,U+7261,U+7272,U+7280,U+72F8,U+7504,U+754F,U+75D8,U+767C,U+76EF,U+778E,U+77BB,U+77F6,U+786B,U+78B1,U+7948,U+7985,U+79BE,U+7A83,U+7A8D,U+7EAC,U+7EEF,U+7EF8,U+7EFD,U+7F00,U+803D,U+8086,U+810A,U+8165,U+819D,U+81A8,U+8214,U+829C,U+831C,U+832B,U+8367,U+83E0,U+83F1,U+8403,U+846B,U+8475,U+84B2,U+8513,U+8574,U+85AF,U+86D9,U+86DB,U+8ACB,U+8BBD,U+8BE0-8BE1,U+8C0E,U+8D29,U+8D50,U+8D63,U+8F7F,U+9032,U+9042,U+90B1,U+90B5,U+9165,U+9175,U+94A6,U+94C5,U+950C,U+9610,U+9631,U+9699,U+973E,U+978D,U+97EC,U+97F6,U+984C,U+987D,U+9882,U+9965,U+996A,U+9972,U+9A8F,U+9AD3,U+9AE6,U+9CB8,U+9EDB,U+E600,U+E60F,U+E611,U+FF05,U+FF0B;
+}
+
+@font-face {
+	font-family: 'Noto Sans SC Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/noto-sans-sc/files/noto-sans-sc-106-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+00B0,U+2191,U+2460-2461,U+25C6,U+300E-300F,U+4E1B,U+4E7E,U+4ED5,U+4EF2,U+4F10,U+4F1E,U+4F50,U+4FA6,U+4FAF,U+5021,U+50F5,U+5179,U+5180,U+51D1,U+522E,U+52A3,U+52C3,U+52CB,U+5300,U+5319,U+5320,U+5349,U+5395,U+53D9,U+541E,U+5428,U+543E,U+54B1,U+54C0,U+54D2,U+570B,U+5858,U+58F6,U+5974,U+59A5,U+59E8,U+59EC,U+5A36,U+5A9A,U+5AB3,U+5B99,U+5BAA,U+5CE1,U+5D14,U+5D4C,U+5DC5,U+5DE2,U+5E99,U+5E9E,U+5F18,U+5F66,U+5F70,U+6070,U+60D5,U+60E7,U+6101,U+611A,U+61BE,U+6241,U+6252,U+626F,U+6296,U+62BC,U+62CC,U+6380,U+63A9,U+644A,U+6454,U+64A9,U+64B8,U+6500,U+6572,U+65A5,U+65A9,U+65EC,U+660F,U+6749,U+6795,U+67AB,U+68DA,U+6912,U+6BBF,U+6BEF,U+6CAB,U+6CCA,U+6CCC,U+6CFC,U+6D3D,U+6D78,U+6DEE,U+6E17,U+6E34,U+6E83,U+6EA2,U+6EB6,U+6F20,U+6FA1,U+707F,U+70D8,U+70EB,U+714C,U+714E,U+7235,U+7239,U+73CA,U+743C,U+745C,U+7624,U+763E,U+76F2,U+77DB,U+77E9,U+780D,U+7838,U+7845,U+78CA,U+796D,U+7A84,U+7AED,U+7B3C,U+7EB2,U+7F05,U+7F20,U+7F34,U+7F62,U+7FC5,U+7FD8,U+7FF0,U+800D,U+8036,U+80BA,U+80BE,U+80C0-80C1,U+8155,U+817A,U+8180,U+81E3,U+8206,U+8247,U+8270,U+8299,U+82AD,U+8304,U+8393,U+83B9,U+840D,U+8427,U+8469,U+8471,U+84C4,U+84EC,U+853D,U+8681-8682,U+8721,U+8854,U+88D5,U+88F9,U+8BC0,U+8C0A,U+8C29,U+8C2D,U+8D41,U+8DEA,U+8EB2,U+8F9F,U+903B,U+903E,U+9102,U+9493,U+94A5,U+94F8,U+95F7,U+9706,U+9709,U+9774,U+98A0,U+9E64,U+9F9F,U+E603;
+}
+
+@font-face {
+	font-family: 'Noto Sans SC Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/noto-sans-sc/files/noto-sans-sc-107-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+200B,U+2103,U+4E18,U+4E27-4E28,U+4E38,U+4E59,U+4E8F,U+4EAD,U+4EC7,U+4FE9,U+503A,U+5085,U+5146,U+51AF,U+51F8,U+52AB,U+5339,U+535C,U+5378,U+538C,U+5398,U+53F9,U+5415,U+5475,U+54AA,U+54AC,U+54B8,U+5582,U+5760,U+5764,U+57CB,U+5835,U+5885,U+5951,U+5983,U+59DA,U+5A77,U+5B5D,U+5B5F,U+5BB5,U+5BC2,U+5BE8,U+5BFA,U+5C2C,U+5C34,U+5C41,U+5C48,U+5C65,U+5CAD,U+5E06,U+5E42,U+5EF7,U+5F17,U+5F25,U+5F6D,U+5F79,U+6028,U+6064,U+6068,U+606D,U+607C,U+6094,U+6109,U+6124,U+6247,U+626D,U+6291,U+629A,U+62AC,U+62B9,U+62FE,U+6324,U+6349,U+6367,U+6398,U+6495,U+64A4,U+64B0,U+64BC,U+64CE,U+658C,U+65ED,U+6602,U+6674,U+6691,U+66A8,U+674F,U+679A,U+67EF,U+67F4,U+680B,U+6876,U+68A8,U+6A59,U+6A61,U+6B20,U+6BC5,U+6D12,U+6D46,U+6D8C,U+6DC0,U+6E14,U+6E23,U+6F06,U+7164,U+716E,U+7199,U+71E5,U+72AC,U+742A,U+755C,U+75AB,U+75B2,U+75F4,U+7897,U+78B3,U+78C5,U+7978,U+79FD,U+7A74,U+7B4B,U+7B5B,U+7ECE,U+7ED2,U+7EE3,U+7EF3,U+7F50,U+7F55,U+7F9E,U+7FE0,U+809D,U+8106,U+814A,U+8154,U+817B,U+818F,U+81C2,U+81ED,U+821F,U+82A6,U+82D1,U+8302,U+83C7,U+83CA,U+845B,U+848B,U+84C9,U+85E4,U+86EE,U+8700,U+8774,U+8881,U+8C1C,U+8C79,U+8D2A,U+8D3C,U+8EBA,U+8F70,U+8FA9,U+8FB1,U+900A,U+9017,U+901D,U+9022,U+906E,U+946B,U+94DD,U+94ED,U+953B,U+95EF,U+95FA,U+95FD,U+96C0,U+971E,U+9753,U+9756,U+97E6,U+9881,U+9887,U+9B4F,U+9E2D,U+9F0E,U+E601-E602,U+E604-E605,U+FF5C;
+}
+
+@font-face {
+	font-family: 'Noto Sans SC Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/noto-sans-sc/files/noto-sans-sc-108-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+0024,U+4E08,U+4E43,U+4E4F,U+4EF0,U+4F2A,U+507F,U+50AC,U+50BB,U+5151,U+51BB,U+51F6,U+51FD,U+5272,U+52FE,U+5362,U+53C9,U+53D4,U+53E0,U+543B,U+54F2,U+5507,U+5524,U+558A,U+55B5,U+561B,U+56CA,U+5782,U+57C3,U+5893,U+5915,U+5949,U+5962,U+59AE,U+59DC,U+59FB,U+5BD3,U+5C38,U+5CB3,U+5D07,U+5D29,U+5DE1,U+5DFE,U+5E15,U+5ECA,U+5F2F,U+5F7C,U+5FCC,U+6021,U+609F,U+60F9,U+6108,U+6148,U+6155,U+6170,U+61D2,U+6251,U+629B,U+62AB,U+62E8,U+62F3,U+6321,U+6350,U+6566,U+659C,U+65E8,U+6635,U+6655,U+6670,U+66F9,U+6734,U+679D,U+6851,U+6905,U+6B49,U+6B96,U+6C1B,U+6C41,U+6C6A,U+6C83,U+6CF3,U+6D9B,U+6DCB,U+6E1D,U+6E20-6E21,U+6EAA,U+6EE4,U+6EE9,U+6F58,U+70E4,U+722C,U+7262,U+7267,U+72B9,U+72E0,U+72EE,U+72F1,U+7334,U+73AB,U+7433,U+7470,U+758F,U+75D5,U+764C,U+7686,U+76C6,U+76FE,U+7720,U+77E2,U+7802,U+7816,U+788D,U+7891,U+7A00,U+7A9D,U+7B52,U+7BAD,U+7C98,U+7CCA,U+7EBA,U+7EEA,U+7EF5,U+7F1D,U+7F69,U+806A,U+809A,U+80BF,U+80C3,U+81C0,U+820C,U+82AC,U+82AF,U+82CD,U+82D7,U+838E,U+839E,U+8404,U+84B8,U+852C,U+8587,U+8650,U+8679,U+86C7,U+8702,U+87BA,U+886B-886C,U+8870,U+8C10,U+8C23,U+8C6B,U+8D3E,U+8D4B-8D4C,U+8D64,U+8D6B,U+8D74,U+8E29,U+8F69,U+8F74,U+8FB0,U+8FDF,U+901B,U+9038,U+9093,U+9171,U+9489,U+94AE,U+94C3,U+9508,U+9510,U+9601,U+9614,U+964C,U+9675,U+971C,U+97F5,U+9888,U+98D8,U+9971,U+9AA4,U+9E3F,U+9E45,U+9E4F,U+9E70,U+9F7F,U+E715;
+}
+
+@font-face {
+	font-family: 'Noto Sans SC Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/noto-sans-sc/files/noto-sans-sc-109-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+00A5,U+2192,U+2605,U+4E11,U+4E22,U+4E32,U+4F0D,U+4F0F,U+4F69,U+4FF1,U+50B2,U+5154,U+51DD,U+51F0,U+5211,U+5269,U+533F,U+5366-5367,U+5389,U+5413,U+5440,U+5446,U+5561,U+574A,U+5751,U+57AB,U+5806,U+5821,U+582A,U+58F3,U+5938,U+5948,U+5978,U+59D1,U+5A03,U+5A07,U+5AC1,U+5ACC,U+5AE9,U+5BB4,U+5BC4,U+5C3F,U+5E3D,U+5E7D,U+5F92,U+5FAA,U+5FE0,U+5FFD,U+6016,U+60A0,U+60DC,U+60E8,U+614E,U+6212,U+6284,U+62C6,U+62D3-62D4,U+63F4,U+642C,U+6478,U+6491-6492,U+64E6,U+6591,U+65A4,U+664B,U+6735,U+6746,U+67F1,U+67F3,U+6842,U+68AF,U+68C9,U+68CB,U+6A31,U+6B3A,U+6BC1,U+6C0F,U+6C27,U+6C57,U+6CC4,U+6CE5,U+6D2A,U+6D66,U+6D69,U+6DAF,U+6E58,U+6ECB,U+6EF4,U+707E,U+7092,U+70AB,U+71D5,U+7275,U+7384,U+73B2,U+7434,U+74E6,U+74F7,U+75BC,U+76C8,U+76D0,U+7709,U+77AC,U+7855,U+78A7,U+78C1,U+7A77,U+7B79,U+7C92,U+7CAE,U+7CD5,U+7EA4,U+7EB5,U+7EBD,U+7F5A,U+7FD4,U+7FFC,U+8083,U+8096,U+80A0,U+80D6,U+80DE,U+8102,U+8109,U+810F,U+8179,U+8292,U+82B3,U+8352,U+8361,U+83CC,U+841D,U+8461,U+8482,U+8521,U+857E,U+85AA,U+866B,U+8776,U+8896,U+889C,U+88F8,U+8A9E,U+8BC8,U+8BF8,U+8C0B,U+8C28,U+8D2B,U+8D2F,U+8D37,U+8D3A,U+8D54,U+8DC3,U+8DCC,U+8DF5,U+8E0F,U+8E48,U+8F86,U+8F88,U+8F9E,U+8FC1,U+8FC8,U+8FEB,U+9065,U+90A6,U+90AA,U+90BB,U+90C1,U+94DC,U+9521,U+9676,U+96D5,U+970D,U+9897,U+997C,U+9A70,U+9A76,U+9A9A,U+9AD4,U+9E23,U+9E7F,U+9F3B,U+E675,U+E6B9,U+FFE5;
+}
+
+@font-face {
+	font-family: 'Noto Sans SC Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/noto-sans-sc/files/noto-sans-sc-110-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+300C-300D,U+4E54,U+4E58,U+4E95,U+4EC1,U+4F2F,U+4F38,U+4FA3,U+4FCA,U+503E,U+5141,U+5144,U+517C,U+51CC,U+51ED,U+5242,U+52B2,U+52D2,U+52E4,U+540A,U+5439,U+5448,U+5496,U+54ED,U+5565,U+5761,U+5766,U+58EE,U+593A,U+594B,U+594F,U+5954,U+5996,U+59C6,U+59FF,U+5B64,U+5BFF,U+5C18,U+5C1D,U+5C97,U+5CA9,U+5CB8,U+5E9F,U+5EC9,U+5F04,U+5F7B,U+5FA1,U+5FCD,U+6012,U+60A6,U+60AC,U+60B2,U+60EF,U+626E,U+6270,U+6276,U+62D6,U+62DC,U+6316,U+632F,U+633A,U+6355,U+63AA,U+6447,U+649E,U+64C5,U+654C,U+65C1,U+65CB,U+65E6,U+6606,U+6731,U+675C,U+67CF,U+67DC,U+6846,U+6B8B,U+6BEB,U+6C61,U+6C88,U+6CBF,U+6CDB,U+6CEA,U+6D45,U+6D53,U+6D74,U+6D82,U+6DA8,U+6DB5,U+6DEB,U+6EDA,U+6EE8,U+6F0F,U+706D,U+708E,U+70AE,U+70BC,U+70C2,U+70E6,U+7237-7238,U+72FC,U+730E,U+731B,U+739B,U+73BB,U+7483,U+74DC,U+74F6,U+7586,U+7626,U+775B,U+77FF,U+788E,U+78B0,U+7956,U+7965,U+79E6,U+7AF9,U+7BEE,U+7C97,U+7EB1,U+7EB7,U+7ED1,U+7ED5,U+7F6A,U+7F72,U+7FBD,U+8017,U+808C,U+80A9,U+80C6,U+80CE,U+8150,U+8170,U+819C,U+820D,U+8230,U+8239,U+827E,U+8377,U+8389,U+83B2,U+8428,U+8463,U+867E,U+88C2,U+88D9,U+8986,U+8BCA,U+8BDE,U+8C13,U+8C8C,U+8D21,U+8D24,U+8D56,U+8D60,U+8D8B,U+8DB4,U+8E2A,U+8F68,U+8F89,U+8F9B,U+8FA8,U+8FBD,U+9003,U+90CE,U+90ED,U+9189,U+94BB,U+9505,U+95F9,U+963B,U+9655,U+966A,U+9677,U+96FE,U+9896,U+99A8,U+9A71,U+9A82,U+9A91,U+9B45,U+9ECE,U+9F20,U+FEFF,U+FF0D;
+}
+
+@font-face {
+	font-family: 'Noto Sans SC Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/noto-sans-sc/files/noto-sans-sc-111-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+4E4C,U+4E88,U+4EA1,U+4EA6,U+4ED3-4ED4,U+4EFF,U+4F30,U+4FA7,U+4FC4,U+4FD7,U+500D,U+504F,U+5076-5077,U+517D,U+5192,U+51C9,U+51EF,U+5238,U+5251,U+526A,U+52C7,U+52DF,U+52FF,U+53A6,U+53A8,U+53EC,U+5410,U+559D,U+55B7,U+5634,U+573E,U+5783,U+585E,U+586B,U+58A8,U+5999,U+59D3,U+5A1C,U+5A46,U+5B54-5B55,U+5B85,U+5B8B,U+5B8F,U+5BBF,U+5BD2,U+5C16,U+5C24,U+5E05,U+5E45,U+5E7C,U+5E84,U+5F03,U+5F1F,U+5F31,U+5F84,U+5F90,U+5FBD,U+5FC6,U+5FD9,U+5FE7,U+6052,U+6062,U+6089,U+60A3,U+60D1,U+6167,U+622A,U+6234,U+624E,U+6269,U+626C,U+62B5,U+62D2,U+6325,U+63E1,U+643A,U+6446,U+6562,U+656C,U+65E2,U+65FA,U+660C,U+6628,U+6652,U+6668,U+6676,U+66FC,U+66FF,U+6717,U+676D,U+67AA,U+67D4,U+6843,U+6881,U+68D2,U+695A,U+69FD,U+6A2A,U+6B8A,U+6C60,U+6C64,U+6C9F,U+6CAA,U+6CC9,U+6CE1,U+6CFD,U+6D1B,U+6D1E,U+6D6E,U+6DE1,U+6E10,U+6E7F,U+6F5C,U+704C,U+7070,U+7089,U+70B8,U+718A,U+71C3,U+723D,U+732A,U+73CD,U+7518,U+756A,U+75AF,U+75BE,U+75C7,U+76D2,U+76D7,U+7763,U+78E8,U+795D,U+79DF,U+7C4D,U+7D2F,U+7EE9,U+7F13,U+7F8A,U+8000,U+8010,U+80AF,U+80F6,U+80F8,U+8212,U+8273,U+82F9,U+83AB,U+83B1,U+83F2,U+8584,U+871C,U+8861,U+888B,U+88C1,U+88E4,U+8BD1,U+8BF1,U+8C31,U+8D5A,U+8D75-8D76,U+8DE8,U+8F85,U+8FA3,U+8FC5,U+9006,U+903C,U+904D,U+9075,U+9178,U+9274,U+950B,U+9526,U+95EA,U+9636,U+9686,U+978B,U+987F,U+9A7E,U+9B42,U+9E1F,U+9EA6,U+9F13,U+9F84,U+FF5E;
+}
+
+@font-face {
+	font-family: 'Noto Sans SC Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/noto-sans-sc/files/noto-sans-sc-112-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+0023,U+003D,U+4E01,U+4E39,U+4E73,U+4ECD,U+4ED9,U+4EEA,U+4F0A,U+4F1F,U+4F5B,U+4FA0,U+4FC3,U+501F,U+50A8,U+515A,U+5175,U+51A0,U+51C0,U+51E1,U+51E4,U+5200,U+520A,U+5224,U+523A,U+52AA,U+52B1,U+52B3,U+5348,U+5353,U+5360,U+5371,U+5377,U+539A,U+541B,U+5434,U+547C,U+54E6,U+5510,U+5531,U+5609,U+56F0,U+56FA,U+5733,U+574F,U+5851,U+5854,U+5899,U+58C1,U+592E,U+5939,U+5976,U+5986,U+59BB,U+5A18,U+5A74,U+5B59,U+5B87,U+5B97,U+5BA0,U+5BAB,U+5BBD-5BBE,U+5BF8,U+5C0A,U+5C3A,U+5C4A,U+5E16,U+5E1D,U+5E2D,U+5E8A,U+6015,U+602A,U+6050,U+6069,U+6162,U+61C2,U+6293,U+6297,U+62B1,U+62BD,U+62DF,U+62FC,U+6302,U+635F,U+638C,U+63ED,U+6458,U+6469,U+6563,U+6620,U+6653,U+6696-6697,U+66DD,U+675F,U+676F-6770,U+67D0,U+67D3,U+684C,U+6865,U+6885,U+68B0,U+68EE,U+690D,U+6B23,U+6B32,U+6BD5,U+6C89,U+6D01,U+6D25,U+6D89,U+6DA6,U+6DB2,U+6DF7,U+6ED1,U+6F02,U+70C8,U+70DF,U+70E7,U+7126,U+7236,U+7259,U+731C,U+745E,U+74E3,U+751A,U+751C,U+7532,U+7545,U+75DB,U+7761,U+7A0D,U+7B51,U+7CA4,U+7CD6,U+7D2B,U+7EA0,U+7EB9,U+7ED8,U+7F18,U+7F29,U+8033,U+804A,U+80A4-80A5,U+80E1,U+817F,U+829D,U+82E6,U+8336,U+840C,U+8499,U+864E,U+8651,U+865A,U+88AD,U+89E6,U+8BD7,U+8BFA,U+8C37,U+8D25,U+8D38,U+8DDD,U+8FEA,U+9010,U+9012,U+906D,U+907F-9080,U+90D1,U+9177,U+91CA,U+94FA,U+9501,U+9634-9635,U+9694,U+9707,U+9738,U+9769,U+9A7B,U+9A97,U+9AA8,U+9B3C,U+9C81,U+9ED8;
+}
+
+@font-face {
+	font-family: 'Noto Sans SC Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/noto-sans-sc/files/noto-sans-sc-113-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+0026,U+003C,U+00D7,U+4E4E,U+4E61,U+4E71,U+4EBF,U+4F26,U+5012,U+51AC,U+51B0,U+51B2,U+51B7,U+5218,U+521A,U+5220,U+5237,U+523B,U+526F,U+5385,U+53BF,U+53E5,U+53EB,U+53F3,U+53F6,U+5409,U+5438,U+54C8,U+54E5,U+552F,U+5584,U+5706,U+5723,U+5750,U+575A,U+5987-5988,U+59B9,U+59D0,U+59D4,U+5B88,U+5B9C,U+5BDF,U+5BFB,U+5C01,U+5C04,U+5C3E,U+5C4B,U+5C4F,U+5C9B,U+5CF0,U+5DDD,U+5DE6,U+5DE8,U+5E01,U+5E78,U+5E7B,U+5E9C,U+5EAD,U+5EF6,U+5F39,U+5FD8,U+6000,U+6025,U+604B,U+6076,U+613F,U+6258,U+6263,U+6267,U+6298,U+62A2,U+62E5,U+62EC,U+6311,U+6377,U+6388-6389,U+63A2,U+63D2,U+641E,U+642D,U+654F,U+6551,U+6597,U+65CF,U+65D7,U+65E7,U+6682,U+66F2,U+671D,U+672B,U+6740,U+6751,U+6768,U+6811,U+6863,U+6982,U+6BD2,U+6CF0,U+6D0B,U+6D17,U+6D59,U+6DD8,U+6DFB,U+6E7E,U+6F6E,U+6FB3,U+706F,U+719F,U+72AF,U+72D0,U+72D7,U+732B,U+732E,U+7389,U+73E0,U+7530,U+7687,U+76D6,U+76DB,U+7840,U+786C,U+79CB,U+79D2,U+7A0E,U+7A33,U+7A3F,U+7A97,U+7ADE-7ADF,U+7B26,U+7E41,U+7EC3,U+7F3A,U+8089,U+80DC,U+811A,U+8131,U+8138,U+821E,U+8349,U+83DC,U+8457,U+867D,U+86CB,U+8A89,U+8BA8,U+8BAD,U+8BEF,U+8BFE,U+8C6A,U+8D1D,U+8D4F,U+8D62,U+8DD1,U+8DF3,U+8F6E,U+8FF9,U+900F,U+9014,U+9057,U+9192,U+91CE,U+9488,U+94A2,U+9547,U+955C,U+95F2,U+9644,U+964D,U+96C4-96C5,U+96E8,U+96F6-96F7,U+9732,U+9759,U+9760,U+987A,U+989C,U+9910,U+996D-996E,U+9B54,U+9E21,U+9EBB,U+9F50;
+}
+
+@font-face {
+	font-family: 'Noto Sans SC Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/noto-sans-sc/files/noto-sans-sc-114-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+007E,U+2026,U+4E03,U+4E25,U+4E30,U+4E34,U+4E45,U+4E5D,U+4E89,U+4EAE,U+4ED8,U+4F11,U+4F19,U+4F24,U+4F34,U+4F59,U+4F73,U+4F9D,U+4FB5,U+5047,U+505C,U+5170,U+519C,U+51CF,U+5267,U+5356,U+5374,U+5382,U+538B,U+53E6,U+5426,U+542B,U+542F,U+5462,U+5473,U+554A,U+5566,U+5708,U+571F,U+5757,U+57DF,U+57F9,U+5802,U+590F,U+591C,U+591F,U+592B,U+5965,U+5979,U+5A01,U+5A5A,U+5B63,U+5B69,U+5B81,U+5BA1,U+5BA3,U+5C3C,U+5C42,U+5C81,U+5DE7,U+5DEE,U+5E0C,U+5E10,U+5E55,U+5E86,U+5E8F,U+5EA7,U+5F02,U+5F52,U+5F81,U+5FF5,U+60CA,U+60E0,U+6279,U+62C5,U+62FF,U+63CF,U+6444,U+64CD,U+653B,U+65BD,U+65E9,U+665A,U+66B4,U+66FE,U+6728,U+6742,U+677E,U+67B6,U+680F,U+68A6,U+68C0,U+699C,U+6B4C,U+6B66,U+6B7B,U+6BCD,U+6BDB,U+6C38,U+6C47,U+6C49,U+6CB3,U+6CB9,U+6CE2,U+6D32,U+6D3E,U+6D4F,U+6E56,U+6FC0,U+7075,U+7206,U+725B,U+72C2,U+73ED,U+7565,U+7591,U+7597,U+75C5,U+76AE,U+76D1,U+76DF,U+7834,U+7968,U+7981,U+79C0,U+7A7F,U+7A81,U+7AE5,U+7B14,U+7C89,U+7D27,U+7EAF,U+7EB3,U+7EB8,U+7EC7,U+7EE7,U+7EFF,U+7F57,U+7FFB,U+805A,U+80A1,U+822C,U+82CF,U+82E5,U+8363,U+836F,U+84DD,U+878D,U+8840,U+8857,U+8863,U+8865,U+8B66,U+8BB2,U+8BDA,U+8C01,U+8C08,U+8C46,U+8D1F,U+8D35,U+8D5B,U+8D5E,U+8DA3,U+8DDF,U+8F93,U+8FDD,U+8FF0,U+8FF7,U+8FFD,U+9000,U+9047,U+9152,U+949F,U+94C1,U+94F6,U+9646,U+9648,U+9669,U+969C,U+96EA,U+97E9,U+987B,U+987E,U+989D,U+9970,U+9986,U+9C7C,U+9C9C;
+}
+
+@font-face {
+	font-family: 'Noto Sans SC Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/noto-sans-sc/files/noto-sans-sc-115-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+0025,U+4E14,U+4E1D,U+4E3D,U+4E49,U+4E60,U+4E9A,U+4EB2,U+4EC5,U+4EFD,U+4F3C,U+4F4F,U+4F8B,U+4FBF,U+5019,U+5145,U+514B,U+516B,U+516D,U+5174,U+5178,U+517B,U+5199,U+519B,U+51B3,U+51B5,U+5207,U+5212,U+5219,U+521D,U+52BF,U+533B,U+5343,U+5347,U+534A,U+536B,U+5370,U+53E4,U+53F2,U+5403,U+542C,U+547D,U+54A8,U+54CD,U+54EA,U+552E,U+56F4,U+5747,U+575B,U+5883,U+589E,U+5931,U+5947,U+5956-5957,U+5A92,U+5B83,U+5BA4,U+5BB3,U+5BCC,U+5C14,U+5C1A,U+5C3D,U+5C40,U+5C45,U+5C5E,U+5DF4,U+5E72,U+5E95,U+5F80,U+5F85,U+5FB7,U+5FD7,U+601D,U+626B,U+627F,U+62C9,U+62CD,U+6309,U+63A7,U+6545,U+65AD,U+65AF,U+65C5,U+666E,U+667A,U+670B,U+671B,U+674E,U+677F,U+6781,U+6790,U+6797,U+6821,U+6838-6839,U+697C,U+6B27,U+6B62,U+6BB5,U+6C7D,U+6C99,U+6D4B,U+6D4E,U+6D6A,U+6E29,U+6E2F,U+6EE1,U+6F14,U+6F2B,U+72B6,U+72EC,U+7387,U+7533,U+753B,U+76CA,U+76D8,U+7701,U+773C,U+77ED,U+77F3,U+7814,U+793C,U+79BB,U+79C1,U+79D8,U+79EF,U+79FB,U+7A76,U+7B11,U+7B54,U+7B56,U+7B97,U+7BC7,U+7C73,U+7D20,U+7EAA,U+7EC8,U+7EDD,U+7EED,U+7EFC,U+7FA4,U+804C,U+8058,U+80CC,U+8111,U+817E,U+826F,U+8303,U+843D,U+89C9,U+89D2,U+8BA2,U+8BBF,U+8BC9,U+8BCD,U+8BE6,U+8C22,U+8C61,U+8D22,U+8D26-8D27,U+8D8A,U+8F6F,U+8F7B,U+8F83,U+8F91,U+8FB9,U+8FD4,U+8FDC,U+9002,U+94B1,U+9519,U+95ED,U+961F,U+9632-9633,U+963F,U+968F-9690,U+96BE,U+9876,U+9884,U+98DE,U+9988,U+9999,U+9EC4,U+FF1B;
+}
+
+@font-face {
+	font-family: 'Noto Sans SC Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/noto-sans-sc/files/noto-sans-sc-116-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+002B,U+0040,U+3000,U+300A-300B,U+4E16,U+4E66,U+4E70,U+4E91-4E92,U+4E94,U+4E9B,U+4EC0,U+4ECA,U+4F01,U+4F17-4F18,U+4F46,U+4F4E,U+4F9B,U+4FEE,U+503C,U+5065,U+50CF,U+513F,U+5148,U+518D,U+51C6,U+51E0,U+5217,U+529E-529F,U+5341,U+534F,U+5361,U+5386,U+53C2,U+53C8,U+53CC,U+53D7-53D8,U+53EA,U+5404,U+5411,U+5417,U+5427,U+5468,U+559C,U+5668,U+56E0,U+56E2,U+56ED,U+5740,U+57FA,U+58EB,U+5904,U+592A,U+59CB,U+5A31,U+5B58,U+5B9D,U+5BC6,U+5C71,U+5DDE,U+5DF1,U+5E08,U+5E26,U+5E2E,U+5E93,U+5E97,U+5EB7,U+5F15,U+5F20,U+5F3A,U+5F62,U+5F69,U+5F88,U+5F8B,U+5FC5,U+600E,U+620F,U+6218,U+623F,U+627E,U+628A,U+62A4,U+62DB,U+62E9,U+6307,U+6362,U+636E,U+64AD,U+6539,U+653F,U+6548,U+6574,U+6613,U+6625,U+663E,U+666F,U+672A,U+6750,U+6784,U+6A21,U+6B3E,U+6B65,U+6BCF,U+6C11,U+6C5F,U+6DF1,U+706B,U+7167,U+724C,U+738B,U+73A9,U+73AF,U+7403,U+7537,U+754C,U+7559,U+767D,U+7740,U+786E,U+795E,U+798F,U+79F0,U+7AEF,U+7B7E,U+7BB1,U+7EA2,U+7EA6,U+7EC4,U+7EC6,U+7ECD,U+7EDC,U+7EF4,U+8003,U+80B2,U+81F3-81F4,U+822A,U+827A,U+82F1,U+83B7,U+8425,U+89C2,U+89C8,U+8BA9,U+8BB8,U+8BC6,U+8BD5,U+8BE2,U+8BE5,U+8BED,U+8C03,U+8D23,U+8D2D,U+8D34,U+8D70,U+8DB3,U+8FBE,U+8FCE,U+8FD1,U+8FDE,U+9001,U+901F-9020,U+90A3,U+914D,U+91C7,U+94FE,U+9500,U+952E,U+9605,U+9645,U+9662,U+9664,U+9700,U+9752,U+975E,U+97F3,U+9879,U+9886,U+98DF,U+9A6C,U+9A8C,U+9ED1,U+9F99;
+}
+
+@font-face {
+	font-family: 'Noto Sans SC Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/noto-sans-sc/files/noto-sans-sc-117-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+004E,U+201C-201D,U+3010-3011,U+4E07,U+4E1C,U+4E24,U+4E3E,U+4E48,U+4E50,U+4E5F,U+4E8B-4E8C,U+4EA4,U+4EAB-4EAC,U+4ECB,U+4ECE,U+4ED6,U+4EE3,U+4EF6-4EF7,U+4EFB,U+4F20,U+4F55,U+4F7F,U+4FDD,U+505A,U+5143,U+5149,U+514D,U+5171,U+5177,U+518C,U+51FB,U+521B,U+5229,U+522B,U+52A9,U+5305,U+5317,U+534E,U+5355,U+5357,U+535A,U+5373,U+539F,U+53BB,U+53CA,U+53CD,U+53D6,U+53E3,U+53F0,U+5458,U+5546,U+56DB,U+573A,U+578B,U+57CE,U+58F0,U+590D,U+5934,U+5973,U+5B57,U+5B8C,U+5B98,U+5BB9,U+5BFC,U+5C06,U+5C11,U+5C31,U+5C55,U+5DF2,U+5E03,U+5E38,U+5E76,U+5E94,U+5EFA,U+5F71,U+5F97,U+5FEB,U+6001,U+603B,U+60F3,U+611F,U+6216,U+624D,U+6253,U+6295,U+6301,U+6392,U+641C,U+652F,U+653E,U+6559,U+6599,U+661F,U+671F,U+672F,U+6761,U+67E5,U+6807,U+6837,U+683C,U+6848,U+6B22,U+6B64,U+6BD4,U+6C14,U+6C34,U+6C42,U+6CA1,U+6D41,U+6D77,U+6D88,U+6E05,U+6E38,U+6E90,U+7136,U+7231,U+7531,U+767E,U+76EE,U+76F4,U+771F,U+7801,U+793A,U+79CD,U+7A0B,U+7A7A,U+7ACB,U+7AE0,U+7B2C,U+7B80,U+7BA1,U+7CBE,U+7D22,U+7EA7,U+7ED3,U+7ED9,U+7EDF,U+7F16,U+7F6E,U+8001,U+800C,U+8272,U+8282,U+82B1,U+8350,U+88AB,U+88C5,U+897F,U+89C1,U+89C4,U+89E3,U+8A00,U+8BA1,U+8BA4,U+8BAE-8BB0,U+8BBE,U+8BC1,U+8BC4,U+8BFB,U+8D28,U+8D39,U+8D77,U+8D85,U+8DEF,U+8EAB,U+8F66,U+8F6C,U+8F7D,U+8FD0,U+9009,U+90AE,U+90FD,U+91CC-91CD,U+91CF,U+95FB,U+9650,U+96C6,U+9891,U+98CE,U+FF1F;
+}
+
+@font-face {
+	font-family: 'Noto Sans SC Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/noto-sans-sc/files/noto-sans-sc-118-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+000D,U+003E,U+005F,U+007C,U+00A0,U+00A9,U+4E09-4E0B,U+4E0D-4E0E,U+4E13,U+4E1A,U+4E2A,U+4E3A-4E3B,U+4E4B,U+4E86,U+4E8E,U+4EA7,U+4EBA,U+4EE4-4EE5,U+4EEC,U+4F1A,U+4F4D,U+4F53,U+4F5C,U+4F60,U+4FE1,U+5165,U+5168,U+516C,U+5173,U+5176,U+5185,U+51FA,U+5206,U+5230,U+5236,U+524D,U+529B,U+52A0-52A1,U+52A8,U+5316,U+533A,U+53CB,U+53D1,U+53EF,U+53F7-53F8,U+5408,U+540C-540E,U+544A,U+548C,U+54C1,U+56DE,U+56FD-56FE,U+5728,U+5730,U+5907,U+5916,U+591A,U+5927,U+5929,U+597D,U+5982,U+5B50,U+5B66,U+5B89,U+5B9A,U+5B9E,U+5BA2,U+5BB6,U+5BF9,U+5C0F,U+5DE5,U+5E02,U+5E73-5E74,U+5E7F,U+5EA6,U+5F00,U+5F0F,U+5F53,U+5F55,U+5FAE,U+5FC3,U+6027,U+606F,U+60A8,U+60C5,U+610F,U+6210-6211,U+6237,U+6240,U+624B,U+6280,U+62A5,U+63A5,U+63A8,U+63D0,U+6536,U+6570,U+6587,U+65B9,U+65E0,U+65F6,U+660E,U+662D,U+662F,U+66F4,U+6700,U+670D,U+672C,U+673A,U+6743,U+6765,U+679C,U+682A,U+6B21,U+6B63,U+6CBB,U+6CD5,U+6CE8,U+6D3B,U+70ED,U+7247-7248,U+7269,U+7279,U+73B0,U+7406,U+751F,U+7528,U+7535,U+767B,U+76F8,U+770B,U+77E5,U+793E,U+79D1,U+7AD9,U+7B49,U+7C7B,U+7CFB,U+7EBF,U+7ECF,U+7F8E,U+8005,U+8054,U+80FD,U+81EA,U+85CF,U+884C,U+8868,U+8981,U+89C6,U+8BBA,U+8BDD,U+8BF4,U+8BF7,U+8D44,U+8FC7,U+8FD8-8FD9,U+8FDB,U+901A,U+9053,U+90E8,U+91D1,U+957F,U+95E8,U+95EE,U+95F4,U+9762,U+9875,U+9898,U+9996,U+9AD8,U+FF01,U+FF08-FF09;
+}
+
+@font-face {
+	font-family: 'Noto Sans SC Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/noto-sans-sc/files/noto-sans-sc-119-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+0020-0022,U+0027-002A,U+002C-003B,U+003F,U+0041-004D,U+004F-005D,U+0061-007B,U+007D,U+00AB,U+00AE,U+00B2,U+00B7,U+00BB,U+00DF-E5,U+00E7-EA,U+00EC-ED,U+00F1-F4,U+00F6,U+00F9-FA,U+00FC,U+0101,U+0103,U+0113,U+012B,U+0148,U+014D,U+016B,U+01CE,U+01D0,U+0300-0301,U+1EBF,U+1EC7,U+2013-2014,U+2022,U+2027,U+2039-203A,U+2122,U+3001-3002,U+3042,U+3044,U+3046,U+3048,U+304A-3055,U+3057,U+3059-305B,U+305D,U+305F-3061,U+3063-306B,U+306D-3073,U+3075-3076,U+3078-3079,U+307B,U+307E-307F,U+3081-308D,U+308F,U+3092-3093,U+30A1-30A4,U+30A6-30BB,U+30BD,U+30BF-30C1,U+30C3-30C4,U+30C6-30CB,U+30CD-30D7,U+30D9-30E1,U+30E3-30E7,U+30E9-30ED,U+30EF,U+30F3,U+30FB-30FC,U+3127,U+4E00,U+4E2D,U+65B0,U+65E5,U+6708-6709,U+70B9,U+7684,U+7F51,U+FF0C,U+FF0E,U+FF1A;
+}

@@ -1,0 +1,312 @@
+{
+  "imagePath": "dev/ocr-fixtures/images/tradingview-short-rr-4.44.jpg",
+  "modelSource": "local",
+  "parsedResult": {
+    "notional_value": 0.185,
+    "stop_loss": 75190,
+    "target_price": 73720,
+    "entry_price": 74920
+  },
+  "recognition": {
+    "lines": [
+      {
+        "box": {
+          "height": 13,
+          "width": 49,
+          "x": 576,
+          "y": 26
+        },
+        "text": "-75300.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 224,
+          "x": 139,
+          "y": 34
+        },
+        "text": "Stop: 270 (0.36%) 2700, Amount: 950.00"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 53,
+          "x": 572,
+          "y": 61
+        },
+        "text": "75190.0"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 52,
+          "x": 574,
+          "y": 94
+        },
+        "text": "-75100.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 48,
+          "x": 576,
+          "y": 129
+        },
+        "text": "-75000.0"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 52,
+          "x": 575,
+          "y": 152
+        },
+        "text": "74923.0"
+      },
+      {
+        "box": {
+          "height": 9,
+          "width": 47,
+          "x": 578,
+          "y": 167
+        },
+        "text": "74300.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 97,
+          "x": 202,
+          "y": 185
+        },
+        "text": "Short, Qty: 0.185"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 107,
+          "x": 197,
+          "y": 199
+        },
+        "text": "Open P&L: -10.000"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 52,
+          "x": 574,
+          "y": 196
+        },
+        "text": "-74800.0"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 106,
+          "x": 197,
+          "y": 211
+        },
+        "text": "Risk/Reward: 4.44"
+      },
+      {
+        "box": {
+          "height": 26,
+          "width": 95,
+          "x": 533,
+          "y": 224
+        },
+        "text": "pVAH 74680.0"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 52,
+          "x": 574,
+          "y": 265
+        },
+        "text": "-74600.0"
+      },
+      {
+        "box": {
+          "height": 9,
+          "width": 48,
+          "x": 577,
+          "y": 301
+        },
+        "text": "74500 0"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 51,
+          "x": 575,
+          "y": 309
+        },
+        "text": "74470.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 50,
+          "x": 576,
+          "y": 334
+        },
+        "text": "-74400.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 51,
+          "x": 575,
+          "y": 347
+        },
+        "text": "74360.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 48,
+          "x": 576,
+          "y": 369
+        },
+        "text": "-74300.0"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 51,
+          "x": 575,
+          "y": 402
+        },
+        "text": "-74200.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 49,
+          "x": 575,
+          "y": 438
+        },
+        "text": "-74100.0"
+      },
+      {
+        "box": {
+          "height": 17,
+          "width": 96,
+          "x": 529,
+          "y": 472
+        },
+        "text": "pPOC -74000.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 50,
+          "x": 575,
+          "y": 485
+        },
+        "text": "73960.0"
+      },
+      {
+        "box": {
+          "height": 23,
+          "width": 25,
+          "x": 458,
+          "y": 498
+        },
+        "text": "2"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 49,
+          "x": 576,
+          "y": 506
+        },
+        "text": "-73900.0"
+      },
+      {
+        "box": {
+          "height": 10,
+          "width": 30,
+          "x": 535,
+          "y": 530
+        },
+        "text": "DVAL"
+      },
+      {
+        "box": {
+          "height": 8,
+          "width": 44,
+          "x": 578,
+          "y": 542
+        },
+        "text": "73800.0"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 113,
+          "x": 517,
+          "y": 550
+        },
+        "text": "pwHigh 73773.4"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 51,
+          "x": 575,
+          "y": 567
+        },
+        "text": "73720.0"
+      },
+      {
+        "box": {
+          "height": 17,
+          "width": 100,
+          "x": 526,
+          "y": 575
+        },
+        "text": "pwVAL 13r00.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 49,
+          "x": 576,
+          "y": 588
+        },
+        "text": "73660.0"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 256,
+          "x": 123,
+          "y": 597
+        },
+        "text": "Target: 1200 (1.60%) 12000, Amount: 1222.22"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 50,
+          "x": 575,
+          "y": 608
+        },
+        "text": "-73600.0"
+      },
+      {
+        "box": {
+          "height": 8,
+          "width": 37,
+          "x": 578,
+          "y": 646
+        },
+        "text": "73500"
+      }
+    ],
+    "text": "-75300.0\nStop: 270 (0.36%) 2700, Amount: 950.00\n75190.0\n-75100.0\n-75000.0\n74923.0\n74300.0\nShort, Qty: 0.185\nOpen P&L: -10.000\n-74800.0\nRisk/Reward: 4.44\npVAH 74680.0\n-74600.0\n74500 0\n74470.0\n-74400.0\n74360.0\n-74300.0\n-74200.0\n-74100.0\npPOC -74000.0\n73960.0\n2\n-73900.0\nDVAL\n73800.0\npwHigh 73773.4\n73720.0\npwVAL 13r00.0\n73660.0\nTarget: 1200 (1.60%) 12000, Amount: 1222.22\n-73600.0\n73500"
+  }
+}
