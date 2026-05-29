@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "skills": {
+    "tailwind-design-system": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "7ff2f4650597e98ca4cd8f01231fb432ab4d187d6b12e641485aa871a04448cc"
+    },
+    "technical-writing": {
+      "source": "luoling8192/technical-writing",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "967e59521423108146035d6e77b465e89a0343e6df092d5b0693f1e6b7fe202a"
+    }
+  }
+}

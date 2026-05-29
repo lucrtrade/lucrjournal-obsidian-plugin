@@ -1,0 +1,8 @@
+import { buildPlatform } from './factory'
+
+export const Bybit = buildPlatform({
+	name: 'Bybit',
+	ccxtId: 'bybit',
+	homepage: 'https://www.bybit.com',
+	icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAACfUlEQVRoge2awWoTURSG/3PGYsts2jtTcFMwiPgGJlapri2JKyGIxVp8jkrzJNWUPkBK3bqwSSa6cSnFkkUQF82k3YQYZO5xIRmbJiSdKeRmJN9qzp25d75/OAx3YAiDWK7rrgUBXjNTRkTuDrlmYhDhWISqzLLbbDY/AQj6zl8slFIPROiAiJyJWl4REfGZse77fq03xr0Dpdw3AFemVR4AiMgRIU8ptRWOAX+fPMAVc2rRIZKM7/s1BmCJcMm0UFS0xgcAFrmu+0RrfDQtFAet6TFrTZumReLCjFcMYM20SFyI5BEp5Qa48DZKGJqRXHkA4CTLA0j20wcwC2CeG6ZufP/Ob9x2/20sD7/eRLtLI2YMx1iAF6u/8DzdDevq9zm0u1bkdRLfQokPMLSFMpk0NjZehnWxuAfPC78h4DgKhcJOWHteDcXiXt8ahcIOHEcBAHy/he3tt5HExjmMDJBKpZDP58P66KjcN9m27b7zvRtcJJfLYmVlBQDQaDQiBxjn0CPxLTQLYJpZANPMAphmFsA0xnajn0/m+uo4W2nAYID9yjz2K/PXXifxLZT4AKSUK5cHU6kUMpl0WHteDfV6Paxt20Yulw3rer0+sFPM5bKwbRsA0G63USodRBIb5zAyQJJIfAvNApjmvwigTUtcA81EdGLaIi5EOGYRlE2LxEWEysws70yLxEVrvCcA1tKS+5MIy6aFoiCC5tlZ8xYDCJglO3bGlMEsTwEEFgB0Op0fCwvzDYCeGfa6Inqr1WodApd+9nAcJ601HUxrO4nglFnWfd//0hsb9hlkLS4uP2TGJpGsiuDeBB0HIMI3Eapqjd3z89MyLv1u8wfw/87pbhQB4QAAAABJRU5ErkJggg==" width="16" height="16" preserveAspectRatio="xMidYMid meet"/></svg>',
+})

@@ -1,0 +1,40 @@
+message_file="$1"
+
+header=$(sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d; q' "$message_file" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+types='build|chore|ci|docs|feat|fix|perf|refactor|release|revert|style|test'
+
+if [ -z "$header" ]; then
+	echo "commit message cannot be empty"
+	exit 1
+fi
+
+if ! printf '%s\n' "$header" | grep -Eq "^($types)(\([a-z0-9][a-z0-9._-]*\))?!?: [^ ].{0,70}[^.]$"; then
+	echo "Invalid commit message:"
+	echo "  $header"
+	echo
+
+	if printf '%s\n' "$header" | grep -Eq '^Git: .*\((unchanged|modified|created|deleted)\)$'; then
+		echo "This looks like tool output, not a commit message."
+	elif ! printf '%s\n' "$header" | grep -Eq "^($types)(\([a-z0-9][a-z0-9._-]*\))?!?: "; then
+		echo "Missing valid Conventional Commits type prefix."
+	elif printf '%s\n' "$header" | grep -Eq "^($types)(\([a-z0-9][a-z0-9._-]*\))?!?: $"; then
+		echo "Subject cannot be empty."
+	elif printf '%s\n' "$header" | grep -Eq "^($types)(\([a-z0-9][a-z0-9._-]*\))?!?: .{73,}$"; then
+		echo "Subject must be at most 72 characters."
+	elif printf '%s\n' "$header" | grep -Eq '\.$'; then
+		echo "Subject must not end with a period."
+	else
+		echo "Commit message must follow Conventional Commits: type(scope): subject."
+	fi
+
+	echo
+	echo "Allowed types:"
+	echo "build, chore, ci, docs, feat, fix, perf, refactor, release, revert, style, test"
+	echo
+	echo "Examples:"
+	echo "  feat: add release notes modal"
+	echo "  fix(settings): persist default options"
+	echo "  release: 0.1.0"
+	echo "  refactor(parser)!: simplify heading parser"
+	exit 1
+fi

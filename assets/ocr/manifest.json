@@ -1,0 +1,37 @@
+{
+	"files": [
+		{
+			"path": "onnxruntime-web/ort-wasm-simd-threaded.jsep.mjs",
+			"sha256": "33949a3310b723a3ee14dc2da989e55060de26a75e2346095a150a042c9aad4e",
+			"size": 46489,
+			"source": "npm:onnxruntime-web@1.26.0/dist/ort-wasm-simd-threaded.jsep.mjs"
+		},
+		{
+			"path": "onnxruntime-web/ort-wasm-simd-threaded.jsep.wasm",
+			"sha256": "411b39a77bb006ce0cf17b30c978c66a130ebb2ba39c8dfdbdc9c1c5a251ae76",
+			"size": 26239907,
+			"source": "npm:onnxruntime-web@1.26.0/dist/ort-wasm-simd-threaded.jsep.wasm"
+		},
+		{
+			"path": "models/PP-OCRv5_mobile_det_infer.onnx",
+			"sha256": "d7fe3ea74652890722c0f4d02458b7261d9f5ae6c92904d05707c9eb155c7924",
+			"size": 4748769,
+			"source": "https://media.githubusercontent.com/media/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr-models/main/detection/PP-OCRv5_mobile_det_infer.onnx"
+		},
+		{
+			"path": "models/en_PP-OCRv5_mobile_rec_infer.onnx",
+			"sha256": "1081b104a3c44d103511f150763d997a846994431c5775a800c802254c1124bf",
+			"size": 7855803,
+			"source": "https://media.githubusercontent.com/media/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr-models/main/recognition/multi/en/v5/en_PP-OCRv5_mobile_rec_infer.onnx"
+		},
+		{
+			"path": "models/ppocrv5_en_dict.txt",
+			"sha256": "c60d46e9e01d500ed6388fe8681051eac9cf6692e0d57238315be171927a0a1b",
+			"size": 1417,
+			"source": "https://raw.githubusercontent.com/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr-models/main/recognition/multi/en/v5/ppocrv5_en_dict.txt"
+		}
+	],
+	"generatedBy": "scripts/sync-ocr-assets.mjs",
+	"onnxruntimeWebVersion": "1.26.0",
+	"repository": "lucrtrade/lucrjournal-obsidian-plugin"
+}

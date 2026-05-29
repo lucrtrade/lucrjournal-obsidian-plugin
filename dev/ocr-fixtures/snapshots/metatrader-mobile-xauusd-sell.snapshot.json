@@ -1,0 +1,241 @@
+{
+  "imagePath": "dev/ocr-fixtures/images/metatrader-mobile-xauusd-sell.png",
+  "modelSource": "local",
+  "parsedResult": {
+    "entry_price": 4519.44,
+    "exit_price": 4519.71,
+    "notional_value": 0.01,
+    "stop_loss": 4520.73,
+    "target_price": 4516.19
+  },
+  "recognition": {
+    "lines": [
+      {
+        "box": {
+          "height": 37,
+          "width": 192,
+          "x": 39,
+          "y": 36
+        },
+        "text": "01:15 V/"
+      },
+      {
+        "box": {
+          "height": 41,
+          "width": 107,
+          "x": 98,
+          "y": 125
+        },
+        "text": "Trade"
+      },
+      {
+        "box": {
+          "height": 38,
+          "width": 198,
+          "x": 102,
+          "y": 180
+        },
+        "text": "-0.27 UST"
+      },
+      {
+        "box": {
+          "height": 42,
+          "width": 159,
+          "x": 30,
+          "y": 296
+        },
+        "text": "Balance:"
+      },
+      {
+        "box": {
+          "height": 37,
+          "width": 128,
+          "x": 920,
+          "y": 298
+        },
+        "text": "440.53"
+      },
+      {
+        "box": {
+          "height": 51,
+          "width": 137,
+          "x": 27,
+          "y": 359
+        },
+        "text": "Equity:"
+      },
+      {
+        "box": {
+          "height": 38,
+          "width": 130,
+          "x": 919,
+          "y": 363
+        },
+        "text": "440.26"
+      },
+      {
+        "box": {
+          "height": 47,
+          "width": 144,
+          "x": 28,
+          "y": 425
+        },
+        "text": "Margin:"
+      },
+      {
+        "box": {
+          "height": 43,
+          "width": 93,
+          "x": 961,
+          "y": 425
+        },
+        "text": "9.04"
+      },
+      {
+        "box": {
+          "height": 37,
+          "width": 220,
+          "x": 32,
+          "y": 495
+        },
+        "text": "Free margin:"
+      },
+      {
+        "box": {
+          "height": 42,
+          "width": 132,
+          "x": 893,
+          "y": 490
+        },
+        "text": "431.22"
+      },
+      {
+        "box": {
+          "height": 41,
+          "width": 254,
+          "x": 33,
+          "y": 558
+        },
+        "text": "Margin Level (:"
+      },
+      {
+        "box": {
+          "height": 36,
+          "width": 159,
+          "x": 875,
+          "y": 558
+        },
+        "text": "4 870.13"
+      },
+      {
+        "box": {
+          "height": 36,
+          "width": 166,
+          "x": 32,
+          "y": 659
+        },
+        "text": "Positions"
+      },
+      {
+        "box": {
+          "height": 32,
+          "width": 325,
+          "x": 32,
+          "y": 736
+        },
+        "text": "XAUUSD+, selI 0.01"
+      },
+      {
+        "box": {
+          "height": 48,
+          "width": 125,
+          "x": 938,
+          "y": 749
+        },
+        "text": "-0.27"
+      },
+      {
+        "box": {
+          "height": 32,
+          "width": 371,
+          "x": 34,
+          "y": 784
+        },
+        "text": "4 519.44 -> 4 519.71"
+      },
+      {
+        "box": {
+          "height": 31,
+          "width": 212,
+          "x": 32,
+          "y": 848
+        },
+        "text": "#10015365917"
+      },
+      {
+        "box": {
+          "height": 42,
+          "width": 104,
+          "x": 545,
+          "y": 845
+        },
+        "text": "Open:"
+      },
+      {
+        "box": {
+          "height": 27,
+          "width": 284,
+          "x": 772,
+          "y": 851
+        },
+        "text": "2026.05.22 20:14:58"
+      },
+      {
+        "box": {
+          "height": 42,
+          "width": 91,
+          "x": 26,
+          "y": 898
+        },
+        "text": "S/L:"
+      },
+      {
+        "box": {
+          "height": 38,
+          "width": 243,
+          "x": 405,
+          "y": 901
+        },
+        "text": "4 520.73 Swap:"
+      },
+      {
+        "box": {
+          "height": 38,
+          "width": 80,
+          "x": 975,
+          "y": 900
+        },
+        "text": "0.00"
+      },
+      {
+        "box": {
+          "height": 38,
+          "width": 90,
+          "x": 26,
+          "y": 955
+        },
+        "text": "T/P:"
+      },
+      {
+        "box": {
+          "height": 33,
+          "width": 133,
+          "x": 403,
+          "y": 957
+        },
+        "text": "4 516.19"
+      }
+    ],
+    "text": "01:15 V/\nTrade\n-0.27 UST\nBalance:\n440.53\nEquity:\n440.26\nMargin:\n9.04\nFree margin:\n431.22\nMargin Level (:\n4 870.13\nPositions\nXAUUSD+, selI 0.01\n-0.27\n4 519.44 -> 4 519.71\n#10015365917\nOpen:\n2026.05.22 20:14:58\nS/L:\n4 520.73 Swap:\n0.00\nT/P:\n4 516.19"
+  }
+}

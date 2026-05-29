@@ -1,0 +1,160 @@
+{
+  "imagePath": "dev/ocr-fixtures/images/metatrader-history-xauusd-sell.png",
+  "modelSource": "local",
+  "parsedResult": {
+    "entry_price": 4519.44,
+    "exit_price": 4519.71,
+    "notional_value": 0.01,
+    "stop_loss": 4520.73,
+    "target_price": 4516.19
+  },
+  "recognition": {
+    "lines": [
+      {
+        "box": {
+          "height": 14,
+          "width": 52,
+          "x": 1,
+          "y": 1
+        },
+        "text": "Symbol"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 43,
+          "x": 264,
+          "y": 1
+        },
+        "text": "Ticket"
+      },
+      {
+        "box": {
+          "height": 17,
+          "width": 36,
+          "x": 569,
+          "y": 0
+        },
+        "text": "Time"
+      },
+      {
+        "box": {
+          "height": 17,
+          "width": 33,
+          "x": 775,
+          "y": 0
+        },
+        "text": "Type"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 54,
+          "x": 963,
+          "y": 1
+        },
+        "text": "Volume"
+      },
+      {
+        "box": {
+          "height": 16,
+          "width": 40,
+          "x": 1191,
+          "y": 0
+        },
+        "text": "Price"
+      },
+      {
+        "box": {
+          "height": 16,
+          "width": 134,
+          "x": 1507,
+          "y": 0
+        },
+        "text": "S7L T/ P"
+      },
+      {
+        "box": {
+          "height": 16,
+          "width": 39,
+          "x": 1957,
+          "y": 0
+        },
+        "text": "Price"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 60,
+          "x": 2,
+          "y": 23
+        },
+        "text": "xauusd+"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 89,
+          "x": 265,
+          "y": 22
+        },
+        "text": "10015365917"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 136,
+          "x": 483,
+          "y": 22
+        },
+        "text": "2026.05.22 20:14:58"
+      },
+      {
+        "box": {
+          "height": 18,
+          "width": 31,
+          "x": 776,
+          "y": 21
+        },
+        "text": "sell"
+      },
+      {
+        "box": {
+          "height": 17,
+          "width": 33,
+          "x": 982,
+          "y": 21
+        },
+        "text": "0.01"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 57,
+          "x": 1158,
+          "y": 22
+        },
+        "text": "4519.44"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 203,
+          "x": 1414,
+          "y": 22
+        },
+        "text": "4520.73 x 4516.19 x"
+      },
+      {
+        "box": {
+          "height": 17,
+          "width": 112,
+          "x": 1928,
+          "y": 22
+        },
+        "text": "4519.71 -0.27 X"
+      }
+    ],
+    "text": "Symbol\nTicket\nTime\nType\nVolume\nPrice\nS7L T/ P\nPrice\nxauusd+\n10015365917\n2026.05.22 20:14:58\nsell\n0.01\n4519.44\n4520.73 x 4516.19 x\n4519.71 -0.27 X"
+  }
+}

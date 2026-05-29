@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">图片描述</title>
+  <desc id="desc">图片描述</desc>
+  <rect width="1600" height="900" fill="#f3f4f6"/>
+  <rect x="80" y="80" width="1440" height="740" rx="32" fill="#ffffff" stroke="#d1d5db" stroke-width="8"/>
+  <rect x="140" y="150" width="1320" height="80" rx="20" fill="#e5e7eb"/>
+  <rect x="140" y="280" width="420" height="400" rx="24" fill="#eef2ff"/>
+  <rect x="600" y="280" width="860" height="180" rx="24" fill="#ecfeff"/>
+  <rect x="600" y="500" width="860" height="180" rx="24" fill="#fef3c7"/>
+  <text x="800" y="410" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="700" fill="#111827" text-anchor="middle">图片描述</text>
+  <text x="800" y="500" font-family="Arial, Helvetica, sans-serif" font-size="30" fill="#6b7280" text-anchor="middle">Screenshot Placeholder</text>
+</svg>

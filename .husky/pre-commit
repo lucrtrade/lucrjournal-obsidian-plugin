@@ -1,0 +1,16 @@
+npm_package_version=$(node -p "require('./package.json').version") node scripts/version-bump.mjs
+git add manifest.json versions.json package-lock.json
+
+version=$(git show :package.json | node -e "let s=''; process.stdin.on('data', d => s += d); process.stdin.on('end', () => console.log(JSON.parse(s).version))")
+has_version=$(git show :CHANGELOG.md | awk -v ver="$version" '
+  /^## \[/ { if ($0 == "## [" ver "]" || index($0, "## [" ver "] ") == 1) found=1 }
+  END { print found ? "1" : "0" }
+')
+
+if [ "$has_version" != "1" ]; then
+	echo "No CHANGELOG.md section for version $version"
+	echo
+	echo "Add release notes under:"
+	echo "  ## [$version]"
+	exit 1
+fi

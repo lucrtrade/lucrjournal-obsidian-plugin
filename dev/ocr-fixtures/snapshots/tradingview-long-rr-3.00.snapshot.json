@@ -1,0 +1,222 @@
+{
+  "imagePath": "dev/ocr-fixtures/images/tradingview-long-rr-3.00.png",
+  "modelSource": "local",
+  "parsedResult": {
+    "notional_value": 0.204,
+    "stop_loss": 81080,
+    "target_price": 81960,
+    "entry_price": 81340
+  },
+  "recognition": {
+    "lines": [
+      {
+        "box": {
+          "height": 13,
+          "width": 49,
+          "x": 621,
+          "y": 32
+        },
+        "text": "-82200.0"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 243,
+          "x": 77,
+          "y": 81
+        },
+        "text": "Target: 660 (0.81%) 6600, Amount: 1030.11"
+      },
+      {
+        "box": {
+          "height": 10,
+          "width": 50,
+          "x": 622,
+          "y": 98
+        },
+        "text": "82000.0"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 51,
+          "x": 618,
+          "y": 109
+        },
+        "text": "81960.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 49,
+          "x": 621,
+          "y": 161
+        },
+        "text": "-81800.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 51,
+          "x": 619,
+          "y": 223
+        },
+        "text": "81603.8"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 94,
+          "x": 150,
+          "y": 269
+        },
+        "text": "Long, Qty: 0.204"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 54,
+          "x": 618,
+          "y": 263
+        },
+        "text": "81467.3"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 109,
+          "x": 143,
+          "y": 283
+        },
+        "text": "Open P&L: 160.000"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 49,
+          "x": 620,
+          "y": 282
+        },
+        "text": "81 420.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 103,
+          "x": 145,
+          "y": 296
+        },
+        "text": "Risk/Reward: 3.00"
+      },
+      {
+        "box": {
+          "height": 8,
+          "width": 24,
+          "x": 642,
+          "y": 294
+        },
+        "text": "0o.."
+      },
+      {
+        "box": {
+          "height": 10,
+          "width": 49,
+          "x": 620,
+          "y": 309
+        },
+        "text": "'81340.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 49,
+          "x": 620,
+          "y": 320
+        },
+        "text": "81 300.0"
+      },
+      {
+        "box": {
+          "height": 10,
+          "width": 49,
+          "x": 621,
+          "y": 335
+        },
+        "text": "81260.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 49,
+          "x": 621,
+          "y": 353
+        },
+        "text": "-81 200.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 48,
+          "x": 620,
+          "y": 378
+        },
+        "text": "81120.0"
+      },
+      {
+        "box": {
+          "height": 17,
+          "width": 51,
+          "x": 619,
+          "y": 389
+        },
+        "text": "81080.0"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 226,
+          "x": 85,
+          "y": 421
+        },
+        "text": "Stop: 220 (0.27%) 2200, Amount: 850.96"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 49,
+          "x": 621,
+          "y": 418
+        },
+        "text": "-81000.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 49,
+          "x": 621,
+          "y": 482
+        },
+        "text": "-80800.0"
+      },
+      {
+        "box": {
+          "height": 9,
+          "width": 47,
+          "x": 621,
+          "y": 537
+        },
+        "text": "80630.0"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 44,
+          "x": 624,
+          "y": 546
+        },
+        "text": "sa588 8"
+      }
+    ],
+    "text": "-82200.0\nTarget: 660 (0.81%) 6600, Amount: 1030.11\n82000.0\n81960.0\n-81800.0\n81603.8\nLong, Qty: 0.204\n81467.3\nOpen P&L: 160.000\n81 420.0\nRisk/Reward: 3.00\n0o..\n'81340.0\n81 300.0\n81260.0\n-81 200.0\n81120.0\n81080.0\nStop: 220 (0.27%) 2200, Amount: 850.96\n-81000.0\n-80800.0\n80630.0\nsa588 8"
+  }
+}
