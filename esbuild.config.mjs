@@ -30,7 +30,36 @@ const gitCommitSha = (process.env.GITHUB_SHA ?? execFileSync('git', ['rev-parse'
 	encoding: 'utf8',
 })).trim();
 
-const plugins = lucrchartUrl === defaultLucrchartUrl ? [] : [{
+const reactDomClientScriptResourcePlugin = {
+	name: 'react-dom-client-script-resource',
+	setup(build) {
+		build.onLoad({ filter: /react-dom\/cjs\/react-dom-client\.(production|development)\.js$/ }, (args) => {
+			return {
+				contents: stripReactDomClientScriptResources(readFileSync(args.path, 'utf8'), args.path),
+				loader: 'js',
+			};
+		});
+	},
+};
+
+function replaceRequiredPattern(source, pattern, replacement, expected, label) {
+	const count = [...source.matchAll(pattern)].length;
+	if (count !== expected) {
+		throw new Error(`${label}: expected ${expected} React DOM script resource replacement(s), found ${count}`);
+	}
+	return source.replace(pattern, replacement);
+}
+
+function stripReactDomClientScriptResources(source, label) {
+	let nextSource = source;
+	nextSource = replaceRequiredPattern(nextSource, /\s*\(resource = ownerDocument\.createElement\("script"\)\),\n\s*markNodeAsHoistable\(resource\),\n\s*setInitialProperties\(resource, "link", src\),\n\s*ownerDocument\.head\.appendChild\(resource\)/g, `
+        (resource = null)`, 2, label);
+	nextSource = replaceRequiredPattern(nextSource, /\s*styleProps = hoistableRoot\.createElement\("script"\);\n\s*markNodeAsHoistable\(styleProps\);\n\s*setInitialProperties\(styleProps, "link", instance\);\n\s*hoistableRoot\.head\.appendChild\(styleProps\);\n\s*return \(resource\.instance = styleProps\);/g, `
+        return (resource.instance = null);`, 1, label);
+	return nextSource;
+}
+
+const plugins = [reactDomClientScriptResourcePlugin, ...(lucrchartUrl === defaultLucrchartUrl ? [] : [{
 	name: 'lucrchart-url',
 	setup(build) {
 		build.onLoad({ filter: /\/src\/constant\.ts$/ }, (args) => {
@@ -48,7 +77,7 @@ const plugins = lucrchartUrl === defaultLucrchartUrl ? [] : [{
 			};
 		});
 	},
-}];
+}])];
 
 const context = await esbuild.context({
 	alias: {
@@ -59,6 +88,7 @@ const context = await esbuild.context({
 		js: banner,
 	},
 	define: {
+		'process.env.NODE_ENV': JSON.stringify(prod ? 'production' : 'development'),
 		__LUCRJOURNAL_BUILD_ENVIRONMENT__: JSON.stringify(environment),
 		__LUCRJOURNAL_GIT_COMMIT_SHA__: JSON.stringify(gitCommitSha),
 		__LUCRJOURNAL_BUILD_TIMESTAMP__: JSON.stringify(buildTimestamp),
