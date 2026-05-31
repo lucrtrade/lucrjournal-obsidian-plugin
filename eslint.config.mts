@@ -126,6 +126,10 @@ export default tseslint.config(
 				groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index', 'type'],
 				pathGroupsExcludedImportTypes: ['builtin'],
 			}],
+			'import/no-extraneous-dependencies': ['error', {
+				packageDir: ['.', './node_modules/obsidian'],
+				peerDependencies: true,
+			}],
 			'no-console': 'error',
 			'object-shorthand': ['error', 'always'],
 			'prefer-object-spread': 'error',

@@ -127,11 +127,18 @@ jobs:
 
             - name: Prepare release artifacts
               if: steps.check_release.outputs.exists == 'false'
+              env:
+                  VERSION: ${{ steps.version.outputs.version }}
               run: |
                   mkdir -p dist/build
                   cp main.js dist/build/
                   cp manifest.json dist/build/
                   cp styles.css dist/build/
+                  cp -R assets/ocr/onnxruntime-web dist/build/
+                  mkdir -p dist/build/ocr
+                  cp -R assets/ocr/models dist/build/ocr/
+                  cp assets/ocr/manifest.json dist/build/ocr/
+                  (cd dist/build && zip -r "../lucrjournal-${VERSION}.zip" main.js manifest.json styles.css onnxruntime-web ocr)
                   ls -R dist/build/
 
             - name: Upload build artifacts
@@ -139,13 +146,17 @@ jobs:
               uses: actions/upload-artifact@v7
               with:
                   name: build-artifacts-${{ steps.version.outputs.version }}
-                  path: dist/build/*
+                  path: |
+                      dist/build/**
+                      dist/lucrjournal-${{ steps.version.outputs.version }}.zip
 
             - name: Attest build provenance
               if: steps.check_release.outputs.exists == 'false' && github.event.repository.private == false
               uses: actions/attest-build-provenance@v4
               with:
-                  subject-path: dist/build/*
+                  subject-path: |
+                      dist/build/**
+                      dist/lucrjournal-${{ steps.version.outputs.version }}.zip
 
             - name: Skip build provenance attestation for non-public repositories
               if: steps.check_release.outputs.exists == 'false' && github.event.repository.private != false
@@ -159,7 +170,11 @@ jobs:
                   name: Release ${{ steps.version.outputs.version }}
                   draft: false
                   prerelease: false
-                  files: dist/build/*
+                  files: |
+                      dist/build/main.js
+                      dist/build/manifest.json
+                      dist/build/styles.css
+                      dist/lucrjournal-${{ steps.version.outputs.version }}.zip
                   body_path: /tmp/release_notes.md
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

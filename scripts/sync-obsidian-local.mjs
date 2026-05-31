@@ -169,6 +169,19 @@ for (const fileName of ["main.js", "manifest.json", "styles.css"]) {
 	cpSync(fileName, path.join(pluginDir, fileName));
 }
 
+const ocrAssetDir = path.join(process.cwd(), "assets", "ocr");
+if (!existsSync(ocrAssetDir)) {
+	throw new Error(`[obsidian-sync] Missing OCR assets: ${ocrAssetDir}. Run npm run ocr:assets.`);
+}
+cpSync(path.join(ocrAssetDir, "onnxruntime-web"), path.join(pluginDir, "onnxruntime-web"), {
+	recursive: true,
+});
+mkdirSync(path.join(pluginDir, "ocr"), { recursive: true });
+cpSync(path.join(ocrAssetDir, "models"), path.join(pluginDir, "ocr", "models"), {
+	recursive: true,
+});
+cpSync(path.join(ocrAssetDir, "manifest.json"), path.join(pluginDir, "ocr", "manifest.json"));
+
 if (shouldEnable) {
 	await sleep(100);
 

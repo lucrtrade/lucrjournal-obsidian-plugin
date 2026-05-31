@@ -625,11 +625,7 @@ function buildAttachmentOcrProgressMessage(progress: PositionAttachmentOcrProgre
 	}
 
 	const assetLabel = t(OCR_PROGRESS_ASSET_LABEL_KEYS[progress.asset])
-	const key = progress.status === 'cached'
-		? 'POSITION_DETAILS_ATTACHMENT_OCR_PROGRESS_CACHED'
-		: 'POSITION_DETAILS_ATTACHMENT_OCR_PROGRESS_DOWNLOADING'
-
-	return t(key, {
+	return t('POSITION_DETAILS_ATTACHMENT_OCR_PROGRESS_CACHED', {
 		asset: assetLabel,
 		current: progress.step,
 		total: progress.total,

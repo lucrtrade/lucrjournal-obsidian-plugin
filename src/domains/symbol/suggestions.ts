@@ -43,10 +43,17 @@ export async function findSymbolSuggestions(
 	logger.debug('querying tradingview', { builtinMatches, excluded, normalized, queries })
 
 	const tvResponses = await Promise.all(queries
-		.map(async (candidate) => ({
-			candidate,
-			rows: await getCachedTradingViewSearch(candidate, requester),
-		})))
+		.map(async (candidate) => {
+			try {
+				return {
+					candidate,
+					rows: await getCachedTradingViewSearch(candidate, requester),
+				}
+			} catch (err: unknown) {
+				logger.debug('tradingview symbol suggestion failed', { candidate, err })
+				return { candidate, rows: [] }
+			}
+		}))
 
 	logger.debug('received tradingview symbol suggestions', { normalized, tvResponses })
 
@@ -183,6 +190,18 @@ if (import.meta.vitest) {
 			const fetcher = vi.fn()
 			await expect(findSymbolSuggestions('E', fetcher as never)).resolves.toEqual([])
 			expect(fetcher).not.toHaveBeenCalled()
+		})
+
+		it('keeps builtin suggestions when TradingView search fails', async () => {
+			const fetcher = vi.fn(async () => {
+				throw new Error('offline')
+			})
+
+			await expect(findSymbolSuggestions('BTC', fetcher)).resolves.toContainEqual({
+				symbol: 'BTCUSDT.P',
+				type: 'Crypto_Perp',
+				logo: 'https://s3-symbol-logo.tradingview.com/crypto/XTVCBTC.svg',
+			})
 		})
 	})
 }

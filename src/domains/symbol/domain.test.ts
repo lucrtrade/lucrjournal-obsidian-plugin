@@ -625,6 +625,25 @@ describe('SymbolDomain', () => {
 		expect(result.entry).toMatchObject({ name: 'TSLA', type: null, logo: null })
 	})
 
+	it('keeps an unknown symbol untyped when TradingView fails', async () => {
+		setTradingViewRequesterForTests(async () => {
+			throw new Error('offline')
+		})
+		const { app } = createMockApp([
+			{
+				path: `${LUCR_TRADE_ROOT_DIR}/accounts/ACC-MetaTrader.md`,
+				frontmatter: {
+					lucr_type: 'account',
+					name: 'MetaTrader',
+					platform: '[[MetaTrader]]',
+				},
+			},
+		])
+
+		const result = await SymbolDomain.createEntry(app as never, { account: 'MetaTrader', name: 'TSLA' })
+		expect(result.entry).toMatchObject({ name: 'TSLA', type: null, logo: null })
+	})
+
 	it('does not call TradingView when the name is a builtin', async () => {
 		const requester = vi.fn()
 		setTradingViewRequesterForTests(requester as never)

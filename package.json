@@ -42,7 +42,6 @@
 	"keywords": [],
 	"license": "MIT",
 	"devDependencies": {
-		"@codemirror/state": "^6.5.0",
 		"@eslint/compat": "2.1.0",
 		"@eslint/js": "10.0.1",
 		"@eslint/json": "^2.0.0",
@@ -72,7 +71,6 @@
 		"vitest": "4.1.7"
 	},
 	"dependencies": {
-		"@codemirror/view": "6.38.6",
 		"@fontsource-variable/inter": "5.2.8",
 		"@fontsource-variable/jetbrains-mono": "5.2.8",
 		"@fontsource-variable/noto-sans-sc": "5.2.10",

@@ -39,11 +39,13 @@ LucrJournal 需要 Obsidian `1.11.4` 或更高版本。
 VaultFolder/.obsidian/plugins/lucrjournal/
 ```
 
-必需插件文件：
+必需插件文件和目录：
 
 - `manifest.json`
 - `main.js`
 - `styles.css`
+- `onnxruntime-web/`
+- `ocr/`
 
 然后重新加载 Obsidian，并在第三方插件中启用 LucrJournal。
 
@@ -94,7 +96,7 @@ npm run test
 npm run lint
 ```
 
-发布产物是 `manifest.json`、`main.js` 和 `styles.css`。
+发布产物包含 `manifest.json`、`main.js`、`styles.css`，以及带离线 OCR runtime assets 的 zip。
 
 ## 许可证
 

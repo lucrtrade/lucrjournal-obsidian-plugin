@@ -39,11 +39,13 @@ For a manual install, copy these files into your vault plugin folder:
 VaultFolder/.obsidian/plugins/lucrjournal/
 ```
 
-Required plugin files:
+Required plugin files and directories:
 
 - `manifest.json`
 - `main.js`
 - `styles.css`
+- `onnxruntime-web/`
+- `ocr/`
 
 Then reload Obsidian and enable LucrJournal from Community plugins.
 
@@ -94,7 +96,7 @@ Run lint checks:
 npm run lint
 ```
 
-The release artifacts are `manifest.json`, `main.js`, and `styles.css`.
+The release artifacts include `manifest.json`, `main.js`, `styles.css`, and a zip with offline OCR runtime assets.
 
 ## License
 

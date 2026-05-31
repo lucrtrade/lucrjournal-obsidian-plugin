@@ -44,7 +44,13 @@ export async function enrichSymbolMetadataFromTradingView(
 	requester: Parameters<typeof getCachedTradingViewSearch>[1],
 ): Promise<SymbolTradingViewMetadata | null> {
 	logger.debug('enriching symbol from tradingview', { currentType, name })
-	const rows = await getCachedTradingViewSearch(name, requester)
+	let rows
+	try {
+		rows = await getCachedTradingViewSearch(name, requester)
+	} catch (err: unknown) {
+		logger.debug('tradingview symbol metadata failed', { currentType, err, name })
+		return null
+	}
 	const normalizedName = normalizeTradingViewSymbolName(name)
 	const callerType = PERP_SYMBOL_PATTERN.test(normalizedName) ? 'Crypto_Perp' : null
 
@@ -115,6 +121,14 @@ if (import.meta.vitest) {
 
 		it('returns null when TradingView returns nothing', async () => {
 			const requester = tvResponse([])
+			await expect(enrichSymbolMetadataFromTradingView('FOOBAR', null, requester)).resolves.toBeNull()
+		})
+
+		it('returns null when TradingView search fails', async () => {
+			const requester = vi.fn(async () => {
+				throw new Error('offline')
+			})
+
 			await expect(enrichSymbolMetadataFromTradingView('FOOBAR', null, requester)).resolves.toBeNull()
 		})
 
