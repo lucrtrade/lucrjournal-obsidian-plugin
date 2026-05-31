@@ -163,11 +163,11 @@
 }
 
 body {
-	& .workspace-leaf:has(.lucrjournal-dashboard-view) .view-header {
+	& .workspace-leaf.lucrjournal-dashboard-leaf .view-header {
 		display: none;
 	}
 
-	& .workspace-leaf:has(.lucrjournal-view) .view-content {
+	& .workspace-leaf.lucrjournal-leaf .view-content {
 		padding: 0;
 	}
 
@@ -511,8 +511,14 @@ body {
 	}
 
 	:where(h1, h2, h3, h4, h5, h6) {
-		all: unset;
 		display: block;
+		margin: 0;
+		border: 0;
+		padding: 0;
+		background: none;
+		font: inherit;
+		color: inherit;
+		line-height: inherit;
 	}
 
 	:where(h1, h2, h3, h4, h5, h6)::before {
@@ -570,8 +576,14 @@ body {
 	}
 
 	nav {
-		all: unset;
 		display: flex;
+		margin: 0;
+		border: 0;
+		padding: 0;
+		background: none;
+		font: inherit;
+		color: inherit;
+		line-height: inherit;
 	}
 
 	.lj-tab-nav {

@@ -1,4 +1,4 @@
-import { FileView, type App, type TFile, type WorkspaceLeaf } from 'obsidian'
+import { FileView, TFile, type App, type WorkspaceLeaf } from 'obsidian'
 import { type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 
@@ -20,6 +20,7 @@ export type DomainFileViewConfig<Value> = {
 
 export abstract class DomainFileView<Value> extends FileView {
 	private root: Root | null = null
+	private workspaceLeafEl: HTMLElement | null = null
 
 	protected abstract readonly config: DomainFileViewConfig<Value>
 
@@ -36,6 +37,8 @@ export abstract class DomainFileView<Value> extends FileView {
 	}
 
 	override async onOpen(): Promise<void> {
+		this.workspaceLeafEl = this.getWorkspaceLeafEl()
+		this.workspaceLeafEl.addClass('lucrjournal-leaf')
 		this.contentEl.empty()
 		this.registerEvent(this.app.metadataCache.on('changed', (file) => {
 			if (file.path === this.file?.path) {
@@ -45,7 +48,7 @@ export abstract class DomainFileView<Value> extends FileView {
 		this.registerEvent(this.app.metadataCache.on('resolved', () => this.render()))
 
 		this.addAction('file-text', t('DOMAIN_FILE_VIEW_OPEN_MARKDOWN'), () => {
-			if (this.file === null) {
+			if (!(this.file instanceof TFile)) {
 				return
 			}
 			void openDomainFileAsMarkdown(this.leaf, this.file.path, undefined, undefined, this.app)
@@ -64,6 +67,8 @@ export abstract class DomainFileView<Value> extends FileView {
 	override async onClose(): Promise<void> {
 		this.root?.unmount()
 		this.root = null
+		this.workspaceLeafEl?.removeClass('lucrjournal-leaf')
+		this.workspaceLeafEl = null
 		this.contentEl.empty()
 	}
 
@@ -76,11 +81,12 @@ export abstract class DomainFileView<Value> extends FileView {
 	}
 
 	private render(): void {
-		if (this.root === null || this.file === null) {
+		const file = this.file
+		if (this.root === null || !(file instanceof TFile)) {
 			return
 		}
 
-		const cache = this.app.metadataCache.getFileCache(this.file)
+		const cache = this.app.metadataCache.getFileCache(file)
 		if (cache === null) {
 			this.root.render(null)
 			return
@@ -88,15 +94,23 @@ export abstract class DomainFileView<Value> extends FileView {
 
 		const value = this.config.descriptor.refine(cache.frontmatter)
 		if (value === null) {
-			void openDomainFileAsMarkdown(this.leaf, this.file.path, 'source', undefined, this.app)
+			void openDomainFileAsMarkdown(this.leaf, file.path, 'source', undefined, this.app)
 			return
 		}
 
 		this.root.render(this.config.render({
 			app: this.app,
-			file: this.file,
+			file,
 			rerender: () => this.render(),
 			value,
 		}))
+	}
+
+	private getWorkspaceLeafEl(): HTMLElement {
+		const leafEl = this.containerEl.closest('.workspace-leaf')
+		if (!(leafEl instanceof HTMLElement)) {
+			throw new Error('Missing workspace leaf element')
+		}
+		return leafEl
 	}
 }

@@ -21,6 +21,7 @@ const logger = createLogger('view')
 export class LucrJournalView extends ItemView {
 	private root: Root | null = null
 	private routeState: LucrJournalRouteState = DEFAULT_JOURNAL_ROUTE_STATE
+	private workspaceLeafEl: HTMLElement | null = null
 
 	constructor(leaf: WorkspaceLeaf, private readonly plugin: LucrJournalPlugin) {
 		super(leaf)
@@ -72,6 +73,9 @@ export class LucrJournalView extends ItemView {
 		const span = logger.span('open journal view', {
 			viewType: LUCR_JOURNAL_VIEW_TYPE,
 		})
+		this.workspaceLeafEl = this.getWorkspaceLeafEl()
+		this.workspaceLeafEl.addClass('lucrjournal-leaf')
+		this.workspaceLeafEl.addClass('lucrjournal-dashboard-leaf')
 		this.contentEl.empty()
 
 		const container = this.contentEl.createDiv({
@@ -96,6 +100,9 @@ export class LucrJournalView extends ItemView {
 		})
 		this.root?.unmount()
 		this.root = null
+		this.workspaceLeafEl?.removeClass('lucrjournal-dashboard-leaf')
+		this.workspaceLeafEl?.removeClass('lucrjournal-leaf')
+		this.workspaceLeafEl = null
 		this.contentEl.empty()
 	}
 
@@ -121,5 +128,13 @@ export class LucrJournalView extends ItemView {
 				}}
 			/>,
 		)
+	}
+
+	private getWorkspaceLeafEl(): HTMLElement {
+		const leafEl = this.containerEl.closest('.workspace-leaf')
+		if (!(leafEl instanceof HTMLElement)) {
+			throw new Error('Missing workspace leaf element')
+		}
+		return leafEl
 	}
 }
