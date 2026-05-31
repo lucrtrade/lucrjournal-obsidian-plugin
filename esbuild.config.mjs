@@ -1,8 +1,9 @@
 import esbuild from "esbuild";
 import process from "process";
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { builtinModules } from 'node:module';
+import { fileURLToPath } from 'node:url';
 
 const banner =
 `/*
@@ -59,7 +60,42 @@ function stripReactDomClientScriptResources(source, label) {
 	return nextSource;
 }
 
-const plugins = [reactDomClientScriptResourcePlugin, ...(lucrchartUrl === defaultLucrchartUrl ? [] : [{
+// ccxt ships 130+ exchanges and is not tree-shakeable; bundle only the exchanges
+// that a platform actually declares via `ccxtId`, derived straight from src/platforms
+// so the build stays in sync with the single source of truth. Per-exchange files are
+// reached by absolute path to bypass ccxt's `exports` field, which blocks subpaths.
+const ccxtSrcDir = new URL('./node_modules/ccxt/js/src/', import.meta.url);
+const platformsDir = new URL('./src/platforms/', import.meta.url);
+
+function resolveCcxtExchangeIds() {
+	const ids = new Set();
+	for (const file of readdirSync(platformsDir)) {
+		if (!file.endsWith('.ts')) continue;
+		const match = readFileSync(new URL(file, platformsDir), 'utf8').match(/ccxtId:\s*'([^']+)'/);
+		if (match) ids.add(match[1]);
+	}
+	return [...ids];
+}
+
+const ccxtSlimPlugin = {
+	name: 'ccxt-slim',
+	setup(build) {
+		const ids = resolveCcxtExchangeIds();
+		if (ids.length === 0) {
+			throw new Error('ccxt-slim: no ccxtId found in src/platforms');
+		}
+		build.onResolve({ filter: /^ccxt$/ }, () => ({ path: 'ccxt-slim', namespace: 'ccxt-slim' }));
+		build.onLoad({ filter: /.*/, namespace: 'ccxt-slim' }, () => ({
+			contents: ids
+				.map((id) => `export { default as ${id} } from ${JSON.stringify(fileURLToPath(new URL(`${id}.js`, ccxtSrcDir)))};`)
+				.join('\n'),
+			resolveDir: fileURLToPath(ccxtSrcDir),
+			loader: 'js',
+		}));
+	},
+};
+
+const plugins = [reactDomClientScriptResourcePlugin, ccxtSlimPlugin, ...(lucrchartUrl === defaultLucrchartUrl ? [] : [{
 	name: 'lucrchart-url',
 	setup(build) {
 		build.onLoad({ filter: /\/src\/constant\.ts$/ }, (args) => {

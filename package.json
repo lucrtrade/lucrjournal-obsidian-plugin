@@ -1,6 +1,6 @@
 {
 	"name": "lucrjournal",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"chart_version": "1.1",
 	"description": "Record your trades as local Markdown files and link every entry to its key levels, confluences, market analysis, and news — turning your journal into a connected, private knowledge graph.",
 	"main": "main.js",
@@ -26,6 +26,7 @@
 		"build:bundle:prod": "npm run css && tsgo -noEmit -skipLibCheck && node esbuild.config.mjs production build",
 		"build": "npm run build:bundle && node scripts/sync-obsidian-local.mjs && node scripts/open-obsidian.mjs",
 		"build:prod": "npm run build:bundle:prod && node scripts/sync-obsidian-local.mjs && node scripts/open-obsidian.mjs",
+		"bundle:size": "node scripts/update-bundle-size.mjs",
 		"install:vault": "npm run build:bundle && node scripts/sync-obsidian-local.mjs --install && node scripts/open-obsidian.mjs",
 		"screenshots": "node scripts/capture-obsidian-screenshots.mjs",
 		"ocr:assets": "node scripts/sync-ocr-assets.mjs",
@@ -79,7 +80,7 @@
 		"obsidian": "1.13.0",
 		"onnxruntime-web": "^1.26.0",
 		"ppu-paddle-ocr": "^5.8.3",
-		"protobufjs": "8.4.2",
+		"protobufjs": "8.5.0",
 		"react": "19.2.6",
 		"react-dom": "19.2.6"
 	}

@@ -1,0 +1,19 @@
+{
+	"build": "production",
+	"files": [
+		{
+			"path": "main.js",
+			"bytes": 3051733,
+			"size": "2.91 MiB"
+		},
+		{
+			"path": "styles.css",
+			"bytes": 1561659,
+			"size": "1.49 MiB"
+		}
+	],
+	"total": {
+		"bytes": 4613392,
+		"size": "4.40 MiB"
+	}
+}
