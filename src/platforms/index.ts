@@ -18,6 +18,7 @@ const PLATFORMS = [
 ] as const
 
 type PlatformName = (typeof PLATFORMS)[number]['name']
+export type OhlcvPlatformName = Extract<(typeof PLATFORMS)[number], { ohlcv: unknown }>['name']
 
 export const PLATFORM_NAMES = PLATFORMS.map((platform) => platform.name) as readonly PlatformName[]
 

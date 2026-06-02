@@ -3,12 +3,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { formatChartResolution } from '../../charts/chart-model'
 import { fetchBarsWithCache } from '../../charts/ohlcv-fetch'
+import { YAHOO_INTRADAY_MAX_AGE_SECONDS, YAHOO_SUPPORTED_RESOLUTIONS } from '../../charts/yahoo-ohlcv'
 import { LUCRCHART_URL } from '../../constant'
 import {
 	computePositionChartTimeframe,
+	resolvePositionChartSource,
 	resolvePositionChartVisibleMarks,
-	resolvePositionExchangeId,
-	resolvePositionSymbol,
 } from '../../domains/position/chart'
 import { t } from '../../lang/helpers'
 import { createLogger } from '../../logger'
@@ -17,6 +17,7 @@ import { resolveChartThemeColors, resolveCurrentThemeColors } from './chart-them
 
 import type {
 	ChartConfig,
+	ChartMarkColor,
 	InboundMessage,
 	MinimalChartState,
 	OutboundMessage,
@@ -56,10 +57,15 @@ export function useChartIframe({
 	const [isDarkMode, setIsDarkMode] = useState(() => activeDocument.body.classList.contains('theme-dark'))
 	const snapshotResolverRef = useRef<((base64: string) => void) | null>(null)
 
-	const timeframe = computePositionChartTimeframe(position)
+	const source = resolvePositionChartSource(app, position)
+	const supportedResolutions = source?.provider === 'yahoo' ? YAHOO_SUPPORTED_RESOLUTIONS : undefined
+	const minIntradayTime = source?.provider === 'yahoo'
+		? Math.floor(Date.now() / 1000) - YAHOO_INTRADAY_MAX_AGE_SECONDS
+		: undefined
+	const timeframe = computePositionChartTimeframe(position, { minIntradayTime, supportedResolutions })
 	const chartMarks = buildChartMarks(position)
 	const chartMarksSignature = chartMarks
-		.map((mark) => `${mark.id}:${mark.time}:${mark.color}:${mark.label}`)
+		.map((mark) => `${mark.id}:${mark.time}:${mark.color.border}:${mark.color.background}:${mark.label}`)
 		.join('|')
 	const resolution = formatChartResolution(timeframe.resolution)
 	const [chartProbe, setChartProbe] = useState<'probing' | 'available' | 'unavailable'>('probing')
@@ -68,16 +74,14 @@ export function useChartIframe({
 		let cancelled = false
 		setChartProbe('probing')
 
-		const symbol = resolvePositionSymbol(app, position)
-		const exchange = resolvePositionExchangeId(app, position)
-		if (symbol === null || exchange === null) {
+		const chartSource = resolvePositionChartSource(app, position)
+		if (chartSource === null) {
 			setChartProbe('unavailable')
 			return
 		}
 
 		void fetchBarsWithCache({
-			exchangeId: exchange,
-			symbol,
+			...chartSource,
 			resolution: timeframe.resolution,
 			fromSeconds: timeframe.leftEdgeTime,
 			toSeconds: timeframe.rightEdgeTime,
@@ -90,8 +94,7 @@ export function useChartIframe({
 			.catch((err: unknown) => {
 				logger.warn('failed to probe OHLCV availability for chart', {
 					err,
-					exchange,
-					symbol,
+					chartSource,
 					resolution: timeframe.resolution,
 				})
 				if (!cancelled) {
@@ -132,16 +135,16 @@ export function useChartIframe({
 	}, [app, positionFile])
 
 	const buildChartConfig = useCallback((): ChartConfig | null => {
-		const symbol = resolvePositionSymbol(app, position)
-		const exchange = resolvePositionExchangeId(app, position)
-		if (symbol === null || exchange === null) {
+		const chartSource = resolvePositionChartSource(app, position)
+		if (chartSource === null) {
 			return null 
 		}
 
 		return {
 			kind: 'position',
-			symbol,
-			exchange,
+			symbol: chartSource.symbol,
+			exchange: chartSource.provider === 'exchange' ? chartSource.exchangeId : '',
+			supportedResolutions: chartSource.provider === 'yahoo' ? YAHOO_SUPPORTED_RESOLUTIONS : undefined,
 			debug: false,
 			marks: buildChartMarks(position),
 			timeframe: {
@@ -154,7 +157,7 @@ export function useChartIframe({
 			savedState: readSavedState(),
 			colors: resolveChartThemeColors(),
 		}
-	}, [chartMarksSignature, position, timeframe, isDarkMode, readSavedState])
+	}, [app, chartMarksSignature, position, timeframe, isDarkMode, readSavedState])
 
 	// Observe Obsidian theme changes via body class
 	useEffect(() => {
@@ -235,7 +238,7 @@ export function useChartIframe({
 					break
 
 				case 'REQ_HISTORY': {
-					const { symbol, resolution: reqRes, from, to, reqId } = msg.payload
+					const { resolution: reqRes, from, to, reqId } = msg.payload
 
 					if (Platform.isMobile) {
 						postToIframe({
@@ -245,8 +248,8 @@ export function useChartIframe({
 						return
 					}
 
-					const exchange = resolvePositionExchangeId(app, position)
-					if (exchange === null) {
+					const chartSource = resolvePositionChartSource(app, position)
+					if (chartSource === null) {
 						postToIframe({
 							type: 'RECEIVE_HISTORY',
 							payload: { reqId, bars: [], noData: true },
@@ -255,8 +258,7 @@ export function useChartIframe({
 					}
 
 					void fetchBarsWithCache({
-						exchangeId: exchange,
-						symbol,
+						...chartSource,
 						resolution: reqRes,
 						fromSeconds: from,
 						toSeconds: to,
@@ -270,7 +272,7 @@ export function useChartIframe({
 						.catch((err: unknown) => {
 							logger.warn('failed to fetch OHLCV for chart', {
 								err,
-								symbol,
+								chartSource,
 								resolution: reqRes,
 							})
 							postToIframe({
@@ -310,7 +312,7 @@ export function useChartIframe({
 
 		window.addEventListener('message', handleMessage)
 		return () => window.removeEventListener('message', handleMessage)
-	}, [position, positionFile, buildChartConfig, postToIframe, writeSavedState, onSnapshot])
+	}, [app, position, positionFile, buildChartConfig, postToIframe, writeSavedState, onSnapshot])
 
 	const requestSnapshot = useCallback((): Promise<string> => {
 		if (!isChartAvailable) {
@@ -331,7 +333,7 @@ function buildChartMarks(position: Position): NonNullable<ChartConfig['marks']> 
 	return resolvePositionChartVisibleMarks(position).map((mark) => ({
 		id: mark.kind,
 		time: mark.time,
-		color: mark.kind === 'open' ? colors.buyColor : colors.sellColor,
+		color: toChartMarkColor(mark.kind === 'open' ? colors.buyColor : colors.sellColor),
 		text: mark.kind === 'open'
 			? t('POSITION_DETAILS_OPENED_AT')
 			: t('POSITION_DETAILS_CLOSED_AT'),
@@ -339,4 +341,50 @@ function buildChartMarks(position: Position): NonNullable<ChartConfig['marks']> 
 		labelFontColor: colors.textOnColor,
 		minSize: 18,
 	}))
+}
+
+function toChartMarkColor(color: string): ChartMarkColor {
+	return { border: color, background: color }
+}
+
+if (import.meta.vitest) {
+	const { afterEach, describe, expect, it, vi } = import.meta.vitest
+
+	describe('buildChartMarks', () => {
+		afterEach(() => {
+			vi.unstubAllGlobals()
+		})
+
+		it('uses TradingView custom mark color objects', () => {
+			vi.stubGlobal('activeDocument', {
+				body: {
+					classList: {
+						contains: () => false,
+					},
+				},
+			})
+			vi.stubGlobal('getComputedStyle', () => ({
+				getPropertyValue: (name: string) => {
+					if (name === '--lj-profit-text') {
+						return '#111111'
+					}
+					if (name === '--lj-loss-text') {
+						return 'rgba(17, 17, 17, 0.38)'
+					}
+					return ''
+				},
+			}))
+
+			const marks = buildChartMarks({
+				lucr_type: 'position',
+				opened_at: '2026-03-20T16:31:05+08:00',
+				closed_at: '2026-03-21T18:45:00+08:00',
+			} as Position)
+
+			expect(marks.map((mark) => mark.color)).toEqual([
+				{ border: '#111111', background: '#111111' },
+				{ border: 'rgba(17, 17, 17, 0.38)', background: 'rgba(17, 17, 17, 0.38)' },
+			])
+		})
+	})
 }

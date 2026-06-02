@@ -28,7 +28,7 @@ describe('esbuild config', () => {
 	})
 
 	it('uses default LucrChart URL without env override', () => {
-		const result = spawnSync(process.execPath, ['esbuild.config.mjs', 'development', 'build'], {
+		const result = spawnSync(process.execPath, ['esbuild.config.ts', 'development', 'build'], {
 			cwd: rootPath,
 			encoding: 'utf8',
 			env: {
@@ -43,7 +43,7 @@ describe('esbuild config', () => {
 
 	it('uses LUCRCHART_URL env override for development bundle', () => {
 		const url = 'http://127.0.0.1:5173/'
-		const result = spawnSync(process.execPath, ['esbuild.config.mjs', 'development', 'build'], {
+		const result = spawnSync(process.execPath, ['esbuild.config.ts', 'development', 'build'], {
 			cwd: rootPath,
 			encoding: 'utf8',
 			env: {
@@ -58,7 +58,7 @@ describe('esbuild config', () => {
 
 	it('keeps production bundle on default LucrChart URL', () => {
 		const url = 'http://127.0.0.1:5173/'
-		const result = spawnSync(process.execPath, ['esbuild.config.mjs', 'production', 'build'], {
+		const result = spawnSync(process.execPath, ['esbuild.config.ts', 'production', 'build'], {
 			cwd: rootPath,
 			encoding: 'utf8',
 			env: {
@@ -78,7 +78,7 @@ describe('esbuild config', () => {
 		packageJson.chart_version = '1.123'
 		writeFileSync(packagePath, `${JSON.stringify(packageJson, null, '\t')}\n`)
 
-		const result = spawnSync(process.execPath, ['esbuild.config.mjs', 'development', 'build'], {
+		const result = spawnSync(process.execPath, ['esbuild.config.ts', 'development', 'build'], {
 			cwd: rootPath,
 			encoding: 'utf8',
 			env: {

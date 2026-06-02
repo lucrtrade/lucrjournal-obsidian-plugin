@@ -2,20 +2,21 @@
 	"$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
 	"entry": [
 		"src/main.ts",
-		"src/styles/main.css",
-		"scripts/*.mjs"
+		"src/styles/main.pcss",
+		"scripts/*.ts"
 	],
 	"project": [
 		"src/**/*.{ts,tsx}",
-		"scripts/**/*.mjs",
+		"scripts/**/*.ts",
 		"eslint-rules/**/*.ts",
 		"test/**/*.js",
-		"*.config.{mjs,mts}"
+		"*.config.{ts,mts}"
 	],
 	"ignoreDependencies": [
 		"@fontsource-variable/inter",
 		"@fontsource-variable/jetbrains-mono",
 		"@fontsource-variable/noto-sans-sc",
+		"tailwindcss",
 		"protobufjs"
 	],
 	"ignoreIssues": {

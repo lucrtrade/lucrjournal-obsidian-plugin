@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process'
 
 import { describe, expect, it } from 'vitest'
 
-const scriptPath = fileURLToPath(new URL('./check-unused-code.mjs', import.meta.url))
+const scriptPath = fileURLToPath(new URL('./check-unused-code.ts', import.meta.url))
 const nodeModulesPath = fileURLToPath(new URL('../node_modules', import.meta.url))
 
 function withTempProject(run) {
@@ -15,10 +15,11 @@ function withTempProject(run) {
 	const rootPath = realpathSync(rawRootPath)
 	mkdirSync(rootPath, { recursive: true })
 	mkdirSync(join(rootPath, 'scripts'), { recursive: true })
+	mkdirSync(join(rootPath, '.agents/skills/demo/scripts'), { recursive: true })
 	mkdirSync(join(rootPath, 'src/lang/locale'), { recursive: true })
 	mkdirSync(join(rootPath, 'src/styles'), { recursive: true })
 	symlinkSync(nodeModulesPath, join(rootPath, 'node_modules'), 'dir')
-	copyFileSync(scriptPath, join(rootPath, 'scripts/check-unused-code.mjs'))
+	copyFileSync(scriptPath, join(rootPath, 'scripts/check-unused-code.ts'))
 
 	try {
 		return run(rootPath)
@@ -37,7 +38,7 @@ function writeProject(rootPath) {
 		include: ['src/**/*.ts'],
 	}))
 	writeFileSync(join(rootPath, 'src/lang/locale/en.ts'), '')
-	writeFileSync(join(rootPath, 'src/styles/main.css'), '')
+	writeFileSync(join(rootPath, 'src/styles/main.pcss'), '')
 	writeFileSync(join(rootPath, 'src/pair.ts'), [
 		'export function parseSymbolPair() {',
 		"\treturn 'BTC/USDT'",
@@ -73,7 +74,7 @@ describe('unused code check', () => {
 		withTempProject((rootPath) => {
 			writeProject(rootPath)
 
-			const result = spawnSync(process.execPath, ['scripts/check-unused-code.mjs'], {
+			const result = spawnSync(process.execPath, ['scripts/check-unused-code.ts'], {
 				cwd: rootPath,
 				encoding: 'utf8',
 			})
@@ -82,5 +83,19 @@ describe('unused code check', () => {
 			expect(result.stderr).toContain('unnecessary exports')
 			expect(result.stderr).toContain('parseSymbolPair')
 			expect(result.stderr).not.toContain('aliasedHelper')
+		}))
+
+	it('counts agent skill scripts as external consumers', () =>
+		withTempProject((rootPath) => {
+			writeProject(rootPath)
+			writeFileSync(join(rootPath, '.agents/skills/demo/scripts/reference.ts'), 'parseSymbolPair\n')
+
+			const result = spawnSync(process.execPath, ['scripts/check-unused-code.ts'], {
+				cwd: rootPath,
+				encoding: 'utf8',
+			})
+
+			expect(result.status).toBe(0)
+			expect(result.stdout).toContain('unused code check passed.')
 		}))
 })

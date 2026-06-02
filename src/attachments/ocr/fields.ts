@@ -16,7 +16,7 @@ export type PositionAttachmentOcrPatchContext = {
 	notionalAsset?: 'native' | 'usd' | null
 }
 
-export type PositionAttachmentOcrFieldDefinition = {
+type PositionAttachmentOcrFieldDefinition = {
 	key: PositionAttachmentOcrFieldKey
 	labelKey: keyof typeof en
 	inputMode: 'decimal' | 'text'

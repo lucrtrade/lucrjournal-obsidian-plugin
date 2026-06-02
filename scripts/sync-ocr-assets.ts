@@ -117,7 +117,7 @@ export function verifyLocalOcrAssets({ expectedManifest, expectedOnnxRuntimeVers
 	}
 
 	if (expectedManifest !== undefined && normalizeJson(manifest) !== normalizeJson(expectedManifest)) {
-		throw new Error('OCR asset manifest mismatch. Run npm run ocr:assets.')
+		throw new Error('OCR asset manifest mismatch. Run bun run ocr:assets.')
 	}
 
 	return manifest
@@ -133,7 +133,7 @@ export async function syncOcrAssets({ check = false, rootPath = projectRootPath 
 	const files = []
 
 	for (const asset of plan) {
-		const bytes = await readSourceAssetBytes(rootPath, asset)
+		const bytes = await readSourceAssetBytes(rootPath, asset, { preferLocal: check })
 		const file = {
 			path: asset.path,
 			sha256: sha256Hex(bytes),
@@ -150,7 +150,7 @@ export async function syncOcrAssets({ check = false, rootPath = projectRootPath 
 
 	const manifest = {
 		files,
-		generatedBy: 'scripts/sync-ocr-assets.mjs',
+		generatedBy: 'scripts/sync-ocr-assets.ts',
 		onnxruntimeWebVersion: onnxRuntimeVersion,
 		repository: resolveGitHubRepositorySlug(packageJson),
 	}
@@ -179,13 +179,32 @@ function assertInstalledOnnxRuntimeVersion(rootPath, expectedVersion) {
 	}
 }
 
-async function readSourceAssetBytes(rootPath, asset) {
+async function readSourceAssetBytes(rootPath, asset, options = {}) {
+	const localAssetPath = join(rootPath, OCR_ASSET_ROOT, asset.path)
+	if (options.preferLocal && existsSync(localAssetPath)) {
+		return readFileSync(localAssetPath)
+	}
+
 	if (asset.sourcePath !== undefined) {
 		return readFileSync(join(rootPath, asset.sourcePath))
 	}
 
-	const response = await fetch(asset.source)
+	let response
+	try {
+		response = await fetch(asset.source)
+	} catch (error) {
+		if (existsSync(localAssetPath)) {
+			return readFileSync(localAssetPath)
+		}
+
+		throw error
+	}
+
 	if (!response.ok) {
+		if (existsSync(localAssetPath)) {
+			return readFileSync(localAssetPath)
+		}
+
 		throw new Error(`Unable to download OCR asset ${asset.source}: ${response.status}`)
 	}
 

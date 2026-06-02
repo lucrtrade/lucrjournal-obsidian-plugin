@@ -6,9 +6,11 @@ import { resolveSymbolInfo } from '../domains/symbol/catalog'
 import { parseSymbolPair, type SymbolPair } from '../domains/symbol/pair'
 import { EXCHANGE_ID_TO_ADAPTER } from '../platforms'
 
-import { RESOLUTION_TO_TIMEFRAME } from './chart-model'
+import { normalizeChartResolution, RESOLUTION_TO_TIMEFRAME } from './chart-model'
 import { getOhlcvCache, makeCacheKey, mergeOhlcvCache } from './ohlcv-cache'
+import { fetchYahooBars } from './yahoo-ohlcv'
 
+import type { PositionChartSource } from '../domains/position/chart'
 import type { OhlcvAdapter, OhlcvBar, OhlcvPageRequest } from '../platforms/factory'
 
 const MAX_PAGINATION_CALLS = 50
@@ -16,17 +18,30 @@ const OHLCV_BATCH_LIMIT = 1000
 const RATE_LIMIT_STATUS = 429
 const RETRY_DELAY_MS = 1050
 
-type FetchBarsParams = {
-	exchangeId: string
-	symbol: string
+type OhlcvCacheValue = {
+	bars: OhlcvBar[]
+	coveredFrom: number
+	coveredTo: number
+}
+
+type FetchBarsParams = PositionChartSource & {
 	resolution: string
 	fromSeconds: number
 	toSeconds: number
 }
 
 export async function fetchBarsWithCache(params: FetchBarsParams): Promise<OhlcvBar[]> {
+	return params.provider === 'yahoo'
+		? await fetchYahooBarsWithCache(params)
+		: await fetchExchangeBarsWithCache(params)
+}
+
+async function fetchExchangeBarsWithCache(
+	params: Extract<FetchBarsParams, { provider: 'exchange' }>,
+): Promise<OhlcvBar[]> {
 	const { exchangeId, symbol, resolution, fromSeconds, toSeconds } = params
-	const timeframe = RESOLUTION_TO_TIMEFRAME[resolution as keyof typeof RESOLUTION_TO_TIMEFRAME]
+	const normalizedResolution = normalizeChartResolution(resolution)
+	const timeframe = RESOLUTION_TO_TIMEFRAME[normalizedResolution as keyof typeof RESOLUTION_TO_TIMEFRAME]
 	if (timeframe === undefined) {
 		throw new Error(`Unsupported resolution: ${resolution}`)
 	}
@@ -43,17 +58,40 @@ export async function fetchBarsWithCache(params: FetchBarsParams): Promise<Ohlcv
 	}
 
 	const key = makeCacheKey(exchangeId, symbolName, resolution)
+	return await withOhlcvCache(key, fromSeconds, toSeconds, (fromMs, toMs) => paginateFetch(adapter, pair, timeframe, fromMs, toMs))
+}
+
+async function fetchYahooBarsWithCache(
+	params: Extract<FetchBarsParams, { provider: 'yahoo' }>,
+): Promise<OhlcvBar[]> {
+	const { symbol, resolution, fromSeconds, toSeconds } = params
+	const key = makeCacheKey('yahoo', symbol, resolution)
+	return await withOhlcvCache(key, fromSeconds, toSeconds, () => fetchYahooBars({ symbol, resolution, fromSeconds, toSeconds }))
+}
+
+async function withOhlcvCache(
+	key: string,
+	fromSeconds: number,
+	toSeconds: number,
+	fetchFn: (fromMs: number, toMs: number) => Promise<OhlcvBar[]>,
+): Promise<OhlcvBar[]> {
 	const cached = await getOhlcvCache(key)
 	const fromMs = fromSeconds * 1000
 	const toMs = toSeconds * 1000
 
-	if (cached !== null && cached.coveredFrom <= fromMs && cached.coveredTo >= toMs) {
+	if (hasCoveredCachedBars(cached, fromMs, toMs)) {
 		return cached.bars.filter((b) => b.time >= fromMs && b.time <= toMs)
 	}
 
-	const fetched = await paginateFetch(adapter, pair, timeframe, fromMs, toMs)
-	await mergeOhlcvCache(key, fetched, fromMs, toMs)
+	const fetched = await fetchFn(fromMs, toMs)
+	if (fetched.length > 0) {
+		await mergeOhlcvCache(key, fetched, fromMs, toMs)
+	}
 	return fetched.filter((b) => b.time >= fromMs && b.time <= toMs)
+}
+
+function hasCoveredCachedBars(cached: OhlcvCacheValue | null, fromMs: number, toMs: number): cached is OhlcvCacheValue {
+	return cached !== null && cached.bars.length > 0 && cached.coveredFrom <= fromMs && cached.coveredTo >= toMs
 }
 
 async function paginateFetch(
@@ -143,6 +181,16 @@ if (import.meta.vitest) {
 			const map = new Map<number, OhlcvBar>()
 			collectPage(map, [bar(5), bar(50), bar(150)], 10, 100, 0, 3)
 			expect([...map.keys()]).toEqual([50])
+		})
+	})
+
+	describe('hasCoveredCachedBars', () => {
+		it('does not treat empty covered cache entries as hits', () => {
+			expect(hasCoveredCachedBars({ bars: [], coveredFrom: 0, coveredTo: 100 }, 0, 100)).toBe(false)
+		})
+
+		it('accepts non-empty cache entries that cover the range', () => {
+			expect(hasCoveredCachedBars({ bars: [bar(50)], coveredFrom: 0, coveredTo: 100 }, 0, 100)).toBe(true)
 		})
 	})
 }

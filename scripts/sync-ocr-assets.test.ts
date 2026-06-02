@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -9,8 +10,9 @@ import {
 	buildRepositoryRawAssetBaseUrl,
 	readPackageOnnxRuntimeVersion,
 	resolveGitHubRepositorySlug,
+	syncOcrAssets,
 	verifyLocalOcrAssets,
-} from './sync-ocr-assets.mjs'
+} from './sync-ocr-assets.ts'
 
 function withTempRoot(run) {
 	const rootPath = join(tmpdir(), `lucrjournal-ocr-assets-${Date.now()}-${Math.random()}`)
@@ -18,6 +20,17 @@ function withTempRoot(run) {
 
 	try {
 		return run(rootPath)
+	} finally {
+		rmSync(rootPath, { force: true, recursive: true })
+	}
+}
+
+async function withTempRootAsync(run) {
+	const rootPath = join(tmpdir(), `lucrjournal-ocr-assets-${Date.now()}-${Math.random()}`)
+	mkdirSync(rootPath, { recursive: true })
+
+	try {
+		return await run(rootPath)
 	} finally {
 		rmSync(rootPath, { force: true, recursive: true })
 	}
@@ -86,5 +99,59 @@ describe('sync OCR assets', () => {
 					rootPath,
 				}),
 			).toThrow('Unexpected OCR asset')
+		}))
+
+	it('checks committed OCR assets without network access', async () =>
+		await withTempRootAsync(async (rootPath) => {
+			writeFileSync(join(rootPath, 'package.json'), JSON.stringify({
+				dependencies: {
+					'onnxruntime-web': '^1.25.1',
+				},
+				repository: 'https://github.com/lucrtrade/lucrjournal-obsidian-plugin',
+			}))
+			mkdirSync(join(rootPath, 'node_modules/onnxruntime-web/dist'), { recursive: true })
+			writeFileSync(join(rootPath, 'node_modules/onnxruntime-web/package.json'), JSON.stringify({ version: '1.25.1' }))
+
+			const assets = buildOcrAssetPlan({
+				dependencies: {
+					'onnxruntime-web': '^1.25.1',
+				},
+			})
+			const fileBytes = new Map(assets.map((asset, index) => [asset.path, `asset-${index}`]))
+			for (const [path, content] of fileBytes) {
+				mkdirSync(join(rootPath, 'assets/ocr', path, '..'), { recursive: true })
+				writeFileSync(join(rootPath, 'assets/ocr', path), content)
+			}
+			for (const asset of assets) {
+				if (asset.sourcePath !== undefined) {
+					mkdirSync(join(rootPath, asset.sourcePath, '..'), { recursive: true })
+					writeFileSync(join(rootPath, asset.sourcePath), fileBytes.get(asset.path))
+				}
+			}
+			writeFileSync(join(rootPath, 'assets/ocr/manifest.json'), `${JSON.stringify({
+				files: assets.map((asset) => {
+					const content = fileBytes.get(asset.path)
+					return {
+						path: asset.path,
+						sha256: createHash('sha256').update(content).digest('hex'),
+						size: Buffer.byteLength(content),
+						source: asset.source,
+					}
+				}),
+				generatedBy: 'scripts/sync-ocr-assets.ts',
+				onnxruntimeWebVersion: '1.25.1',
+				repository: 'lucrtrade/lucrjournal-obsidian-plugin',
+			}, null, '\t')}\n`)
+
+			const originalFetch = globalThis.fetch
+			globalThis.fetch = () => {
+				throw new Error('network disabled')
+			}
+
+			try {
+				await expect(syncOcrAssets({ check: true, rootPath })).resolves.toBeDefined()
+			} finally {
+				globalThis.fetch = originalFetch
+			}
 		}))
 })

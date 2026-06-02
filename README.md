@@ -69,31 +69,31 @@ LucrJournal keeps its records in your vault, so you can search, link, and carefu
 Install dependencies:
 
 ```bash
-npm install
+bun install
 ```
 
 Start the development build:
 
 ```bash
-npm run dev
+bun run dev
 ```
 
 Build the plugin bundle:
 
 ```bash
-npm run build:bundle
+bun run build:bundle
 ```
 
 Run tests:
 
 ```bash
-npm run test
+bun run test
 ```
 
 Run lint checks:
 
 ```bash
-npm run lint
+bun run lint
 ```
 
 The release artifacts include `manifest.json`, `main.js`, `styles.css`, and a zip with offline OCR runtime assets.

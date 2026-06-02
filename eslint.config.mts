@@ -200,6 +200,10 @@ export default tseslint.config(
 			'complexity': ['error', 32],
 		},
 	},
+	{
+		files: ['src/ui/chart/protocol.ts'],
+		rules: Object.fromEntries(Object.keys(stylistic.rules).map((rule) => [`@stylistic/${rule}`, 'off'])),
+	},
 	globalIgnores([
 		'node_modules',
 		'.agents',
@@ -207,7 +211,7 @@ export default tseslint.config(
 		'build-assets',
 		'demo',
 		'dist',
-		'esbuild.config.mjs',
+		'esbuild.config.ts',
 		'eslint.config.js',
 		'scripts',
 		'test/mocks',

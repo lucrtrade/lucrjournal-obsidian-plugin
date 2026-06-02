@@ -13,7 +13,6 @@ import {
 	setPlatform,
 } from 'ppu-ocv'
 import { CanvasProcessor, CanvasToolkit } from 'ppu-ocv/canvas'
-import { createJiti } from 'jiti'
 
 import { BaseDetectionService } from '../node_modules/ppu-paddle-ocr/core/base-detection.service.js'
 import {
@@ -34,10 +33,9 @@ const DEFAULT_MODELS_DIR = path.join(os.homedir(), '.cache', 'lucrjournal-ocr-mo
 const DEFAULT_FIXTURES_DIR = path.resolve('dev/ocr-fixtures/images')
 const DEFAULT_SNAPSHOTS_DIR = path.resolve('dev/ocr-fixtures/snapshots')
 
-const jiti = createJiti(import.meta.url)
 const {
 	extractPositionAttachmentOcrResultFromImageRecognition,
-} = await jiti.import('../src/attachments/ocr/index.ts')
+} = await import('../src/attachments/ocr/extract.ts')
 
 registerNodeCanvasPlatform()
 
@@ -45,7 +43,7 @@ const cli = await parseCli(process.argv.slice(2))
 
 if (cli.imagePaths.length === 0) {
 	console.error(
-		'Usage: npm run ocr:test -- <image-path> [more image paths] [--json] [--models-dir <dir>] [--fixtures-dir <dir>] [--write-snapshots] [--verify-snapshots]',
+		'Usage: bun run ocr:test -- <image-path> [more image paths] [--json] [--models-dir <dir>] [--fixtures-dir <dir>] [--write-snapshots] [--verify-snapshots]',
 	)
 	process.exit(1)
 }

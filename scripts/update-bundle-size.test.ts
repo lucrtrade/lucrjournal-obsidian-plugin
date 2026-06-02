@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process'
 
 import { describe, expect, it } from 'vitest'
 
-const scriptPath = fileURLToPath(new URL('./update-bundle-size.mjs', import.meta.url))
+const scriptPath = fileURLToPath(new URL('./update-bundle-size.ts', import.meta.url))
 
 function withTempProject(run) {
 	const rawRootPath = join(tmpdir(), `lucrjournal-bundle-size-${Date.now()}-${Math.random()}`)
@@ -26,10 +26,10 @@ describe('bundle size record', () => {
 			writeFileSync(join(rootPath, 'package.json'), JSON.stringify({
 				type: 'module',
 				scripts: {
-					'build:bundle:prod': 'node build-prod.mjs',
+					'build:bundle:prod': 'bun build-prod.ts',
 				},
 			}))
-			writeFileSync(join(rootPath, 'build-prod.mjs'), [
+			writeFileSync(join(rootPath, 'build-prod.ts'), [
 				"import { writeFileSync } from 'node:fs'",
 				"writeFileSync('main.js', 'a'.repeat(1536))",
 				"writeFileSync('styles.css', 'b'.repeat(10))",

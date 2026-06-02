@@ -130,6 +130,11 @@ export interface ChartConfig {
   snapshot?: string | undefined;
 }
 
+export interface ChartMarkColor {
+  border: string;
+  background: string;
+}
+
 /** Bar mark returned by the host for getMarks datafeed callback */
 export interface ChartMark {
   /** ID of the mark */
@@ -140,8 +145,7 @@ export interface ChartMark {
    */
   time: number;
   /** Color for the mark */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  color: any;
+  color: ChartMarkColor;
   /** Text content for the mark */
   text: string;
   /** Label for the mark */

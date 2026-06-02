@@ -107,6 +107,8 @@ export interface ChartConfig {
 	marks?: ChartMark[];
 	/** Max bars to show when switching resolution. Prevents huge countBack values. */
 	maxBarsOnSwitch: number;
+	/** Resolutions to expose in the widget toolbar; omit to use the widget default. */
+	supportedResolutions?: string[];
 	/** Color overrides for light/dark themes, derived from Obsidian theme. */
 	colors: {
 		light: ThemeColors;
@@ -117,6 +119,11 @@ export interface ChartConfig {
 }
 
 /** Bar mark returned by the host for getMarks datafeed callback */
+export interface ChartMarkColor {
+	border: string;
+	background: string;
+}
+
 interface ChartMark {
 	/** ID of the mark */
 	id: string;
@@ -126,8 +133,7 @@ interface ChartMark {
    */
 	time: number;
 	/** Color for the mark */
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	color: any;
+	color: ChartMarkColor;
 	/** Text content for the mark */
 	text: string;
 	/** Label for the mark */

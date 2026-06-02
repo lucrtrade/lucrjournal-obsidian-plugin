@@ -69,31 +69,31 @@ LucrJournal 会把记录保存在你的库中，因此可以在 Obsidian 里搜�
 安装依赖：
 
 ```bash
-npm install
+bun install
 ```
 
 启动开发构建：
 
 ```bash
-npm run dev
+bun run dev
 ```
 
 构建插件包：
 
 ```bash
-npm run build:bundle
+bun run build:bundle
 ```
 
 运行测试：
 
 ```bash
-npm run test
+bun run test
 ```
 
 运行代码检查：
 
 ```bash
-npm run lint
+bun run lint
 ```
 
 发布产物包含 `manifest.json`、`main.js`、`styles.css`，以及带离线 OCR runtime assets 的 zip。

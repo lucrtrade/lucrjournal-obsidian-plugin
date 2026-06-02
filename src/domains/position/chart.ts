@@ -28,6 +28,10 @@ type ResolutionOption = {
 	value: string
 }
 
+export type PositionChartSource =
+	| { provider: 'exchange'; exchangeId: string; symbol: string }
+	| { provider: 'yahoo'; symbol: string }
+
 const DEFAULT_RESOLUTION = '60'
 const PREFER_BARS = 300
 const PADDING_BARS = 25
@@ -44,6 +48,11 @@ const RESOLUTIONS: ResolutionOption[] = [
 	{ value: 'W', seconds: 604800 },
 	{ value: 'M', seconds: 2592000 },
 ]
+
+type PositionChartTimeframeOptions = {
+	minIntradayTime?: number
+	supportedResolutions?: readonly string[]
+}
 
 function extractPositionMarkers(position: Position): PositionMarker[] {
 	const record = position as PositionRecord
@@ -74,7 +83,7 @@ function extractPositionMarkers(position: Position): PositionMarker[] {
 	return markers
 }
 
-export function computePositionChartTimeframe(position: Position): {
+export function computePositionChartTimeframe(position: Position, options?: PositionChartTimeframeOptions): {
 	leftEdgeTime: number
 	resolution: string
 	rightEdgeTime: number
@@ -121,8 +130,14 @@ export function computePositionChartTimeframe(position: Position): {
 		}
 	}
 
-	let chosen = RESOLUTIONS.find((option) => option.value === DEFAULT_RESOLUTION) ?? RESOLUTIONS[0]!
-	for (const option of RESOLUTIONS) {
+	const resolutions = options?.supportedResolutions === undefined
+		? RESOLUTIONS
+		: RESOLUTIONS.filter((option) =>
+			options.supportedResolutions!.includes(option.value)
+			&& (options.minIntradayTime === undefined || from >= options.minIntradayTime || option.seconds >= 86400))
+
+	let chosen = resolutions.find((option) => option.value === DEFAULT_RESOLUTION) ?? resolutions[0]!
+	for (const option of resolutions) {
 		if (span / option.seconds <= PREFER_BARS) {
 			chosen = option
 			break
@@ -130,7 +145,7 @@ export function computePositionChartTimeframe(position: Position): {
 	}
 
 	if (span / chosen.seconds > PREFER_BARS) {
-		chosen = RESOLUTIONS[RESOLUTIONS.length - 1]!
+		chosen = resolutions[resolutions.length - 1]!
 	}
 
 	const spanBars = Math.ceil(span / chosen.seconds)
@@ -144,7 +159,7 @@ export function computePositionChartTimeframe(position: Position): {
 	}
 }
 
-export function resolvePositionExchangeId(app: DomainRuntimeApp, position: Position): string | null {
+function resolvePositionExchangeId(app: DomainRuntimeApp, position: Position): string | null {
 	const platform = derivePositionPlatformWikilink(app, position)
 	if (platform === null) {
 		return null
@@ -153,13 +168,28 @@ export function resolvePositionExchangeId(app: DomainRuntimeApp, position: Posit
 	return PlatformDomain.resolveExchangeId(platform)
 }
 
-export function resolvePositionSymbol(app: DomainRuntimeApp, position: Position): string | null {
+export function resolvePositionChartSource(app: DomainRuntimeApp, position: Position): PositionChartSource | null {
 	const symbolEntry = SymbolDomain.resolveEntry(app, position)
 	if (symbolEntry == null) {
 		return null
 	}
 
-	return resolvePositionSymbolModel(symbolEntry.fm.type).resolveChartSymbolName(symbolEntry.fm.name)
+	const model = resolvePositionSymbolModel(symbolEntry.fm.type)
+	const symbol = model.resolveChartSymbolName(symbolEntry.fm.name)
+	if (symbol === null) {
+		return null
+	}
+
+	const provider = model.resolveChartProvider()
+	if (provider === 'yahoo') {
+		return { provider: 'yahoo', symbol }
+	}
+	if (provider === null) {
+		return null
+	}
+
+	const exchangeId = resolvePositionExchangeId(app, position)
+	return exchangeId === null ? null : { provider: 'exchange', exchangeId, symbol }
 }
 
 export function resolvePositionChartVisibleMarks(position: Position): PositionChartVisibleMark[] {
@@ -304,49 +334,69 @@ if (import.meta.vitest) {
 		})
 	})
 
-	describe('resolvePositionSymbol', () => {
-		function createChartSymbolApp(type: string | null, name: string) {
-			const symbolFile = Object.assign(new TFile(), { path: 'LucrJournal/symbols/SBL-Main-BTCUSDT.md' })
+	describe('resolvePositionChartSource', () => {
+		function createApp(type: string, name: string, platform: string) {
+			const symbolFile = Object.assign(new TFile(), { path: 'LucrJournal/symbols/SBL-Main-X.md' })
+			const accountFile = Object.assign(new TFile(), { path: 'LucrJournal/accounts/ACC-Main.md' })
 			return {
-				vault: { getMarkdownFiles: () => [symbolFile] },
+				vault: { getMarkdownFiles: () => [symbolFile, accountFile] },
 				metadataCache: {
-					getFileCache: () => ({
-						frontmatter: {
-							lucr_type: 'symbol',
-							name,
-							account: '[[ACC-Main]]',
-							type,
-						},
-					}),
+					getFileCache: (file: TFile) => file.path.endsWith('/SBL-Main-X.md')
+						? { frontmatter: { lucr_type: 'symbol', name, account: '[[ACC-Main]]', type } }
+						: { frontmatter: { lucr_type: 'account', name: 'Main', platform: `[[${platform}]]` } },
 				},
 			} as unknown as App
 		}
 
-		it('resolves crypto perp and spot chart symbols', () => {
-			expect(resolvePositionSymbol(createChartSymbolApp('Crypto_Perp', 'BTCUSDT.P'), {
-				lucr_type: 'position',
-				symbol: '[[SBL-Main-BTCUSDT]]',
-			} as unknown as Position)).toBe('BTCUSDT.P')
-			expect(resolvePositionSymbol(createChartSymbolApp('Crypto_Spot', 'BTCUSDT'), {
-				lucr_type: 'position',
-				symbol: '[[SBL-Main-BTCUSDT]]',
-			} as unknown as Position)).toBe('BTCUSDT')
+		const position = { lucr_type: 'position', symbol: '[[SBL-Main-X]]' } as unknown as Position
+
+		it('routes Future symbols to the yahoo provider, ignoring the broker', () => {
+			expect(resolvePositionChartSource(createApp('Future', '6J', 'Interactive Brokers'), position))
+				.toEqual({ provider: 'yahoo', symbol: '6J' })
 		})
 
-		it('uses crypto perp chart fallback for null symbol type', () => {
-			expect(resolvePositionSymbol(createChartSymbolApp(null, 'BTCUSDT.P'), {
-				lucr_type: 'position',
-				symbol: '[[SBL-Main-BTCUSDT]]',
-			} as unknown as Position)).toBe('BTCUSDT.P')
+		it('routes crypto symbols to the exchange provider', () => {
+			expect(resolvePositionChartSource(createApp('Crypto_Perp', 'BTCUSDT.P', 'Binance'), position))
+				.toEqual({ provider: 'exchange', exchangeId: 'binance', symbol: 'BTCUSDT.P' })
 		})
 
-		it('resolves a chart symbol for every type (chartability decided by probe)', () => {
-			for (const type of ['Future', 'CFD']) {
-				expect(resolvePositionSymbol(createChartSymbolApp(type, 'BTCUSDT'), {
+		it('returns null for CFD symbols (out of scope)', () => {
+			expect(resolvePositionChartSource(createApp('CFD', 'EURUSD', 'MetaTrader'), position)).toBeNull()
+		})
+
+		it('returns null when a crypto symbol has no mapped exchange', () => {
+			expect(resolvePositionChartSource(createApp('Crypto_Spot', 'BTCUSDT', 'Interactive Brokers'), position)).toBeNull()
+		})
+	})
+
+	describe('computePositionChartTimeframe resolution filtering', () => {
+		it('never selects 2h/4h when restricted to the yahoo resolution set', () => {
+			const opened = '2026-01-01T00:00:00Z'
+			const closed = '2026-02-20T00:00:00Z'
+			const yahoo = ['1', '5', '15', '30', '60', 'D', 'W', 'M']
+			const result = computePositionChartTimeframe(
+				{ lucr_type: 'position', opened_at: opened, closed_at: closed } as unknown as Position,
+				{ supportedResolutions: yahoo },
+			)
+			expect(['120', '240']).not.toContain(result.resolution)
+			expect(result.resolution).toBe('D')
+		})
+
+		it('selects daily resolution for old Yahoo intraday windows', () => {
+			const nowSeconds = Math.floor(new Date('2026-06-02T00:00:00Z').getTime() / 1000)
+			const yahoo = ['1', '5', '15', '30', '60', 'D', 'W', 'M']
+			const result = computePositionChartTimeframe(
+				{
 					lucr_type: 'position',
-					symbol: '[[SBL-Main-BTCUSDT]]',
-				} as unknown as Position)).toBe('BTCUSDT')
-			}
+					opened_at: '2025-05-26T12:33:09.009Z',
+					closed_at: '2025-05-29T02:33:09.009Z',
+				} as unknown as Position,
+				{
+					supportedResolutions: yahoo,
+					minIntradayTime: nowSeconds - 60 * 24 * 60 * 60,
+				},
+			)
+			expect(result.resolution).toBe('D')
 		})
 	})
 

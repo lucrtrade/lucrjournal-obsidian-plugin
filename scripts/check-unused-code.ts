@@ -9,7 +9,8 @@ const ignoredSourceFiles = new Set([
 	ts.sys.resolvePath(new URL('../src/ui/chart/protocol.ts', import.meta.url).pathname),
 ])
 const scriptFiles = ts.sys
-	.readDirectory(join(projectRootPath, 'scripts'), ['.mjs'], undefined, ['**/*'])
+	.readDirectory(join(projectRootPath, 'scripts'), ['.ts'], undefined, ['**/*'])
+	.concat(ts.sys.readDirectory(join(projectRootPath, '.agents/skills'), ['.ts'], undefined, ['**/scripts/**/*']))
 	.map((fileName) => ts.sys.resolvePath(fileName))
 	.filter((fileName) => !isTestFilePath(fileName))
 const scriptContentsByFile = new Map(
@@ -90,7 +91,7 @@ if (unusedLocaleKeys.length > 0) {
 const unusedCssClasses = findUnusedCssClasses()
 if (unusedCssClasses.length > 0) {
 	if (hasErrors) console.error('')
-	console.error(`Found ${unusedCssClasses.length} unused CSS classes in main.css:\n`)
+	console.error(`Found ${unusedCssClasses.length} unused CSS classes in main.pcss:\n`)
 	for (const cls of unusedCssClasses) {
 		console.error(`- .${cls}`)
 	}
@@ -663,7 +664,7 @@ function stripBalancedBlocks(source, pattern) {
 // ─── Check 4: unused CSS classes ───────────────────────────────────────────
 
 function findUnusedCssClasses() {
-	const cssPath = resolve(projectRootPath, 'src/styles/main.css')
+	const cssPath = resolve(projectRootPath, 'src/styles/main.pcss')
 	const cssContent = readFileSync(cssPath, 'utf8')
 
 	// Strip @theme blocks (both `@theme { ... }` and `@theme inline { ... }`)
@@ -685,7 +686,7 @@ function findUnusedCssClasses() {
 	const srcDir = resolve(projectRootPath, 'src')
 	const sourceFiles = collectSourceFilePaths(srcDir)
 	const sourceContents = sourceFiles
-		.filter((f) => !isTestFilePath(f) && !f.endsWith('main.css'))
+		.filter((f) => !isTestFilePath(f) && !f.endsWith('main.pcss'))
 		.map((f) => readFileSync(f, 'utf8'))
 		.join('\n')
 

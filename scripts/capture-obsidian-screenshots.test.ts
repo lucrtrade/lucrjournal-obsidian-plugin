@@ -7,7 +7,7 @@ import {
 	captureScreenshotPlan,
 	filterScreenshotPlan,
 	parseScreenshotCliArgs,
-} from './capture-obsidian-screenshots.mjs'
+} from './capture-obsidian-screenshots.ts'
 
 describe('capture Obsidian screenshots', () => {
 	it('keeps the fixed dashboard screenshot definitions in the helper', () => {

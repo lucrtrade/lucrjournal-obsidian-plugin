@@ -1,9 +1,9 @@
-npm_package_version=$(node -p "require('./package.json').version") node scripts/version-bump.mjs
-git add manifest.json versions.json package-lock.json
-npm run bundle:size
+bun scripts/version-bump.ts
+git add manifest.json versions.json
+bun run bundle:size
 git add bundle-size.json
 
-version=$(git show :package.json | node -e "let s=''; process.stdin.on('data', d => s += d); process.stdin.on('end', () => console.log(JSON.parse(s).version))")
+version=$(git show :package.json | bun -e "let s=''; process.stdin.on('data', d => s += d); process.stdin.on('end', () => console.log(JSON.parse(s).version))")
 has_version=$(git show :CHANGELOG.md | awk -v ver="$version" '
   /^## \[/ { if ($0 == "## [" ver "]" || index($0, "## [" ver "] ") == 1) found=1 }
   END { print found ? "1" : "0" }

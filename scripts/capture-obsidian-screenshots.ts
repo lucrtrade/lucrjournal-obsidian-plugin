@@ -3,8 +3,6 @@ import { existsSync as nodeExistsSync, mkdirSync as nodeMkdirSync, readFileSync,
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-import { createJiti } from 'jiti'
-
 const projectRootPath = fileURLToPath(new URL('..', import.meta.url))
 const DEFAULT_POLL_MS = 100
 const DEFAULT_TIMEOUT_MS = 5000
@@ -561,7 +559,7 @@ function printScreenshotPlan(plan) {
 }
 
 function printUsage() {
-	console.log(`Usage: node scripts/capture-obsidian-screenshots.mjs [filters]
+	console.log(`Usage: bun scripts/capture-obsidian-screenshots.ts [filters]
 
 Filters:
   --lang en|zh          Filter by language. Repeat or use comma values.
@@ -1043,15 +1041,14 @@ function sleepMs(ms) {
 	})
 }
 
-function readProjectDefaults() {
+async function readProjectDefaults() {
 	const manifest = JSON.parse(readFileSync(path.join(projectRootPath, 'manifest.json'), 'utf8'))
 	const packageJson = JSON.parse(readFileSync(path.join(projectRootPath, 'package.json'), 'utf8'))
 	globalThis.__LUCRJOURNAL_CHART_VERSION__ = packageJson.chart_version
 	globalThis.__LUCRJOURNAL_CHART_IFRAME_URL__ = `https://lucrchart.lucrtrade.com/lv/${packageJson.chart_version}`
-	const jiti = createJiti(import.meta.url)
 	const {
 		OPEN_JOURNAL_COMMAND_ID,
-	} = jiti('../src/constant.ts')
+	} = await import('../src/constant.ts')
 
 	if (typeof manifest.id !== 'string' || manifest.id === '') {
 		throw new Error('[obsidian-screenshot] manifest.json is missing an id.')
@@ -1070,7 +1067,7 @@ if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.a
 		process.exit(0)
 	}
 
-	const plan = filterScreenshotPlan(buildDefaultScreenshotPlan(readProjectDefaults()), filters)
+	const plan = filterScreenshotPlan(buildDefaultScreenshotPlan(await readProjectDefaults()), filters)
 	if (plan.screenshots.length === 0) {
 		throw new Error('[obsidian-screenshot] filters selected no screenshots.')
 	}

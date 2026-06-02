@@ -1,6 +1,6 @@
 import type { ThemeColors } from '../../charts/protocol'
 
-// ─── Defaults derived from main.css --lj-* tokens ───────────────────────────
+// ─── Defaults derived from main.pcss --lj-* tokens ──────────────────────────
 // Monochrome palette: profit/buy = strong, loss/sell = muted
 
 const LIGHT_DEFAULTS: ThemeColors = {

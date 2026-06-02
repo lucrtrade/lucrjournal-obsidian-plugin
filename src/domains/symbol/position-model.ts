@@ -3,6 +3,7 @@
 import { findBuiltinCfdSymbol, findBuiltinFutureSymbol } from './constants'
 
 export type PositionSymbolType = 'Crypto_Perp' | 'Crypto_Spot' | 'Future' | 'CFD'
+type PositionChartProvider = 'exchange' | 'yahoo'
 
 export type PositionNotionalInput = {
 	notional_asset?: unknown
@@ -103,6 +104,10 @@ export abstract class BasePositionSymbol {
 
 	resolveChartSymbolName(symbolName: string): string | null {
 		return symbolName
+	}
+
+	resolveChartProvider(): PositionChartProvider | null {
+		return 'exchange'
 	}
 
 	calculateNotionalValue(
@@ -292,6 +297,10 @@ class FuturePositionSymbolModel extends BasePositionSymbol {
 		return findBuiltinFutureSymbol(symbolName)?.contract_unit ?? null
 	}
 
+	override resolveChartProvider(): PositionChartProvider | null {
+		return 'yahoo'
+	}
+
 	protected override resolveNotionalQuantity(
 		position: PositionNotionalInput,
 		math: PositionFormulaMath,
@@ -342,6 +351,10 @@ class CfdPositionSymbolModel extends BasePositionSymbol {
 		return this.normalizeContractUnitOverride(overrideValue)
 			?? findBuiltinCfdSymbol(symbolName)?.contract_unit
 			?? null
+	}
+
+	override resolveChartProvider(): PositionChartProvider | null {
+		return null
 	}
 
 	override normalizeContractUnitOverride(value: unknown): number | null {

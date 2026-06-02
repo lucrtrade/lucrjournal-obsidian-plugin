@@ -31,7 +31,7 @@
 			"source": "https://raw.githubusercontent.com/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr-models/main/recognition/multi/en/v5/ppocrv5_en_dict.txt"
 		}
 	],
-	"generatedBy": "scripts/sync-ocr-assets.mjs",
+	"generatedBy": "scripts/sync-ocr-assets.ts",
 	"onnxruntimeWebVersion": "1.26.0",
 	"repository": "lucrtrade/lucrjournal-obsidian-plugin"
 }

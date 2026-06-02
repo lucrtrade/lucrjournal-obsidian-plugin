@@ -5,30 +5,22 @@ import {
 	preparePositionAttachmentOcrRuntime,
 	recognizePositionAttachmentText,
 	type PositionAttachmentOcrProgress,
-	type PositionAttachmentOcrRecognition,
 } from '../ocr-runtime'
 
+import {
+	extractPositionAttachmentOcrResultFromImageRecognition,
+	extractPositionAttachmentOcrResultFromRecognition,
+} from './extract'
 import {
 	POSITION_ATTACHMENT_OCR_FIELDS,
 	type PositionAttachmentOcrResult,
 } from './fields'
+import { TRADING_VIEW_NUMBER_PATTERN } from './lines'
 import {
-	TRADING_VIEW_NUMBER_PATTERN,
-	buildNormalizedOcrLines,
-} from './lines'
-import { extractMetaTraderMobilePositionResult } from './metatrader'
-import {
-	extractTradingViewVisualPriceMatch,
 	findNearestTradingViewOverlaySegment,
 	mergePositionAttachmentOcrResultWithVisualPriceMatch,
 	resolveTradingViewRightAxisValue,
 } from './tradingview-pixels'
-import {
-	extractNotionalValue,
-	extractStopLoss,
-	extractTargetPrice,
-	extractTradingViewPriceMatch,
-} from './tradingview-text'
 
 export type { PositionAttachmentOcrResult, PositionAttachmentOcrDraft } from './fields'
 export {
@@ -65,47 +57,6 @@ export async function detectPositionAttachmentOcr(
 
 	logger.debug('detected position attachment ocr', { ...recognition })
 	return await extractPositionAttachmentOcrResultFromImageRecognition(buffer, recognition)
-}
-
-/** @knipignore */
-export async function extractPositionAttachmentOcrResultFromImageRecognition(
-	buffer: ArrayBuffer,
-	recognition: PositionAttachmentOcrRecognition,
-): Promise<PositionAttachmentOcrResult> {
-	const textResult = extractPositionAttachmentOcrResultFromRecognition(recognition)
-	const visualPriceMatch = await extractTradingViewVisualPriceMatch(buffer, recognition)
-	return mergePositionAttachmentOcrResultWithVisualPriceMatch(textResult, visualPriceMatch)
-}
-
-function extractPositionAttachmentOcrResultFromRecognition(
-	recognition: PositionAttachmentOcrRecognition,
-): PositionAttachmentOcrResult {
-	const lines = buildNormalizedOcrLines(recognition)
-	const metaTraderResult = extractMetaTraderMobilePositionResult(lines)
-	if (metaTraderResult !== undefined) {
-		return metaTraderResult
-	}
-
-	const notionalValue = extractNotionalValue(lines)
-	const rawStopLoss = extractStopLoss(lines)
-	const rawTargetPrice = extractTargetPrice(lines)
-
-	const result: PositionAttachmentOcrResult = {
-		notional_value: notionalValue,
-		stop_loss: rawStopLoss,
-		target_price: rawTargetPrice,
-	}
-
-	if (rawStopLoss !== undefined && rawTargetPrice !== undefined) {
-		const tradingViewMatch = extractTradingViewPriceMatch(lines, rawStopLoss, rawTargetPrice)
-		if (tradingViewMatch !== undefined) {
-			result.entry_price = tradingViewMatch.entryPrice
-			result.stop_loss = tradingViewMatch.stopPrice
-			result.target_price = tradingViewMatch.targetPrice
-		}
-	}
-
-	return result
 }
 
 function delay(durationMs: number) {

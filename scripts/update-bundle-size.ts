@@ -4,7 +4,7 @@ import process from 'node:process'
 
 const artifacts = ['main.js', 'styles.css']
 
-const build = spawnSync('npm', ['run', 'build:bundle:prod'], { stdio: 'inherit' })
+const build = spawnSync('bun', ['--silent', 'run', 'build:bundle:prod'], { stdio: 'inherit' })
 if (build.error != null) {
 	throw build.error
 }

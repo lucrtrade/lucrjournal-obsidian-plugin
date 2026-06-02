@@ -1,19 +1,17 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import { createJiti } from "jiti";
 
 const shouldInstallFromCli = process.argv.includes("--install");
 const SANDBOX_VAULT_NAME = "Obsidian Sandbox";
 const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 globalThis.__LUCRJOURNAL_CHART_VERSION__ = packageJson.chart_version;
 globalThis.__LUCRJOURNAL_CHART_IFRAME_URL__ = `https://lucrchart.lucrtrade.com/lv/${packageJson.chart_version}`;
-const jiti = createJiti(import.meta.url);
 const {
 	LUCR_JOURNAL_VIEW_TYPE,
 	LUCR_TRADE_ROOT_DIR,
 	OPEN_JOURNAL_COMMAND_ID,
-} = jiti("../src/constant.ts");
+} = await import("../src/constant.ts");
 
 function isCiEnvironment() {
 	return process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
@@ -171,7 +169,7 @@ for (const fileName of ["main.js", "manifest.json", "styles.css"]) {
 
 const ocrAssetDir = path.join(process.cwd(), "assets", "ocr");
 if (!existsSync(ocrAssetDir)) {
-	throw new Error(`[obsidian-sync] Missing OCR assets: ${ocrAssetDir}. Run npm run ocr:assets.`);
+	throw new Error(`[obsidian-sync] Missing OCR assets: ${ocrAssetDir}. Run bun run ocr:assets.`);
 }
 cpSync(path.join(ocrAssetDir, "onnxruntime-web"), path.join(pluginDir, "onnxruntime-web"), {
 	recursive: true,

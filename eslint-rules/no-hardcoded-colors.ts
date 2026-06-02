@@ -3,7 +3,7 @@
  *
  * Disallows hardcoded Tailwind CSS color utilities (named palette, white/black,
  * arbitrary hex/rgb) inside `lj:` prefixed class names.
- * All colors must go through lj-* design tokens defined in main.css @theme.
+ * All colors must go through lj-* design tokens defined in main.pcss @theme.
  */
 import type { Rule } from 'eslint';
 
