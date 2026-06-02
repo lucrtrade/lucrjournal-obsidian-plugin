@@ -4,14 +4,7 @@ import { type } from 'arktype'
 
 import { buildCacheRegistry } from '../cache'
 
-export type OhlcvBar = {
-	time: number
-	open: number
-	high: number
-	low: number
-	close: number
-	volume: number
-}
+import type { OhlcvBar } from '../platforms/factory'
 
 const OhlcvBarType = type({
 	time: 'number',

@@ -1,67 +1,29 @@
+/// <reference types="vitest/importMeta" />
+
 import { requestUrl, type RequestUrlResponse } from 'obsidian'
 
 import { resolveSymbolInfo } from '../domains/symbol/catalog'
+import { parseSymbolPair, type SymbolPair } from '../domains/symbol/pair'
+import { EXCHANGE_ID_TO_ADAPTER } from '../platforms'
 
 import { RESOLUTION_TO_TIMEFRAME } from './chart-model'
-import { getOhlcvCache, makeCacheKey, mergeOhlcvCache, type OhlcvBar } from './ohlcv-cache'
+import { getOhlcvCache, makeCacheKey, mergeOhlcvCache } from './ohlcv-cache'
 
-import type { Exchange } from 'ccxt'
+import type { OhlcvAdapter, OhlcvBar, OhlcvPageRequest } from '../platforms/factory'
 
-const MAX_PAGINATION_CALLS = 25
-const OHLCV_BATCH_LIMIT = 500
+const MAX_PAGINATION_CALLS = 50
+const OHLCV_BATCH_LIMIT = 1000
 const RATE_LIMIT_STATUS = 429
 const RETRY_DELAY_MS = 1050
-
-let ccxtPromise: Promise<Record<string, new (options?: Record<string, unknown>) => Exchange>> | null = null
-
-async function loadCcxt(): Promise<Record<string, new (options?: Record<string, unknown>) => Exchange>> {
-	ccxtPromise ??= import('ccxt').then((module) => {
-		const namespace: unknown = (module as { default?: unknown }).default ?? module
-		return namespace as Record<string, new (options?: Record<string, unknown>) => Exchange>
-	})
-
-	return await ccxtPromise
-}
-
-async function createCcxtExchange(exchangeId: string): Promise<Exchange> {
-	const ctors = await loadCcxt()
-	const Ctor = ctors[exchangeId]
-	if (Ctor === undefined) {
-		throw new Error(`Unsupported exchange: ${exchangeId}`)
-	}
-
-	const ex = new Ctor({ enableRateLimit: true, adjustForTimeDifference: true })
-
-	ex.fetch = async (
-		url: RequestInfo | URL,
-		method: string,
-		headers: object,
-		body: ArrayBuffer | string,
-	): Promise<Response> => {
-		while (true) {
-			const response = await proxyCcxtRequest(url, method, headers, body)
-			if (response.status !== RATE_LIMIT_STATUS) {
-				return ex.handleRestResponse(response, url, method, headers, body)
-			}
-			await wait(RETRY_DELAY_MS)
-		}
-	}
-
-	return ex
-}
 
 type FetchBarsParams = {
 	exchangeId: string
 	symbol: string
-	resolution: string // e.g. "60", "D"
+	resolution: string
 	fromSeconds: number
 	toSeconds: number
 }
 
-/**
- * Fetch OHLCV bars for a range, using the in-memory cache to avoid redundant API calls.
- * Returns bars filtered to [fromSeconds * 1000, toSeconds * 1000].
- */
 export async function fetchBarsWithCache(params: FetchBarsParams): Promise<OhlcvBar[]> {
 	const { exchangeId, symbol, resolution, fromSeconds, toSeconds } = params
 	const timeframe = RESOLUTION_TO_TIMEFRAME[resolution as keyof typeof RESOLUTION_TO_TIMEFRAME]
@@ -69,109 +31,118 @@ export async function fetchBarsWithCache(params: FetchBarsParams): Promise<Ohlcv
 		throw new Error(`Unsupported resolution: ${resolution}`)
 	}
 
-	const normalizedSymbol = resolveSymbolInfo(symbol).ccxtSymbol
-	if (normalizedSymbol === null) {
-		throw new Error(`Unsupported ccxt symbol: ${symbol}`)
+	const symbolName = resolveSymbolInfo(symbol).name
+	const pair = parseSymbolPair(symbolName)
+	if (pair === null) {
+		throw new Error(`Unsupported crypto symbol: ${symbol}`)
 	}
-	const key = makeCacheKey(exchangeId, normalizedSymbol, resolution)
+
+	const adapter = EXCHANGE_ID_TO_ADAPTER.get(exchangeId)
+	if (adapter === undefined) {
+		throw new Error(`Unsupported exchange: ${exchangeId}`)
+	}
+
+	const key = makeCacheKey(exchangeId, symbolName, resolution)
 	const cached = await getOhlcvCache(key)
 	const fromMs = fromSeconds * 1000
 	const toMs = toSeconds * 1000
 
-	// Full cache hit — no fetch needed
 	if (cached !== null && cached.coveredFrom <= fromMs && cached.coveredTo >= toMs) {
 		return cached.bars.filter((b) => b.time >= fromMs && b.time <= toMs)
 	}
 
-	const ex = await createCcxtExchange(exchangeId)
-
-	try {
-		const fetched = await paginateFetch(ex, normalizedSymbol, timeframe, fromMs, toMs)
-		await mergeOhlcvCache(key, fetched, fromMs, toMs)
-		return fetched.filter((b) => b.time >= fromMs && b.time <= toMs)
-	} finally {
-		await ex.close()
-	}
+	const fetched = await paginateFetch(adapter, pair, timeframe, fromMs, toMs)
+	await mergeOhlcvCache(key, fetched, fromMs, toMs)
+	return fetched.filter((b) => b.time >= fromMs && b.time <= toMs)
 }
 
 async function paginateFetch(
-	ex: Exchange,
-	symbol: string,
+	adapter: OhlcvAdapter,
+	pair: SymbolPair,
 	timeframe: string,
 	fromMs: number,
 	toMs: number,
 ): Promise<OhlcvBar[]> {
-	const bars: OhlcvBar[] = []
-	let since = fromMs
+	const limit = Math.min(OHLCV_BATCH_LIMIT, adapter.maxLimit)
+	const bars = new Map<number, OhlcvBar>()
+	let cursor = fromMs
 	let calls = 0
 
-	while (since < toMs) {
-		if (++calls > MAX_PAGINATION_CALLS) {
+	while (cursor < toMs && ++calls <= MAX_PAGINATION_CALLS) {
+		const request: OhlcvPageRequest = { pair, timeframe, cursorMs: cursor, limit, nowMs: Date.now() }
+		const url = adapter.pageUrl(request)
+		const page = adapter.parsePage(await requestJson(url), pair)
+		const next = collectPage(bars, page, fromMs, toMs, cursor, limit)
+		if (next === null) {
 			break
 		}
-
-		const batch = await ex.fetchOHLCV(symbol, timeframe, since, OHLCV_BATCH_LIMIT, {})
-		if (!Array.isArray(batch) || batch.length === 0) {
-			break
-		}
-
-		for (const row of batch) {
-			if (!Array.isArray(row)) {
-				continue
-			}
-			const [time, open, high, low, close, volume] = row
-			if (
-				typeof time !== 'number'
-				|| typeof open !== 'number'
-				|| typeof high !== 'number'
-				|| typeof low !== 'number'
-				|| typeof close !== 'number'
-			) {
-				continue
-			}
-			if (time < fromMs || time > toMs) {
-				continue
-			}
-			bars.push({ time, open, high, low, close, volume: typeof volume === 'number' ? volume : 0 })
-		}
-
-		const last = batch[batch.length - 1]?.[0]
-		if (typeof last !== 'number' || batch.length < OHLCV_BATCH_LIMIT || last <= since) {
-			break
-		}
-		since = last + 1
+		cursor = next
 	}
 
-	// Deduplicate
-	const map = new Map<number, OhlcvBar>()
-	for (const b of bars) {
-		map.set(b.time, b)
-	}
-	return Array.from(map.values()).sort((a, b) => a.time - b.time)
+	return Array.from(bars.values()).sort((left, right) => left.time - right.time)
 }
 
-async function proxyCcxtRequest(
-	url: RequestInfo | URL,
-	method: string,
-	headers: object,
-	body: ArrayBuffer | string,
-): Promise<Response> {
-	const urlStr = url instanceof URL ? url.href : url instanceof Request ? url.url : url
-	const response: RequestUrlResponse = await requestUrl({
-		url: urlStr,
-		method,
-		headers: headers as Record<string, string>,
-		body,
-		throw: false,
-	})
+function collectPage(
+	bars: Map<number, OhlcvBar>,
+	page: OhlcvBar[],
+	fromMs: number,
+	toMs: number,
+	cursor: number,
+	limit: number,
+): number | null {
+	if (page.length === 0) {
+		return null
+	}
+	let last = cursor
+	for (const bar of page) {
+		if (bar.time >= fromMs && bar.time <= toMs) {
+			bars.set(bar.time, bar)
+		}
+		if (bar.time > last) {
+			last = bar.time
+		}
+	}
+	if (last <= cursor || page.length < limit) {
+		return null
+	}
+	return last + 1
+}
 
-	return new Response(response.arrayBuffer, {
-		headers: new Headers(response.headers),
-		status: response.status,
-		statusText: String(response.status),
-	})
+async function requestJson(url: string): Promise<unknown> {
+	while (true) {
+		const response: RequestUrlResponse = await requestUrl({ url, method: 'GET', throw: false })
+		if (response.status !== RATE_LIMIT_STATUS) {
+			return response.json as unknown
+		}
+		await wait(RETRY_DELAY_MS)
+	}
 }
 
 function wait(ms: number): Promise<void> {
 	return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
+
+if (import.meta.vitest) {
+	const { describe, expect, it } = import.meta.vitest
+	const bar = (time: number): OhlcvBar => ({ time, open: 1, high: 1, low: 1, close: 1, volume: 1 })
+
+	describe('collectPage', () => {
+		it('stops on an empty page', () => {
+			expect(collectPage(new Map(), [], 0, 100, 0, 10)).toBeNull()
+		})
+		it('stops on a short page after collecting in-range bars', () => {
+			const map = new Map<number, OhlcvBar>()
+			expect(collectPage(map, [bar(10), bar(20)], 0, 100, 0, 10)).toBeNull()
+			expect([...map.keys()]).toEqual([10, 20])
+		})
+		it('advances cursor past the last bar on a full page', () => {
+			const map = new Map<number, OhlcvBar>()
+			expect(collectPage(map, [bar(10), bar(20), bar(30)], 0, 100, 0, 3)).toBe(31)
+		})
+		it('drops bars outside the requested range', () => {
+			const map = new Map<number, OhlcvBar>()
+			collectPage(map, [bar(5), bar(50), bar(150)], 10, 100, 0, 3)
+			expect([...map.keys()]).toEqual([50])
+		})
+	})
 }

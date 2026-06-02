@@ -26,19 +26,16 @@ describe('resolveSymbolInfo', () => {
 			name: 'BTCUSDT.P',
 			type: 'Crypto_Perp',
 			asset: 'BTC',
-			ccxtSymbol: 'BTC/USDT:USDT',
 		})
 		expect(resolveSymbolInfo('BTCUSDT')).toMatchObject({
 			name: 'BTCUSDT',
 			type: 'Crypto_Spot',
 			asset: 'BTC',
-			ccxtSymbol: 'BTC/USDT',
 		})
 		expect(resolveSymbolInfo('EURUSD')).toMatchObject({
 			name: 'EURUSD',
 			type: 'CFD',
 			asset: 'EUR',
-			ccxtSymbol: null,
 		})
 	})
 

@@ -1,7 +1,7 @@
 import { type } from 'arktype'
 
 import { LUCR_TRADE_ROOT_DIR } from '../../constant'
-import { PLATFORM_NAMES, PLATFORM_TO_CCXT_ID } from '../../platforms'
+import { PLATFORM_NAMES, PLATFORM_TO_EXCHANGE_ID } from '../../platforms'
 import { sanitizeObsidianFileName } from '../../utils'
 import { coerceFrontmatterField, coerceLiteral, coerceNullableString, normalizeLucrTypeName } from '../../utils/frontmatter-coerce'
 import { BasenameDomainBase } from '../core/basename-domain'
@@ -17,7 +17,7 @@ type PlatformPresentation = {
 	name: string
 	icon: IconDescriptor
 	source: 'persisted' | 'preset'
-	ccxtId: string | null
+	exchangeId: string | null
 }
 
 type PlatformPickerOption = {
@@ -102,9 +102,9 @@ class PlatformDomainDefinition extends BasenameDomainBase<'platform', typeof Pla
 		return link.slice(2, -2) 
 	}
 
-	resolveCcxtExchangeId(value: string): string | null {
+	resolveExchangeId(value: string): string | null {
 		const presetPlatformName = resolvePresetPlatformName(value)
-		return presetPlatformName === null ? null : PLATFORM_TO_CCXT_ID[presetPlatformName] ?? null
+		return presetPlatformName === null ? null : PLATFORM_TO_EXCHANGE_ID[presetPlatformName] ?? null
 	}
 }
 
@@ -147,7 +147,7 @@ function listPersistedPlatformPresentations(
 				name: platformName,
 				icon: resolveIconDescriptor(platform.icon) ?? { kind: 'platform', value: platformName },
 				source: 'persisted' as const,
-				ccxtId: resolvePlatformCcxtId(platformName),
+				exchangeId: resolvePlatformExchangeId(platformName),
 			}]
 		})
 		.sort((left, right) => left.name.localeCompare(right.name))
@@ -165,9 +165,9 @@ function resolvePresetPlatformName(
 		.find((platformName) => platformName.toLocaleLowerCase() === normalizedName) ?? null
 }
 
-function resolvePlatformCcxtId(value: string) {
+function resolvePlatformExchangeId(value: string) {
 	const presetPlatformName = resolvePresetPlatformName(value)
-	return presetPlatformName === null ? null : PLATFORM_TO_CCXT_ID[presetPlatformName] ?? null
+	return presetPlatformName === null ? null : PLATFORM_TO_EXCHANGE_ID[presetPlatformName] ?? null
 }
 
 function normalizePlatformLookupKey(value: string) {
@@ -181,7 +181,7 @@ function buildPresetPlatformPresentation(
 		name: platformName,
 		icon: { kind: 'platform', value: platformName },
 		source: 'preset',
-		ccxtId: PLATFORM_TO_CCXT_ID[platformName] ?? null,
+		exchangeId: PLATFORM_TO_EXCHANGE_ID[platformName] ?? null,
 	}
 }
 

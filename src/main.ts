@@ -10,7 +10,6 @@ import {
 	LUCR_POSITION_VIEW_TYPE,
 	OPEN_JOURNAL_COMMAND_ID,
 } from './constant'
-import { installDevelopmentIpcRequestLogger } from './debug/install-development-ipc-request-logger'
 import { registerDomainModifiedTracker } from './domains/core/domain-modified-tracker'
 import { registerLucrJournalAttachmentCapture } from './editor/attachment-paste-drop'
 import { IconsSvg } from './icons'
@@ -41,7 +40,6 @@ const logger = createLogger('plugin')
 export default class LucrJournalPlugin extends Plugin {
 	public override settings = new PluginSettings()
 	public settingsManager = new PluginSettingsManager(this)
-	private debugRuntimeCleanup: () => void = () => {}
 
 	public override async onload(): Promise<void> {
 		const persistedSettings = await this.loadData() as unknown
@@ -66,15 +64,9 @@ export default class LucrJournalPlugin extends Plugin {
 		void this.app.workspace.detachLeavesOfType(LUCR_JOURNAL_VIEW_TYPE)
 		void this.app.workspace.detachLeavesOfType(LUCR_PLAYBOOK_VIEW_TYPE)
 		void this.app.workspace.detachLeavesOfType(LUCR_POSITION_VIEW_TYPE)
-		this.debugRuntimeCleanup()
-		this.debugRuntimeCleanup = () => {}
 	}
 
 	private async onloadImpl(): Promise<void> {
-		this.register(() => {
-			this.debugRuntimeCleanup()
-			this.debugRuntimeCleanup = () => {}
-		})
 		this.register(registerPositionAttachmentOcrRuntime(this))
 		bindCacheRuntime(this.app, CacheRegistry)
 		const domainModifiedTracker = registerDomainModifiedTracker(this)
@@ -225,10 +217,6 @@ export default class LucrJournalPlugin extends Plugin {
 
 	public applyDebugMode(): void {
 		setDebugLoggingEnabled(this.settings.debugMode)
-		this.debugRuntimeCleanup()
-		this.debugRuntimeCleanup = this.settings.debugMode
-			? installDevelopmentIpcRequestLogger()
-			: () => {}
 	}
 
 	public requestJournalViewsRender(): void {

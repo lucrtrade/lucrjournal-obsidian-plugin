@@ -6,7 +6,6 @@ import { fetchBarsWithCache } from '../../charts/ohlcv-fetch'
 import { LUCRCHART_URL } from '../../constant'
 import {
 	computePositionChartTimeframe,
-	isPositionChartSupported,
 	resolvePositionChartVisibleMarks,
 	resolvePositionExchangeId,
 	resolvePositionSymbol,
@@ -57,13 +56,55 @@ export function useChartIframe({
 	const [isDarkMode, setIsDarkMode] = useState(() => activeDocument.body.classList.contains('theme-dark'))
 	const snapshotResolverRef = useRef<((base64: string) => void) | null>(null)
 
-	const isChartAvailable = isPositionChartSupported(app, position)
 	const timeframe = computePositionChartTimeframe(position)
 	const chartMarks = buildChartMarks(position)
 	const chartMarksSignature = chartMarks
 		.map((mark) => `${mark.id}:${mark.time}:${mark.color}:${mark.label}`)
 		.join('|')
 	const resolution = formatChartResolution(timeframe.resolution)
+	const [chartProbe, setChartProbe] = useState<'probing' | 'available' | 'unavailable'>('probing')
+
+	useEffect(() => {
+		let cancelled = false
+		setChartProbe('probing')
+
+		const symbol = resolvePositionSymbol(app, position)
+		const exchange = resolvePositionExchangeId(app, position)
+		if (symbol === null || exchange === null) {
+			setChartProbe('unavailable')
+			return
+		}
+
+		void fetchBarsWithCache({
+			exchangeId: exchange,
+			symbol,
+			resolution: timeframe.resolution,
+			fromSeconds: timeframe.leftEdgeTime,
+			toSeconds: timeframe.rightEdgeTime,
+		})
+			.then((bars) => {
+				if (!cancelled) {
+					setChartProbe(bars.length > 0 ? 'available' : 'unavailable')
+				}
+			})
+			.catch((err: unknown) => {
+				logger.warn('failed to probe OHLCV availability for chart', {
+					err,
+					exchange,
+					symbol,
+					resolution: timeframe.resolution,
+				})
+				if (!cancelled) {
+					setChartProbe('unavailable')
+				}
+			})
+
+		return () => {
+			cancelled = true
+		}
+	}, [app, position, positionFile?.path, resolution, timeframe.leftEdgeTime, timeframe.rightEdgeTime])
+
+	const isChartAvailable = chartProbe === 'available'
 
 	const postToIframe = useCallback((msg: InboundMessage) => {
 		iframeRef.current?.contentWindow?.postMessage(msg, lucrviewOrigin)

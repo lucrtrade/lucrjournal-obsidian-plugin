@@ -1191,7 +1191,7 @@ function toArrayBuffer(bytes: ArrayBuffer | Uint8Array): ArrayBuffer {
 }
 
 function getRuntimeRequire(): ((id: string) => unknown) | null {
-	return window.require ?? null
+	return (window as Window & { require?: (id: string) => unknown }).require ?? null
 }
 
 if (import.meta.vitest) {

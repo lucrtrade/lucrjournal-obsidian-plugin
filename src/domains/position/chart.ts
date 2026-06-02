@@ -150,7 +150,7 @@ export function resolvePositionExchangeId(app: DomainRuntimeApp, position: Posit
 		return null
 	}
 
-	return PlatformDomain.resolveCcxtExchangeId(platform)
+	return PlatformDomain.resolveExchangeId(platform)
 }
 
 export function resolvePositionSymbol(app: DomainRuntimeApp, position: Position): string | null {
@@ -160,10 +160,6 @@ export function resolvePositionSymbol(app: DomainRuntimeApp, position: Position)
 	}
 
 	return resolvePositionSymbolModel(symbolEntry.fm.type).resolveChartSymbolName(symbolEntry.fm.name)
-}
-
-export function isPositionChartSupported(app: DomainRuntimeApp, position: Position): boolean {
-	return resolvePositionSymbol(app, position) !== null
 }
 
 export function resolvePositionChartVisibleMarks(position: Position): PositionChartVisibleMark[] {
@@ -278,7 +274,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('resolvePositionExchangeId', () => {
-		it('maps platform wikilinks to ccxt exchange ids', () => {
+		it('maps platform wikilinks to exchange ids', () => {
 			const symbolFile = Object.assign(new TFile(), { path: 'LucrJournal/symbols/SBL-Main-BTCUSDT.md' })
 			const accountFile = Object.assign(new TFile(), { path: 'LucrJournal/accounts/ACC-Main.md' })
 			const app = {
@@ -344,12 +340,12 @@ if (import.meta.vitest) {
 			} as unknown as Position)).toBe('BTCUSDT.P')
 		})
 
-		it('keeps future and cfd symbols unsupported for chart', () => {
+		it('resolves a chart symbol for every type (chartability decided by probe)', () => {
 			for (const type of ['Future', 'CFD']) {
 				expect(resolvePositionSymbol(createChartSymbolApp(type, 'BTCUSDT'), {
 					lucr_type: 'position',
 					symbol: '[[SBL-Main-BTCUSDT]]',
-				} as unknown as Position)).toBeNull()
+				} as unknown as Position)).toBe('BTCUSDT')
 			}
 		})
 	})

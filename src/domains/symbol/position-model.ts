@@ -101,8 +101,8 @@ export abstract class BasePositionSymbol {
 		}
 	}
 
-	resolveChartSymbolName(_symbolName: string): string | null {
-		return null
+	resolveChartSymbolName(symbolName: string): string | null {
+		return symbolName
 	}
 
 	calculateNotionalValue(
@@ -202,10 +202,6 @@ class CryptoPositionSymbolModel extends BasePositionSymbol {
 			...super.resolveContractUnitTableValue(symbolName, overrideValue),
 			source: 'fixed',
 		}
-	}
-
-	override resolveChartSymbolName(symbolName: string): string | null {
-		return symbolName
 	}
 
 	override calculateNotionalValue(

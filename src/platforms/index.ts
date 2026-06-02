@@ -6,7 +6,7 @@ import { InteractiveBrokers } from './interactive-brokers'
 import { MetaTrader } from './metatrader'
 import { OKX } from './okx'
 
-import type { PlatformDefinition } from './factory'
+import type { OhlcvAdapter, PlatformDefinition } from './factory'
 
 const PLATFORMS = [
 	Binance,
@@ -25,8 +25,14 @@ const platformEntries = PLATFORMS.map((platform) => [platform.name, platform] as
 	readonly [PlatformName, PlatformDefinition]
 >
 
-export const PLATFORM_TO_CCXT_ID = Object.fromEntries(
+export const PLATFORM_TO_EXCHANGE_ID = Object.fromEntries(
 	platformEntries.flatMap(([name, p]) =>
-		p.ccxtId ? [[name, p.ccxtId]] : [],
+		p.exchangeId ? [[name, p.exchangeId]] : [],
 	),
 ) as Readonly<Partial<Record<PlatformName, string>>>
+
+export const EXCHANGE_ID_TO_ADAPTER: ReadonlyMap<string, OhlcvAdapter> = new Map(
+	platformEntries.flatMap(([, p]) =>
+		p.exchangeId !== null && p.ohlcv !== undefined ? [[p.exchangeId, p.ohlcv] as const] : [],
+	),
+)

@@ -9,10 +9,9 @@ export type SymbolInfo = {
 	name: string
 	type: PositionSymbolType | null
 	asset: string | null
-	ccxtSymbol: string | null
 }
 
-type SymbolPair = {
+export type SymbolPair = {
 	base: string
 	quote: string
 	type: 'perp' | 'spot'
@@ -61,7 +60,6 @@ export function resolveSymbolInfo(symbolName: string): SymbolInfo {
 		logo: null,
 		type: pair === null ? null : pair.type === 'perp' ? 'Crypto_Perp' : 'Crypto_Spot',
 		asset: pair?.base ?? (normalized.length > 0 ? normalized : null),
-		ccxtSymbol: pair === null ? null : formatCcxt(pair),
 	}
 }
 
@@ -76,12 +74,7 @@ function buildFromBuiltin(builtin: BuiltinSymbolConstant): SymbolInfo {
 		logo: builtin.logo,
 		type: builtin.type,
 		asset: pair?.base ?? builtin.symbol_name,
-		ccxtSymbol: builtin.type.startsWith('Crypto_') && pair !== null ? formatCcxt(pair) : null,
 	}
-}
-
-function formatCcxt(pair: SymbolPair): string {
-	return pair.type === 'perp' ? `${pair.base}/${pair.quote}:${pair.quote}` : `${pair.base}/${pair.quote}`
 }
 
 function shouldUseCanonicalName(canonical: string, normalized: string, pair: SymbolPair | null): boolean {
@@ -118,7 +111,7 @@ function canonicalize(symbol: string): string {
 	return isPerp ? `${s}.P` : s
 }
 
-function parseSymbolPair(symbol: string | null | undefined): SymbolPair | null {
+export function parseSymbolPair(symbol: string | null | undefined): SymbolPair | null {
 	if (typeof symbol !== 'string') {
 		return null
 	}
@@ -158,43 +151,43 @@ if (import.meta.vitest) {
 	describe('resolveSymbolInfo', () => {
 		const testcases: ReadonlyArray<{ input: string; expected: Partial<SymbolInfo> }> = [
 			// Step 1: direct builtin match
-			{ input: 'BTCUSDT', expected: { name: 'BTCUSDT', type: 'Crypto_Spot', asset: 'BTC', ccxtSymbol: 'BTC/USDT' } },
-			{ input: 'BTCUSDT.P', expected: { name: 'BTCUSDT.P', type: 'Crypto_Perp', asset: 'BTC', ccxtSymbol: 'BTC/USDT:USDT' } },
-			{ input: 'EURUSD', expected: { name: 'EURUSD', type: 'CFD', asset: 'EUR', ccxtSymbol: null } },
-			{ input: 'ES', expected: { name: 'ES', type: 'Future', asset: 'ES', ccxtSymbol: null } },
+			{ input: 'BTCUSDT', expected: { name: 'BTCUSDT', type: 'Crypto_Spot', asset: 'BTC' } },
+			{ input: 'BTCUSDT.P', expected: { name: 'BTCUSDT.P', type: 'Crypto_Perp', asset: 'BTC' } },
+			{ input: 'EURUSD', expected: { name: 'EURUSD', type: 'CFD', asset: 'EUR' } },
+			{ input: 'ES', expected: { name: 'ES', type: 'Future', asset: 'ES' } },
 
 			// Step 1: trailing + stripped to match builtin (XAU itself is NOT a builtin; XAUUSD is CFD)
-			{ input: 'XAUUSD+', expected: { name: 'XAUUSD', type: 'CFD', asset: 'XAU', ccxtSymbol: null } },
+			{ input: 'XAUUSD+', expected: { name: 'XAUUSD', type: 'CFD', asset: 'XAU' } },
 
 			// Step 2: canonicalized to spot builtin
-			{ input: 'BTC/USDT', expected: { name: 'BTCUSDT', type: 'Crypto_Spot', asset: 'BTC', ccxtSymbol: 'BTC/USDT' } },
-			{ input: 'BTC-USDT', expected: { name: 'BTCUSDT', type: 'Crypto_Spot', asset: 'BTC', ccxtSymbol: 'BTC/USDT' } },
-			{ input: 'BTC_USDT', expected: { name: 'BTCUSDT', type: 'Crypto_Spot', asset: 'BTC', ccxtSymbol: 'BTC/USDT' } },
+			{ input: 'BTC/USDT', expected: { name: 'BTCUSDT', type: 'Crypto_Spot', asset: 'BTC' } },
+			{ input: 'BTC-USDT', expected: { name: 'BTCUSDT', type: 'Crypto_Spot', asset: 'BTC' } },
+			{ input: 'BTC_USDT', expected: { name: 'BTCUSDT', type: 'Crypto_Spot', asset: 'BTC' } },
 
 			// Step 2: canonicalized to perp builtin (all variants converge on BTCUSDT.P)
-			{ input: 'BTC/USDT.P', expected: { name: 'BTCUSDT.P', type: 'Crypto_Perp', asset: 'BTC', ccxtSymbol: 'BTC/USDT:USDT' } },
-			{ input: 'BTC/USDT:USDT', expected: { name: 'BTCUSDT.P', type: 'Crypto_Perp', asset: 'BTC', ccxtSymbol: 'BTC/USDT:USDT' } },
-			{ input: 'BTCUSDT.PERP', expected: { name: 'BTCUSDT.P', type: 'Crypto_Perp', asset: 'BTC', ccxtSymbol: 'BTC/USDT:USDT' } },
-			{ input: 'BTCUSDT_PERP', expected: { name: 'BTCUSDT.P', type: 'Crypto_Perp', asset: 'BTC', ccxtSymbol: 'BTC/USDT:USDT' } },
-			{ input: 'BTCUSDT.NEXT', expected: { name: 'BTCUSDT.P', type: 'Crypto_Perp', asset: 'BTC', ccxtSymbol: 'BTC/USDT:USDT' } },
+			{ input: 'BTC/USDT.P', expected: { name: 'BTCUSDT.P', type: 'Crypto_Perp', asset: 'BTC' } },
+			{ input: 'BTC/USDT:USDT', expected: { name: 'BTCUSDT.P', type: 'Crypto_Perp', asset: 'BTC' } },
+			{ input: 'BTCUSDT.PERP', expected: { name: 'BTCUSDT.P', type: 'Crypto_Perp', asset: 'BTC' } },
+			{ input: 'BTCUSDT_PERP', expected: { name: 'BTCUSDT.P', type: 'Crypto_Perp', asset: 'BTC' } },
+			{ input: 'BTCUSDT.NEXT', expected: { name: 'BTCUSDT.P', type: 'Crypto_Perp', asset: 'BTC' } },
 
 			// Step 3: non-builtin pair (canonical not in builtins, derived from pair shape)
-			{ input: 'BTCFDUSD', expected: { name: 'BTCFDUSD', type: 'Crypto_Spot', asset: 'BTC', ccxtSymbol: 'BTC/FDUSD' } },
+			{ input: 'BTCFDUSD', expected: { name: 'BTCFDUSD', type: 'Crypto_Spot', asset: 'BTC' } },
 
-			{ input: 'FOOUSDC', expected: { name: 'FOOUSDC', type: 'Crypto_Spot', asset: 'FOO', ccxtSymbol: 'FOO/USDC' } },
-			{ input: 'FOO/USDT', expected: { name: 'FOOUSDT', type: 'Crypto_Spot', asset: 'FOO', ccxtSymbol: 'FOO/USDT' } },
-			{ input: 'FOO/USDC:USDC', expected: { name: 'FOOUSDC.P', type: 'Crypto_Perp', asset: 'FOO', ccxtSymbol: 'FOO/USDC:USDC' } },
+			{ input: 'FOOUSDC', expected: { name: 'FOOUSDC', type: 'Crypto_Spot', asset: 'FOO' } },
+			{ input: 'FOO/USDT', expected: { name: 'FOOUSDT', type: 'Crypto_Spot', asset: 'FOO' } },
+			{ input: 'FOO/USDC:USDC', expected: { name: 'FOOUSDC.P', type: 'Crypto_Perp', asset: 'FOO' } },
 
-			{ input: 'ETH_USDC', expected: { name: 'ETHUSDC', type: 'Crypto_Spot', asset: 'ETH', ccxtSymbol: 'ETH/USDC' } },
-			{ input: 'FOO/USDT.P', expected: { name: 'FOOUSDT.P', type: 'Crypto_Perp', asset: 'FOO', ccxtSymbol: 'FOO/USDT:USDT' } },
-			{ input: 'FOO/BAR', expected: { name: 'FOO/BAR', type: 'Crypto_Spot', asset: 'FOO', ccxtSymbol: 'FOO/BAR', logo: null } },
+			{ input: 'ETH_USDC', expected: { name: 'ETHUSDC', type: 'Crypto_Spot', asset: 'ETH' } },
+			{ input: 'FOO/USDT.P', expected: { name: 'FOOUSDT.P', type: 'Crypto_Perp', asset: 'FOO' } },
+			{ input: 'FOO/BAR', expected: { name: 'FOO/BAR', type: 'Crypto_Spot', asset: 'FOO', logo: null } },
 
 			// Step 3: unknown, no pair detected
-			{ input: 'FOO+', expected: { name: 'FOO+', type: null, asset: 'FOO+', ccxtSymbol: null, logo: null } },
+			{ input: 'FOO+', expected: { name: 'FOO+', type: null, asset: 'FOO+', logo: null } },
 
 			// trim + uppercase normalization happens before step 1
-			{ input: '  btcusdt  ', expected: { name: 'BTCUSDT', type: 'Crypto_Spot', asset: 'BTC', ccxtSymbol: 'BTC/USDT' } },
-			{ input: 'btc/usdt:usdt', expected: { name: 'BTCUSDT.P', type: 'Crypto_Perp', asset: 'BTC', ccxtSymbol: 'BTC/USDT:USDT' } },
+			{ input: '  btcusdt  ', expected: { name: 'BTCUSDT', type: 'Crypto_Spot', asset: 'BTC' } },
+			{ input: 'btc/usdt:usdt', expected: { name: 'BTCUSDT.P', type: 'Crypto_Perp', asset: 'BTC' } },
 		]
 
 		for (const { input, expected } of testcases) {
