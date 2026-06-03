@@ -80,6 +80,7 @@ type PositionChartSourceResolverParams = {
 }
 
 const DEFAULT_RESOLUTION = '60'
+const MAX_BARS_PER_REQUEST = 1000
 const CHART_SUPPORTED_RESOLUTIONS = ['1', '5', '15', '30', '60', '120', '240', 'D', 'W', 'M'] as const
 const PREFER_BARS = 300
 const PADDING_BARS = 25
@@ -223,7 +224,10 @@ export function buildPositionChartConfig(
 
 	return {
 		symbol: context.source.symbol,
+		// exchange ⇒ crypto, yahoo ⇒ futures (CFD has no chart source yet).
+		symbolType: context.source.provider === 'exchange' ? 'crypto' : 'futures',
 		exchange: context.source.provider === 'exchange' ? context.source.exchangeId : '',
+		maxBarsPerRequest: MAX_BARS_PER_REQUEST,
 		supportedResolutions: [
 			...(context.source.provider === 'yahoo' ? YAHOO_SUPPORTED_RESOLUTIONS : CHART_SUPPORTED_RESOLUTIONS),
 		],
@@ -703,6 +707,8 @@ if (import.meta.vitest) {
 
 			expect(config?.entry).toEqual({ time: 1773995465, price: 100 })
 			expect(config?.exit).toEqual({ time: 1774089900, price: 120 })
+			expect(config?.symbolType).toBe('crypto')
+			expect(config?.maxBarsPerRequest).toBe(1000)
 			expect(config?.supportedResolutions).toEqual([...CHART_SUPPORTED_RESOLUTIONS])
 			expect(config?.supportedResolutions).not.toContain('40')
 		})

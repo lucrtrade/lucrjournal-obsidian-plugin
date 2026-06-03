@@ -97,8 +97,12 @@ export interface ThemeColors {
 
 export interface ChartConfig {
 	symbol: string;
+	/** Asset class of the symbol. */
+	symbolType: 'crypto' | 'futures' | 'cfd';
 	debug: boolean | undefined;
 	exchange: string;
+	/** Hard cap on bars requested per getBars call. */
+	maxBarsPerRequest: number;
 	timeframe: Timeframe;
 	theme?: 'light' | 'dark';
 	timezone?: string;

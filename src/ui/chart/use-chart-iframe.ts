@@ -1,4 +1,3 @@
-import { Platform } from 'obsidian'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { fetchBarsWithCache } from '../../charts/ohlcv-fetch'
@@ -245,14 +244,6 @@ export function useChartIframe({
 				case 'REQ_HISTORY': {
 					const { resolution: reqRes, from, to, reqId } = msg.payload
 
-					if (Platform.isMobile) {
-						postToIframe({
-							type: 'RECEIVE_HISTORY',
-							payload: { reqId, bars: [], noData: true },
-						})
-						return
-					}
-
 					const chartSource = resolvePositionChartSource(plugin, position)
 					if (chartSource === null) {
 						postToIframe({
@@ -326,6 +317,7 @@ function buildInitSignature(config: ChartConfig): string {
 		exchange: config.exchange,
 		exit: config.exit,
 		source: config.symbol,
+		symbolType: config.symbolType,
 		timeframe: config.timeframe,
 	})
 }
