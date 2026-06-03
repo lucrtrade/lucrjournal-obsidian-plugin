@@ -36,6 +36,14 @@ export interface Timeframe {
   left_edge_time: number;
 }
 
+/** A position fill: execution time (Unix seconds) and optional price. */
+export interface PositionFill {
+  /** Execution time. Unix timestamp in seconds. */
+  time: number;
+  /** Execution price, if known. */
+  price?: number;
+}
+
 /**
  * Minimal persisted chart state.
  * Only stores essential fields instead of TradingView's full state.
@@ -116,15 +124,17 @@ export interface ChartConfig {
   timezone?: string;
   locale?: string;
   autosize?: boolean;
-  kind: "symbol" | "position";
+  /** Position entry fill, if any. */
+  entry?: PositionFill;
+  /** Position exit fill, if any. Present ⇒ closed ⇒ strict historical range. */
+  exit?: PositionFill;
   savedState?: MinimalChartState | undefined;
-  marks?: ChartMark[];
   /** Max bars to show when switching resolution. Prevents huge countBack values. */
   maxBarsOnSwitch: number;
-  /** Color overrides for light/dark themes, derived from Obsidian theme. */
-  colors: {
-    light: ThemeColors;
-    dark: ThemeColors;
+  /** Per-theme color overrides; unset fields fall back to bridge defaults. */
+  colors?: {
+    light?: Partial<ThemeColors>;
+    dark?: Partial<ThemeColors>;
   };
   /** Optional snapshot image. */
   snapshot?: string | undefined;
@@ -207,11 +217,6 @@ export interface LoadStateMessage {
   payload: MinimalChartState;
 }
 
-export interface RefreshMarksMessage {
-  type: "REFRESH_MARKS";
-  payload: { marks: ChartMark[] };
-}
-
 export interface UpdateSettingsMessage {
   type: "UPDATE_SETTINGS";
   payload: {
@@ -219,7 +224,7 @@ export interface UpdateSettingsMessage {
     locale?: string;
     timezone?: string;
     snapshot?: string | undefined;
-    colors?: ThemeColors;
+    colors?: Partial<ThemeColors>;
   };
 }
 
@@ -233,7 +238,6 @@ export type InboundMessage =
   | ReceiveHistoryMessage
   | ReceiveTickMessage
   | LoadStateMessage
-  | RefreshMarksMessage
   | UpdateSettingsMessage
   | SaveChartMessage;
 
