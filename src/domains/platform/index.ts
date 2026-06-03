@@ -101,11 +101,6 @@ class PlatformDomainDefinition extends BasenameDomainBase<'platform', typeof Pla
 	unwrapPlatformWikilink(link: string): string {
 		return link.slice(2, -2) 
 	}
-
-	resolveExchangeId(value: string): string | null {
-		const presetPlatformName = resolvePresetPlatformName(value)
-		return presetPlatformName === null ? null : PLATFORM_TO_EXCHANGE_ID[presetPlatformName] ?? null
-	}
 }
 
 export const PlatformDomain = new PlatformDomainDefinition()

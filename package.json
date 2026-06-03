@@ -1,7 +1,7 @@
 {
 	"name": "lucrjournal",
 	"version": "0.1.4",
-	"chart_version": "1.1",
+	"chart_version": "3.0",
 	"description": "Record your trades as local Markdown files and link every entry to its key levels, confluences, market analysis, and news — turning your journal into a connected, private knowledge graph.",
 	"main": "main.js",
 	"type": "module",
@@ -26,7 +26,7 @@
 		"build:bundle": "bun run css && bunx --bun tsgo -noEmit -skipLibCheck && bun esbuild.config.ts development build",
 		"build:bundle:prod": "bun run css && bunx --bun tsgo -noEmit -skipLibCheck && bun esbuild.config.ts production build",
 		"build": "bun run build:bundle && bun scripts/sync-obsidian-local.ts && bun scripts/open-obsidian.ts",
-		"build:prod": "bun run build:bundle:prod && bun scripts/sync-obsidian-local.ts && bun scripts/open-obsidian.ts",
+		"build:prod": "bun run build:bundle:prod",
 		"bundle:size": "bun scripts/update-bundle-size.ts",
 		"install:vault": "bun run build:bundle && bun scripts/sync-obsidian-local.ts --install && bun scripts/open-obsidian.ts",
 		"screenshots": "bun scripts/capture-obsidian-screenshots.ts",

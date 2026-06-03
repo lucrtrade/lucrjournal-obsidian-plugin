@@ -34,6 +34,7 @@ import { checkAttachmentDependencies } from './attachment-dependency-checker'
 import type { PositionAttachmentOcrProgress } from '../../attachments/ocr-runtime'
 import type { Position } from '../../domains'
 import type { en } from '../../lang/locale/en'
+import type LucrJournalPlugin from '../../main'
 
 const logger = createLogger('position-media')
 
@@ -52,6 +53,7 @@ export type PositionAttachment = {
 type UsePositionDetailsMediaParams = {
 	app: App
 	onPositionUpdated: (position: Position) => void
+	plugin: LucrJournalPlugin
 	position: Position
 	positionFile: TFile | null
 }
@@ -101,6 +103,7 @@ class ClipboardReadError extends Error {
 export function usePositionDetailsMedia({
 	app,
 	onPositionUpdated,
+	plugin,
 	position,
 	positionFile,
 }: UsePositionDetailsMediaParams) {
@@ -144,8 +147,8 @@ export function usePositionDetailsMedia({
 		handleSnapshotRef.current(base64)
 	}, [])
 
-	const { iframeRef: chartIframeRef, isChartAvailable, isChartReady, requestSnapshot } = useChartIframe({
-		app,
+	const { iframeRef: chartIframeRef, isChartAvailable, isChartReady } = useChartIframe({
+		plugin,
 		position,
 		positionFile,
 		onSnapshot,
@@ -603,7 +606,6 @@ export function usePositionDetailsMedia({
 		importAttachmentOcrFromPasteEvent,
 		prepareAttachmentOcr,
 		pendingAttachmentOcrResult,
-		requestSnapshot,
 		saveSelectedAttachments,
 	}
 }

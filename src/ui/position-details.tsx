@@ -23,8 +23,11 @@ import { PositionDetailsOverview } from './position-details/position-details-ove
 import { usePositionDetailsContextModel } from './position-details/use-position-details-context-model'
 import { usePositionDetailsMedia } from './position-details/use-position-details-media'
 
+import type LucrJournalPlugin from '../main'
+
 type PositionDetailsProps = {
 	app: App
+	plugin: LucrJournalPlugin
 	positionFile: TFile | null
 	position: Position
 	onBack?: () => void
@@ -32,6 +35,7 @@ type PositionDetailsProps = {
 
 export function PositionDetails({
 	app,
+	plugin,
 	positionFile,
 	position,
 	onBack,
@@ -74,6 +78,7 @@ export function PositionDetails({
 	} = usePositionDetailsMedia({
 		app,
 		onPositionUpdated: (updated) => setLivePosition((current) => applyLivePositionUpdate(current, updated)),
+		plugin,
 		position: livePosition,
 		positionFile,
 	})

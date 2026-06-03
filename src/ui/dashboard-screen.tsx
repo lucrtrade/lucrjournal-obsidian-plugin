@@ -489,6 +489,7 @@ export function DashboardScreen({ app, plugin, routeState, onOpenRoute }: Dashbo
 				) : selectedPosition !== null ? (
 					<PositionDetails
 						app={app}
+						plugin={plugin}
 						position={selectedPosition}
 						positionFile={selectedPositionFile}
 						onBack={() => setSelectedPositionId(null)}

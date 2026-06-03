@@ -11,4 +11,4 @@ export const LUCR_TRADE_ATTACHMENTS_DIR = `${LUCR_TRADE_ROOT_DIR}/attachments`
 export const LUCRCHART_URL = 'https://lucrchart.lucrtrade.com/'
 export const LUCRCHART_IFRAME_URL = typeof __LUCRJOURNAL_CHART_IFRAME_URL__ === 'string'
 	? __LUCRJOURNAL_CHART_IFRAME_URL__
-	: `${LUCRCHART_URL.replace(/\/$/, '')}/lv/${__LUCRJOURNAL_CHART_VERSION__}`
+	: `${LUCRCHART_URL.replace(/\/$/, '')}/lc/${__LUCRJOURNAL_CHART_VERSION__}`

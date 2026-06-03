@@ -1,7 +1,7 @@
 import esbuild from "esbuild";
 import process from "process";
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { builtinModules } from 'node:module';
 
 const banner =
@@ -22,13 +22,15 @@ const chartVersion = packageJson.chart_version;
 if (typeof chartVersion !== 'string' || !/^\d+\.\d+$/.test(chartVersion)) {
 	throw new Error('package.json chart_version must be a major.minor string');
 }
-const lucrchartIframeUrl = `${lucrchartUrl.replace(/\/$/, '')}/lv/${chartVersion}`;
+const lucrchartIframeUrl = `${lucrchartUrl.replace(/\/$/, '')}/lc/${chartVersion}`;
 const packageRepository = typeof packageJson.repository === 'string'
 	? packageJson.repository
 	: packageJson.repository.url;
-const gitCommitSha = (process.env.GITHUB_SHA ?? execFileSync('git', ['rev-parse', '--short=12', 'HEAD'], {
-	encoding: 'utf8',
-})).trim();
+const gitCommitSha = (process.env.GITHUB_SHA ?? (existsSync(new URL('./.git', import.meta.url))
+	? execFileSync('git', ['rev-parse', '--short=12', 'HEAD'], {
+		encoding: 'utf8',
+	}).trim()
+	: 'unknown'));
 
 const reactDomClientScriptResourcePlugin = {
 	name: 'react-dom-client-script-resource',

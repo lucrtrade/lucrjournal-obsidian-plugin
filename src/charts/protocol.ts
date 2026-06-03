@@ -23,6 +23,13 @@ interface Timeframe {
 	left_edge_time: number;
 }
 
+interface PositionFill {
+	/** Execution time. Unix timestamp in seconds. */
+	time: number;
+	/** Execution price, if known. */
+	price?: number;
+}
+
 /**
  * Minimal persisted chart state.
  * Only stores essential fields instead of TradingView's full state.
@@ -31,8 +38,6 @@ interface Timeframe {
 export interface MinimalChartState {
 	/** Chart type: 1=Bars, 2=Candles, 3=Line, 8=HeikinAshi, 9=HollowCandles, 10=Baseline, 12=Area */
 	chartType?: number;
-	/** Price scale mode */
-	priceScale?: 'log' | 'percentage' | 'regular';
 	/** Drawings (Map<EntityId, LineToolState> serialized as plain object) */
 	sources?: Record<string, unknown>;
 	/** Drawing groups (Map<string, LineToolsGroupState> serialized as plain object) */
@@ -68,9 +73,6 @@ export interface ThemeColors {
 	/** Symbol watermark transparency 0-100 (default: 90) */
 	watermarkTransparency: number;
 
-	/** Header button icon color (light default: "#131722", dark default: "#d1d4dc") */
-	headerIconColor: string;
-
 	// ─── New Fields from Settings Migration ───
 	/** Candle Up Border Color */
 	buyBorderColor: string;
@@ -102,28 +104,26 @@ export interface ChartConfig {
 	timezone?: string;
 	locale?: string;
 	autosize?: boolean;
-	kind: 'symbol' | 'position';
+	/** Position entry fill, if any. */
+	entry?: PositionFill;
+	/** Position exit fill, if any. Present ⇒ closed ⇒ strict historical range. */
+	exit?: PositionFill;
 	savedState?: MinimalChartState | undefined;
-	marks?: ChartMark[];
-	/** Max bars to show when switching resolution. Prevents huge countBack values. */
-	maxBarsOnSwitch: number;
 	/** Resolutions to expose in the widget toolbar; omit to use the widget default. */
 	supportedResolutions?: string[];
-	/** Color overrides for light/dark themes, derived from Obsidian theme. */
-	colors: {
-		light: ThemeColors;
-		dark: ThemeColors;
+	/** Per-theme color overrides; unset fields fall back to bridge defaults. */
+	colors?: {
+		light?: Partial<ThemeColors>;
+		dark?: Partial<ThemeColors>;
 	};
-	/** Optional snapshot image. */
-	snapshot?: string | undefined;
 }
 
-/** Bar mark returned by the host for getMarks datafeed callback */
-export interface ChartMarkColor {
+interface ChartMarkColor {
 	border: string;
 	background: string;
 }
 
+/** Bar mark returned by the host for getMarks datafeed callback */
 interface ChartMark {
 	/** ID of the mark */
 	id: string;
@@ -142,30 +142,6 @@ interface ChartMark {
 	labelFontColor: string;
 	/** Minimum size for the mark */
 	minSize: number;
-	/** Border Width */
-	borderWidth?: number;
-	/** Border Width when hovering over bar mark */
-	hoveredBorderWidth?: number;
-	/**
-   * Optional URL for an image to be displayed within the timescale mark.
-   *
-   * The image should ideally be square in dimension. You can use any image type which
-   * the browser supports natively.
-   *
-   * Examples:
-   * - `https://yourserver.com/adobe.svg`
-   * - `/images/myImage.png`
-   * - `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3...`
-   * - `data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4...`
-   */
-	imageUrl?: string;
-	/**
-   * Continue to show text label even when an image has
-   * been loaded for the timescale mark.
-   *
-   * Defaults to `false` if undefined.
-   */
-	showLabelWhenImageLoaded?: boolean;
 }
 
 // ─── Inbound Messages (Host → LucrView) ─────────────────────────────────────
@@ -195,19 +171,13 @@ interface LoadStateMessage {
 	payload: MinimalChartState;
 }
 
-interface RefreshMarksMessage {
-	type: 'REFRESH_MARKS';
-	payload: { marks: ChartMark[] };
-}
-
 interface UpdateSettingsMessage {
 	type: 'UPDATE_SETTINGS';
 	payload: {
 		theme?: 'light' | 'dark';
 		locale?: string;
 		timezone?: string;
-		snapshot?: string | undefined;
-		colors?: ThemeColors;
+		colors?: Partial<ThemeColors>;
 	};
 }
 
@@ -221,7 +191,6 @@ export type InboundMessage =
   | ReceiveHistoryMessage
   | ReceiveTickMessage
   | LoadStateMessage
-  | RefreshMarksMessage
   | UpdateSettingsMessage
   | SaveChartMessage
 
@@ -285,5 +254,4 @@ export type OutboundMessage =
   | SaveStateMessage
   | OnMarkClickMessage
   | { type: 'SAVE_SNAPSHOT'; payload: { base64: string } }
-  | { type: 'DELETE_SNAPSHOT'; payload: Record<string, never> }
   | { type: 'RESET_VIEW'; payload: Record<string, never> }

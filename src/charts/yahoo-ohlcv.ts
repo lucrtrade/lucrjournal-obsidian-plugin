@@ -2,7 +2,7 @@
 
 import { requestUrl } from 'obsidian'
 
-import { normalizeChartResolution } from './chart-model'
+import { normalizeChartResolution, YAHOO_SUPPORTED_RESOLUTIONS } from './position-chart'
 
 import type { OhlcvBar } from '../platforms/factory'
 
@@ -19,9 +19,6 @@ const RESOLUTION_TO_INTERVAL: Record<string, string> = {
 const YAHOO_TICKER_BY_SYMBOL = new Map([
 	['E7', '6E'],
 ])
-
-export const YAHOO_SUPPORTED_RESOLUTIONS = Object.keys(RESOLUTION_TO_INTERVAL)
-export const YAHOO_INTRADAY_MAX_AGE_SECONDS = 60 * 24 * 60 * 60
 
 const YAHOO_CHART_BASE = 'https://query1.finance.yahoo.com/v8/finance/chart'
 

@@ -6,11 +6,11 @@ import { resolveSymbolInfo } from '../domains/symbol/catalog'
 import { parseSymbolPair, type SymbolPair } from '../domains/symbol/pair'
 import { EXCHANGE_ID_TO_ADAPTER } from '../platforms'
 
-import { normalizeChartResolution, RESOLUTION_TO_TIMEFRAME } from './chart-model'
 import { getOhlcvCache, makeCacheKey, mergeOhlcvCache } from './ohlcv-cache'
+import { normalizeChartResolution, RESOLUTION_TO_TIMEFRAME } from './position-chart'
 import { fetchYahooBars } from './yahoo-ohlcv'
 
-import type { PositionChartSource } from '../domains/position/chart'
+import type { PositionChartSource } from './position-chart'
 import type { OhlcvAdapter, OhlcvBar, OhlcvPageRequest } from '../platforms/factory'
 
 const MAX_PAGINATION_CALLS = 50

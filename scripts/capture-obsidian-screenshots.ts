@@ -1045,7 +1045,7 @@ async function readProjectDefaults() {
 	const manifest = JSON.parse(readFileSync(path.join(projectRootPath, 'manifest.json'), 'utf8'))
 	const packageJson = JSON.parse(readFileSync(path.join(projectRootPath, 'package.json'), 'utf8'))
 	globalThis.__LUCRJOURNAL_CHART_VERSION__ = packageJson.chart_version
-	globalThis.__LUCRJOURNAL_CHART_IFRAME_URL__ = `https://lucrchart.lucrtrade.com/lv/${packageJson.chart_version}`
+	globalThis.__LUCRJOURNAL_CHART_IFRAME_URL__ = `https://lucrchart.lucrtrade.com/lc/${packageJson.chart_version}`
 	const {
 		OPEN_JOURNAL_COMMAND_ID,
 	} = await import('../src/constant.ts')

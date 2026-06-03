@@ -3,20 +3,6 @@
 
 // ─── Data Types ──────────────────────────────────────────────────────────────
 
-// https://www.tradingview.com/charting-library-docs/latest/ui_elements/Resolution/#resolution-format
-export type ResolutionTypes = [
-  "1",
-  "5",
-  "15",
-  "30",
-  "60",
-  "120",
-  "240",
-  "D",
-  "W",
-  "M",
-];
-
 export interface Bar {
   time: number;
   open: number;
@@ -52,8 +38,6 @@ export interface PositionFill {
 export interface MinimalChartState {
   /** Chart type: 1=Bars, 2=Candles, 3=Line, 8=HeikinAshi, 9=HollowCandles, 10=Baseline, 12=Area */
   chartType?: number;
-  /** Price scale mode */
-  priceScale?: "log" | "percentage" | "regular";
   /** Drawings (Map<EntityId, LineToolState> serialized as plain object) */
   sources?: Record<string, unknown>;
   /** Drawing groups (Map<string, LineToolsGroupState> serialized as plain object) */
@@ -64,7 +48,7 @@ export interface MinimalChartState {
   timeframe?: Timeframe;
 }
 
-/** Customizable theme colors. All fields have built-in light/dark defaults. */
+/** Customizable theme colors. All fields have built-in defaults. */
 export interface ThemeColors {
   /** Buy / long color (default: "#26a69a") */
   buyColor: string;
@@ -88,9 +72,6 @@ export interface ThemeColors {
   crosshairColor: string;
   /** Symbol watermark transparency 0-100 (default: 90) */
   watermarkTransparency: number;
-
-  /** Header button icon color (light default: "#131722", dark default: "#d1d4dc") */
-  headerIconColor: string;
 
   // ─── New Fields from Settings Migration ───
   /** Candle Up Border Color */
@@ -129,15 +110,11 @@ export interface ChartConfig {
   /** Position exit fill, if any. Present ⇒ closed ⇒ strict historical range. */
   exit?: PositionFill;
   savedState?: MinimalChartState | undefined;
-  /** Max bars to show when switching resolution. Prevents huge countBack values. */
-  maxBarsOnSwitch: number;
   /** Per-theme color overrides; unset fields fall back to bridge defaults. */
   colors?: {
     light?: Partial<ThemeColors>;
     dark?: Partial<ThemeColors>;
   };
-  /** Optional snapshot image. */
-  snapshot?: string | undefined;
 }
 
 export interface ChartMarkColor {
@@ -164,30 +141,6 @@ export interface ChartMark {
   labelFontColor: string;
   /** Minimum size for the mark */
   minSize: number;
-  /** Border Width */
-  borderWidth?: number;
-  /** Border Width when hovering over bar mark */
-  hoveredBorderWidth?: number;
-  /**
-   * Optional URL for an image to be displayed within the timescale mark.
-   *
-   * The image should ideally be square in dimension. You can use any image type which
-   * the browser supports natively.
-   *
-   * Examples:
-   * - `https://yourserver.com/adobe.svg`
-   * - `/images/myImage.png`
-   * - `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3...`
-   * - `data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4...`
-   */
-  imageUrl?: string;
-  /**
-   * Continue to show text label even when an image has
-   * been loaded for the timescale mark.
-   *
-   * Defaults to `false` if undefined.
-   */
-  showLabelWhenImageLoaded?: boolean;
 }
 
 // ─── Inbound Messages (Host → LucrView) ─────────────────────────────────────
@@ -223,7 +176,6 @@ export interface UpdateSettingsMessage {
     theme?: "light" | "dark";
     locale?: string;
     timezone?: string;
-    snapshot?: string | undefined;
     colors?: Partial<ThemeColors>;
   };
 }
@@ -301,5 +253,4 @@ export type OutboundMessage =
   | SaveStateMessage
   | OnMarkClickMessage
   | { type: "SAVE_SNAPSHOT"; payload: { base64: string } }
-  | { type: "DELETE_SNAPSHOT"; payload: Record<string, never> }
   | { type: "RESET_VIEW"; payload: Record<string, never> };

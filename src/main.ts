@@ -89,7 +89,7 @@ export default class LucrJournalPlugin extends Plugin {
 		)
 		this.registerView(
 			LUCR_POSITION_VIEW_TYPE,
-			(leaf: WorkspaceLeaf) => new PositionFileView(leaf),
+			(leaf: WorkspaceLeaf) => new PositionFileView(leaf, this),
 		)
 		this.registerView(
 			LUCR_PLAYBOOK_VIEW_TYPE,

@@ -1,12 +1,12 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import path from "node:path";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 
 const shouldInstallFromCli = process.argv.includes("--install");
 const SANDBOX_VAULT_NAME = "Obsidian Sandbox";
 const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 globalThis.__LUCRJOURNAL_CHART_VERSION__ = packageJson.chart_version;
-globalThis.__LUCRJOURNAL_CHART_IFRAME_URL__ = `https://lucrchart.lucrtrade.com/lv/${packageJson.chart_version}`;
+globalThis.__LUCRJOURNAL_CHART_IFRAME_URL__ = `https://lucrchart.lucrtrade.com/lc/${packageJson.chart_version}`;
 const {
 	LUCR_JOURNAL_VIEW_TYPE,
 	LUCR_TRADE_ROOT_DIR,
@@ -15,6 +15,23 @@ const {
 
 function isCiEnvironment() {
 	return process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
+}
+
+function hasObsidianCli() {
+	const result = spawnSync("obsidian", ["version"], {
+		encoding: "utf8",
+		stdio: ["ignore", "pipe", "pipe"],
+	});
+
+	if (result.error === undefined) {
+		return true;
+	}
+
+	if ("code" in result.error && result.error.code === "ENOENT") {
+		return false;
+	}
+
+	throw result.error;
 }
 
 function runObsidianCommand(args, options = {}) {
@@ -115,6 +132,11 @@ function resetSandboxTradeRoot(vaultPath) {
 
 if (isCiEnvironment()) {
 	console.log("[obsidian-sync] Skipping local vault sync in CI.");
+	process.exit(0);
+}
+
+if (!hasObsidianCli()) {
+	console.log("[obsidian-sync] Skipping local vault sync because obsidian CLI is unavailable.");
 	process.exit(0);
 }
 

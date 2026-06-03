@@ -88,6 +88,6 @@ describe('esbuild config', () => {
 		})
 
 		expect(result.status).toBe(0)
-		expect(readFileSync(mainPath, 'utf8').includes(`${defaultLucrchartUrl.replace(/\/$/, '')}/lv/1.123`)).toBe(true)
+		expect(readFileSync(mainPath, 'utf8').includes(`${defaultLucrchartUrl.replace(/\/$/, '')}/lc/1.123`)).toBe(true)
 	})
 })

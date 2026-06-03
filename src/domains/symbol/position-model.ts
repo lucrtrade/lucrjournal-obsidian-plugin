@@ -102,10 +102,6 @@ export abstract class BasePositionSymbol {
 		}
 	}
 
-	resolveChartSymbolName(symbolName: string): string | null {
-		return symbolName
-	}
-
 	resolveChartProvider(): PositionChartProvider | null {
 		return 'exchange'
 	}
