@@ -201,7 +201,7 @@ export default tseslint.config(
 		},
 	},
 	{
-		files: ['src/ui/chart/protocol.ts'],
+		files: ['src/charts/protocol.ts'],
 		rules: Object.fromEntries(Object.keys(stylistic.rules).map((rule) => [`@stylistic/${rule}`, 'off'])),
 	},
 	globalIgnores([
