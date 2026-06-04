@@ -61,11 +61,11 @@ export function useChartIframe({
 	const chartContext = buildPositionChartContext(plugin, position, timeframeNowRef.current.seconds)
 	const chartConfigSignature = chartContext === null
 		? null
-		: JSON.stringify({
+		: chartIdentitySignature({
 			entry: chartContext.entry,
-			exchange: chartContext.source.provider === 'exchange' ? chartContext.source.exchangeId : '',
 			exit: chartContext.exit,
-			source: chartContext.source.symbol,
+			symbol: chartContext.source.symbol,
+			exchange: chartContext.source.provider === 'exchange' ? chartContext.source.exchangeId : '',
 			timeframe: {
 				resolution: chartContext.timeframe.resolution,
 				left_edge_time: chartContext.timeframe.leftEdgeTime,
@@ -168,7 +168,7 @@ export function useChartIframe({
 		if (resetReady) {
 			setIsChartReady(false)
 		}
-		lastInitSignatureRef.current = buildInitSignature(config)
+		lastInitSignatureRef.current = chartIdentitySignature(config)
 		postToIframe({ type: 'INIT_WIDGET', payload: config })
 	}, [buildChartConfig, positionFile?.path, postToIframe])
 
@@ -311,13 +311,20 @@ export function useChartIframe({
 	return { iframeRef, isChartAvailable, isChartReady, resolution }
 }
 
-function buildInitSignature(config: ChartConfig): string {
+/**
+ * Identity fields that, when changed, require a fresh INIT_WIDGET. Theme/colors
+ * are excluded (handled via UPDATE_SETTINGS); savedState is excluded (restored,
+ * not identity). Single source of truth so the render-time and init-time
+ * signatures can never drift apart.
+ */
+function chartIdentitySignature(
+	config: Pick<ChartConfig, 'entry' | 'exit' | 'symbol' | 'exchange' | 'timeframe'>,
+): string {
 	return JSON.stringify({
 		entry: config.entry,
 		exchange: config.exchange,
 		exit: config.exit,
 		source: config.symbol,
-		symbolType: config.symbolType,
 		timeframe: config.timeframe,
 	})
 }
