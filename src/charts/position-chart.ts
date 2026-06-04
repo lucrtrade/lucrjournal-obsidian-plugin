@@ -464,9 +464,20 @@ function getResolutionSeconds(resolution: string): number {
 }
 
 function buildPositionChartFills(position: PositionRecord): Pick<PositionChartContext, 'entry' | 'exit'> {
-	return {
-		entry: buildPositionChartFill(position, 'opened_at', 'entry_price'),
-		exit: buildPositionChartFill(position, 'closed_at', 'exit_price'),
+	switch (readStringField(position, 'side')) {
+		case 'LONG':
+			return {
+				entry: buildPositionChartFill(position, 'opened_at', 'entry_price', 'buy'),
+				exit: buildPositionChartFill(position, 'closed_at', 'exit_price', 'sell'),
+			}
+		case 'SHORT':
+			return {
+				entry: buildPositionChartFill(position, 'opened_at', 'entry_price', 'sell'),
+				exit: buildPositionChartFill(position, 'closed_at', 'exit_price', 'buy'),
+			}
+		case null:
+		default:
+			throw new Error('Invalid position side')
 	}
 }
 
@@ -474,6 +485,7 @@ function buildPositionChartFill(
 	position: PositionRecord,
 	timeKey: string,
 	priceKey: string,
+	side: NonNullable<ChartConfig['entry']>['side'],
 ): NonNullable<ChartConfig['entry']> | undefined {
 	const value = readStringField(position, timeKey)
 	if (value === null) {
@@ -484,6 +496,7 @@ function buildPositionChartFill(
 	const price = readNumberField(position, priceKey)
 	return {
 		time,
+		side,
 		...(price === undefined ? {} : { price }),
 	}
 }
@@ -696,6 +709,7 @@ if (import.meta.vitest) {
 			])
 			const config = buildPositionChartConfig(plugin, {
 				symbol: '[[SBL-Main-BTCUSDT]]',
+				side: 'LONG',
 				opened_at: '2026-03-20T16:31:05+08:00',
 				entry_price: 100,
 				closed_at: '2026-03-21T18:45:00+08:00',
@@ -705,12 +719,44 @@ if (import.meta.vitest) {
 				nowSeconds: Math.floor(new Date('2026-03-22T00:00:00Z').getTime() / 1000),
 			})
 
-			expect(config?.entry).toEqual({ time: 1773995465, price: 100 })
-			expect(config?.exit).toEqual({ time: 1774089900, price: 120 })
+			expect(config?.entry).toEqual({ time: 1773995465, price: 100, side: 'buy' })
+			expect(config?.exit).toEqual({ time: 1774089900, price: 120, side: 'sell' })
 			expect(config?.symbolType).toBe('crypto')
 			expect(config?.maxBarsPerRequest).toBe(1000)
 			expect(config?.supportedResolutions).toEqual([...CHART_SUPPORTED_RESOLUTIONS])
 			expect(config?.supportedResolutions).not.toContain('40')
+		})
+
+		it('maps short fills to sell then buy executions', () => {
+			vi.stubGlobal('activeDocument', {
+				body: {
+					classList: {
+						contains: () => false,
+					},
+				},
+			})
+			vi.stubGlobal('getComputedStyle', () => ({
+				getPropertyValue: () => '',
+			}))
+
+			const plugin = createPlugin([
+				{ basename: 'SBL-Main-BTCUSDT', frontmatter: { lucr_type: 'symbol', name: 'BTC/USDT', type: 'Crypto_Spot', account: '[[ACC-Main]]' } },
+				{ basename: 'ACC-Main', frontmatter: { lucr_type: 'account', platform: '[[Binance]]' } },
+			])
+			const config = buildPositionChartConfig(plugin, {
+				symbol: '[[SBL-Main-BTCUSDT]]',
+				side: 'SHORT',
+				opened_at: '2026-03-20T16:31:05+08:00',
+				entry_price: 100,
+				closed_at: '2026-03-21T18:45:00+08:00',
+				exit_price: 90,
+			}, {
+				isDarkMode: false,
+				nowSeconds: Math.floor(new Date('2026-03-22T00:00:00Z').getTime() / 1000),
+			})
+
+			expect(config?.entry).toEqual({ time: 1773995465, price: 100, side: 'sell' })
+			expect(config?.exit).toEqual({ time: 1774089900, price: 90, side: 'buy' })
 		})
 	})
 }

@@ -26,6 +26,8 @@ export interface Timeframe {
 export interface PositionFill {
   /** Execution time. Unix timestamp in seconds. */
   time: number;
+  /** Execution side. */
+  side: "buy" | "sell";
   /** Execution price, if known. */
   price?: number;
 }
