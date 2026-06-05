@@ -1,0 +1,315 @@
+type Bar = {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume?: number;
+};
+
+type Timeframe = {
+  resolution: string;
+  right_edge_time: number;
+  left_edge_time: number;
+};
+
+type PositionFill = {
+  time: number;
+  side: "buy" | "sell";
+  price?: number;
+};
+
+type MinimalChartState = {
+  chartType?: number;
+  sources?: Record<string, unknown>;
+  groups?: Record<string, unknown>;
+  symbol?: string;
+  timeframe?: Timeframe;
+};
+
+type ThemeColors = {
+  buyColor?: string;
+  sellColor?: string;
+  buyColorDark?: string;
+  sellColorDark?: string;
+  textOnColor?: string;
+  backgroundColor?: string;
+  loadingFg?: string;
+  separatorColor?: string;
+  crosshairColor?: string;
+  watermarkTransparency?: number;
+  buyBorderColor?: string;
+  sellBorderColor?: string;
+  buyWickColor?: string;
+  sellWickColor?: string;
+  gridColor?: string;
+  scalesTextColor?: string;
+  scalesLineColor?: string;
+  volumeUpColor?: string;
+  volumeDownColor?: string;
+};
+
+type ChartConfig = {
+  symbol: string;
+  symbolType: "crypto" | "futures" | "cfd";
+  debug: boolean | undefined;
+  exchange: string;
+  maxBarsPerRequest: number;
+  resolution?: string;
+  supportedResolutions?: readonly string[];
+  autosize?: boolean;
+  entry?: PositionFill;
+  exit?: PositionFill;
+};
+
+type ChartSettings = {
+  theme: "light" | "dark";
+  locale?: string;
+  timezone?: string;
+  colors: Partial<ThemeColors>;
+};
+
+type HistoryRequest = {
+  symbol: string;
+  resolution: string;
+  from: number;
+  to: number;
+  firstDataRequest: boolean;
+  countBack?: number;
+  reqId: string;
+};
+
+type InboundMessage =
+  | {
+      type: "INIT_WIDGET";
+      payload: ChartConfig & {
+        theme?: "light" | "dark";
+        timezone?: string;
+        locale?: string;
+        savedState?: MinimalChartState;
+        colors?: {
+          light?: Partial<ThemeColors>;
+          dark?: Partial<ThemeColors>;
+        };
+      };
+    }
+  | {
+      type: "RECEIVE_HISTORY";
+      payload: { reqId: string; bars: Bar[]; noData: boolean; error?: string };
+    }
+  | {
+      type: "UPDATE_SETTINGS";
+      payload: {
+        theme?: "light" | "dark";
+        locale?: string;
+        timezone?: string;
+        colors?: Partial<ThemeColors>;
+      };
+    };
+
+type OutboundMessage =
+  | { type: "BRIDGE_READY"; payload: Record<string, never> }
+  | { type: "WIDGET_READY"; payload: Record<string, never> }
+  | { type: "REQ_HISTORY"; payload: HistoryRequest }
+  | { type: "SAVE_STATE"; payload: MinimalChartState }
+  | { type: "SAVE_SNAPSHOT"; payload: { base64: string } };
+
+type RenderOptions = {
+  frame: HTMLIFrameElement;
+  src: string;
+  origin: string;
+  buildConfig: () => ChartConfig | null;
+  readSettings: () => ChartSettings;
+  readState?: () => MinimalChartState | undefined;
+  writeState?: (state: MinimalChartState) => unknown;
+  writeScreenshot?: (base64: string) => unknown;
+  fetchHistory: (request: HistoryRequest) => Promise<Bar[]>;
+  onReady?: (value: boolean) => void;
+  onAvailable?: (value: boolean) => void;
+  onError?: (error: unknown) => void;
+};
+
+type RenderResult = {
+  update: (options: RenderOptions) => void;
+  refresh: () => void;
+  cleanup: () => void;
+};
+
+const configIdentity = (config: ChartConfig) =>
+  stableJson({
+    symbol: config.symbol,
+    symbolType: config.symbolType,
+    exchange: config.exchange,
+    entry: config.entry,
+    exit: config.exit,
+    resolution: config.resolution,
+    supportedResolutions: config.supportedResolutions,
+    maxBarsPerRequest: config.maxBarsPerRequest,
+    debug: config.debug,
+    autosize: config.autosize,
+  });
+
+const settingsIdentity = (settings: ChartSettings) =>
+  stableJson({
+    theme: settings.theme,
+    locale: settings.locale,
+    timezone: settings.timezone,
+    colors: settings.colors,
+  });
+
+const stableJson = (value: unknown): string => {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+  const object = value as Record<string, unknown>;
+  return `{${Object.keys(object)
+    .filter((key) => object[key] !== undefined)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${stableJson(object[key])}`)
+    .join(",")}}`;
+};
+
+const sanitizeState = (
+  state: MinimalChartState | undefined,
+  config: ChartConfig,
+) => (state?.symbol === config.symbol ? state : undefined);
+
+export function render(options: RenderOptions): RenderResult {
+  let current = options;
+  let bridgeReady = false;
+  let pendingRefresh = false;
+  let cleaned = false;
+  let generation = 0;
+  let lastConfigIdentity = "";
+  let lastSettingsIdentity = "";
+  const win = current.frame.ownerDocument.defaultView;
+
+  if (!win) throw new Error("Missing frame.ownerDocument.defaultView");
+
+  const post = (msg: InboundMessage) => {
+    if (cleaned || !current.frame.isConnected) return;
+    current.frame.contentWindow?.postMessage(msg, current.origin);
+  };
+
+  const refresh = () => {
+    pendingRefresh = false;
+    if (cleaned) return;
+    const config = current.buildConfig();
+    if (config === null) {
+      current.onReady?.(false);
+      current.onAvailable?.(false);
+      return;
+    }
+    if (!bridgeReady) {
+      pendingRefresh = true;
+      return;
+    }
+
+    const settings = current.readSettings();
+    const nextConfigIdentity = configIdentity(config);
+    const nextSettingsIdentity = settingsIdentity(settings);
+    if (nextConfigIdentity !== lastConfigIdentity) {
+      generation += 1;
+      lastConfigIdentity = nextConfigIdentity;
+      lastSettingsIdentity = nextSettingsIdentity;
+      post({
+        type: "INIT_WIDGET",
+        payload: {
+          ...config,
+          theme: settings.theme,
+          locale: settings.locale,
+          timezone: settings.timezone,
+          colors: { [settings.theme]: settings.colors },
+          savedState: sanitizeState(current.readState?.(), config),
+        },
+      });
+      return;
+    }
+    if (nextSettingsIdentity !== lastSettingsIdentity) {
+      lastSettingsIdentity = nextSettingsIdentity;
+      post({ type: "UPDATE_SETTINGS", payload: settings });
+    }
+  };
+
+  const receiveHistory = (
+    request: HistoryRequest,
+    bars: Bar[],
+    error?: string,
+  ) => {
+    post({
+      type: "RECEIVE_HISTORY",
+      payload: {
+        reqId: request.reqId,
+        bars,
+        noData: bars.length === 0,
+        ...(error ? { error } : {}),
+      },
+    });
+  };
+
+  const handleHistory = async (
+    request: HistoryRequest,
+    requestGeneration: number,
+  ) => {
+    try {
+      const bars = await current.fetchHistory(request);
+      if (cleaned || requestGeneration !== generation) return;
+      receiveHistory(request, bars);
+      if (request.firstDataRequest) current.onAvailable?.(bars.length > 0);
+    } catch (error) {
+      if (cleaned || requestGeneration !== generation) return;
+      receiveHistory(request, [], String((error as Error).message ?? error));
+      if (request.firstDataRequest) current.onAvailable?.(false);
+      current.onError?.(error);
+    }
+  };
+
+  const onMessage = (event: MessageEvent) => {
+    if (cleaned || !current.frame.isConnected) return;
+    if (
+      event.origin !== current.origin ||
+      event.source !== current.frame.contentWindow
+    )
+      return;
+
+    const msg = event.data as OutboundMessage | undefined;
+    if (!msg || typeof msg.type !== "string") return;
+    if (msg.type === "BRIDGE_READY") {
+      bridgeReady = true;
+      refresh();
+      if (pendingRefresh) refresh();
+      return;
+    }
+    if (msg.type === "WIDGET_READY") {
+      current.onReady?.(true);
+      return;
+    }
+    if (msg.type === "SAVE_STATE") {
+      current.writeState?.(msg.payload);
+      return;
+    }
+    if (msg.type === "SAVE_SNAPSHOT") {
+      current.writeScreenshot?.(msg.payload.base64);
+      return;
+    }
+    if (msg.type === "REQ_HISTORY") void handleHistory(msg.payload, generation);
+  };
+
+  win.addEventListener("message", onMessage);
+  current.frame.src = current.src;
+
+  return {
+    update: (options) => {
+      const frameChanged =
+        current.frame !== options.frame || current.src !== options.src;
+      current = options;
+      if (frameChanged) current.frame.src = current.src;
+    },
+    refresh,
+    cleanup: () => {
+      if (cleaned) return;
+      cleaned = true;
+      generation += 1;
+      win.removeEventListener("message", onMessage);
+    },
+  };
+}

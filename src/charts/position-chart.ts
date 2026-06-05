@@ -1,31 +1,53 @@
 /// <reference types="vitest/importMeta" />
 
-import { LUCRCHART_URL } from '../constant'
 import { EXCHANGE_ID_TO_ADAPTER, PLATFORM_NAMES, PLATFORM_TO_EXCHANGE_ID } from '../platforms'
 
-import type { ChartConfig, MinimalChartState, ThemeColors } from './protocol'
 import type { App } from 'obsidian'
-
-export const RESOLUTION_TO_TIMEFRAME = {
-	1: '1m',
-	5: '5m',
-	15: '15m',
-	30: '30m',
-	60: '1h',
-	120: '2h',
-	240: '4h',
-	D: '1d',
-	W: '1w',
-	M: '1M',
-} as const
-
-export const YAHOO_SUPPORTED_RESOLUTIONS = ['1', '5', '15', '30', '60', 'D', 'W', 'M'] as const
-
-export const LUCRCHART_ORIGIN = LUCRCHART_URL.replace(/\/$/, '')
 
 export type PositionChartSource =
 	| { provider: 'exchange'; exchangeId: string; symbol: string }
 	| { provider: 'yahoo'; symbol: string }
+
+type PositionFill = {
+	time: number
+	side: 'buy' | 'sell'
+	price?: number
+}
+
+type ThemeColors = {
+	buyColor: string
+	sellColor: string
+	buyColorDark: string
+	sellColorDark: string
+	textOnColor: string
+	backgroundColor: string
+	loadingFg: string
+	separatorColor: string
+	crosshairColor: string
+	watermarkTransparency: number
+	buyBorderColor: string
+	sellBorderColor: string
+	buyWickColor: string
+	sellWickColor: string
+	gridColor: string
+	scalesTextColor: string
+	scalesLineColor: string
+	volumeUpColor: string
+	volumeDownColor: string
+}
+
+type ChartConfig = {
+	symbol: string
+	symbolType: 'crypto' | 'futures' | 'cfd'
+	debug: boolean | undefined
+	exchange: string
+	maxBarsPerRequest: number
+	resolution?: string
+	supportedResolutions?: readonly string[]
+	autosize?: boolean
+	entry?: PositionFill
+	exit?: PositionFill
+}
 
 type ChartPlugin = {
 	app: App
@@ -33,44 +55,16 @@ type ChartPlugin = {
 
 type PositionRecord = Record<string, unknown>
 
-type PositionMarker = {
-	datetime: string
-}
-
-type PositionChartTimeframe = {
-	leftEdgeTime: number
-	resolution: string
-	rightEdgeTime: number
-}
-
 type PositionChartContext = {
 	entry?: NonNullable<ChartConfig['entry']>
 	exit?: NonNullable<ChartConfig['exit']>
-	resolution: string
 	source: PositionChartSource
-	timeframe: PositionChartTimeframe
-}
-
-type PositionChartTimeframeOptions = {
-	minIntradayTime?: number
-	nowSeconds?: number
-	supportedResolutions?: readonly string[]
-}
-
-type ResolutionOption = {
-	seconds: number
-	value: string
+	supportedResolutions: readonly string[]
 }
 
 type ChartFile = {
 	basename?: string
 	path: string
-}
-
-type BuildPositionChartConfigParams = {
-	isDarkMode: boolean
-	nowSeconds: number
-	savedState?: MinimalChartState
 }
 
 type PositionChartSourceResolverParams = {
@@ -79,32 +73,11 @@ type PositionChartSourceResolverParams = {
 	symbolName: string
 }
 
-const DEFAULT_RESOLUTION = '60'
-const MAX_BARS_PER_REQUEST = 1000
-const CHART_SUPPORTED_RESOLUTIONS = ['1', '5', '15', '30', '60', '120', '240', 'D', 'W', 'M'] as const
-const PREFER_BARS = 300
-const PADDING_BARS = 25
-const YAHOO_INTRADAY_MAX_AGE_SECONDS = 60 * 24 * 60 * 60
-const REQUEST_RESOLUTION_ALIASES: Record<string, string> = {
-	'1D': 'D',
-	'1W': 'W',
-	'1M': 'M',
-	'1d': 'D',
-	'1w': 'W',
-}
-const RESOLUTIONS: ResolutionOption[] = [
-	{ value: '1', seconds: 60 },
-	{ value: '5', seconds: 300 },
-	{ value: '15', seconds: 900 },
-	{ value: '30', seconds: 1800 },
-	{ value: '60', seconds: 3600 },
-	{ value: '120', seconds: 7200 },
-	{ value: '240', seconds: 14400 },
-	{ value: 'D', seconds: 86400 },
-	{ value: 'W', seconds: 604800 },
-	{ value: 'M', seconds: 2592000 },
-]
 const DERIVATIVE_SUFFIX_PATTERN = /[.\-_](PERP|NEXT|PS|NW|P|F|S)$/u
+const DEFAULT_CHART_RESOLUTION = '60'
+const DEFAULT_MAX_BARS_PER_REQUEST = 1000
+const CHART_SUPPORTED_RESOLUTIONS = ['1', '5', '15', '30', '60', '120', '240', 'D', 'W', 'M'] as const
+const YAHOO_SUPPORTED_RESOLUTIONS = ['1', '5', '15', '30', '60', 'D', 'W', 'M'] as const
 const POSITION_CHART_SOURCE_RESOLVERS = new Map<string, (params: PositionChartSourceResolverParams) => PositionChartSource | null>([
 	['Future', ({ symbolName }) => ({ provider: 'yahoo', symbol: symbolName.trim().toUpperCase() })],
 	['Crypto_Perp', (params) => resolveCryptoChartSource(params, true)],
@@ -155,10 +128,6 @@ const DARK_DEFAULTS: ThemeColors = {
 	volumeDownColor: 'rgba(255, 255, 255, 0.05)',
 }
 
-export function normalizeChartResolution(resolution: string): string {
-	return REQUEST_RESOLUTION_ALIASES[resolution] ?? resolution
-}
-
 export function resolvePositionChartSource(plugin: ChartPlugin, position: PositionRecord): PositionChartSource | null {
 	const symbol = readLinkedFrontmatter(plugin.app, readStringField(position, 'symbol'), 'symbol')
 	if (symbol === null) {
@@ -193,31 +162,27 @@ function resolveCryptoChartSource(
 	}
 }
 
-export function buildPositionChartContext(
+function buildPositionChartContext(
 	plugin: ChartPlugin,
 	position: PositionRecord,
-	nowSeconds: number,
 ): PositionChartContext | null {
 	const source = resolvePositionChartSource(plugin, position)
 	if (source === null) {
 		return null
 	}
 
-	const timeframe = computePositionChartTimeframe(position, buildTimeframeOptions(source, nowSeconds))
 	return {
 		...buildPositionChartFills(position),
-		resolution: formatChartResolution(timeframe.resolution),
 		source,
-		timeframe,
+		supportedResolutions: chartSupportedResolutions(source),
 	}
 }
 
 export function buildPositionChartConfig(
 	plugin: ChartPlugin,
 	position: PositionRecord,
-	{ isDarkMode, nowSeconds, savedState }: BuildPositionChartConfigParams,
 ): ChartConfig | null {
-	const context = buildPositionChartContext(plugin, position, nowSeconds)
+	const context = buildPositionChartContext(plugin, position)
 	if (context === null) {
 		return null
 	}
@@ -226,32 +191,13 @@ export function buildPositionChartConfig(
 		symbol: context.source.symbol,
 		// exchange ⇒ crypto, yahoo ⇒ futures (CFD has no chart source yet).
 		symbolType: context.source.provider === 'exchange' ? 'crypto' : 'futures',
-		exchange: context.source.provider === 'exchange' ? context.source.exchangeId : '',
-		maxBarsPerRequest: MAX_BARS_PER_REQUEST,
-		supportedResolutions: [
-			...(context.source.provider === 'yahoo' ? YAHOO_SUPPORTED_RESOLUTIONS : CHART_SUPPORTED_RESOLUTIONS),
-		],
+		exchange: context.source.provider === 'exchange' ? context.source.exchangeId : 'YAHOO',
+		maxBarsPerRequest: DEFAULT_MAX_BARS_PER_REQUEST,
+		resolution: DEFAULT_CHART_RESOLUTION,
+		supportedResolutions: [...context.supportedResolutions],
 		debug: false,
 		entry: context.entry,
 		exit: context.exit,
-		timeframe: {
-			resolution: context.timeframe.resolution,
-			left_edge_time: context.timeframe.leftEdgeTime,
-			right_edge_time: context.timeframe.rightEdgeTime,
-		},
-		theme: isDarkMode ? 'dark' : 'light',
-		savedState,
-		colors: resolvePositionChartThemeColors(),
-	}
-}
-
-function resolvePositionChartThemeColors(): { light: ThemeColors; dark: ThemeColors } {
-	const isDark = activeDocument.body.classList.contains('theme-dark')
-	const current = resolveThemeColors(isDark ? DARK_DEFAULTS : LIGHT_DEFAULTS)
-
-	return {
-		light: isDark ? LIGHT_DEFAULTS : current,
-		dark: isDark ? current : DARK_DEFAULTS,
 	}
 }
 
@@ -260,125 +206,8 @@ export function resolveCurrentChartThemeColors(): ThemeColors {
 	return resolveThemeColors(isDark ? DARK_DEFAULTS : LIGHT_DEFAULTS)
 }
 
-function buildTimeframeOptions(
-	source: PositionChartSource,
-	nowSeconds: number,
-): PositionChartTimeframeOptions {
-	return source.provider === 'yahoo'
-		? {
-			minIntradayTime: nowSeconds - YAHOO_INTRADAY_MAX_AGE_SECONDS,
-			nowSeconds,
-			supportedResolutions: YAHOO_SUPPORTED_RESOLUTIONS,
-		}
-		: { nowSeconds }
-}
-
-function computePositionChartTimeframe(
-	position: PositionRecord,
-	options?: PositionChartTimeframeOptions,
-): PositionChartTimeframe {
-	const markers = extractPositionMarkers(position)
-	const now = options?.nowSeconds ?? Math.floor(Date.now() / 1000)
-	const defaultIntervalSeconds = getResolutionSeconds(DEFAULT_RESOLUTION)
-
-	if (markers.length === 0) {
-		const rightEdgeTime = now
-		return {
-			resolution: DEFAULT_RESOLUTION,
-			leftEdgeTime: rightEdgeTime - PREFER_BARS * defaultIntervalSeconds,
-			rightEdgeTime,
-		}
-	}
-
-	const timestamps = markers
-		.map((marker) => Math.floor(new Date(marker.datetime).getTime() / 1000))
-		.filter((timestamp) => Number.isFinite(timestamp))
-
-	if (timestamps.length === 0) {
-		const rightEdgeTime = now
-		return {
-			resolution: DEFAULT_RESOLUTION,
-			leftEdgeTime: rightEdgeTime - PREFER_BARS * defaultIntervalSeconds,
-			rightEdgeTime,
-		}
-	}
-
-	const from = Math.min(...timestamps)
-	const to = timestamps.length === 1
-		? now
-		: Math.min(Math.max(...timestamps), now)
-	const span = to - from
-
-	if (span === 0) {
-		const half = Math.floor(PREFER_BARS / 2)
-		const rightEdgeTime = Math.min(to + half * defaultIntervalSeconds, now)
-		return {
-			resolution: DEFAULT_RESOLUTION,
-			leftEdgeTime: rightEdgeTime - PREFER_BARS * defaultIntervalSeconds,
-			rightEdgeTime,
-		}
-	}
-
-	const resolutions = options?.supportedResolutions === undefined
-		? RESOLUTIONS
-		: RESOLUTIONS.filter((option) =>
-			options.supportedResolutions!.includes(option.value)
-			&& (options.minIntradayTime === undefined || from >= options.minIntradayTime || option.seconds >= 86400))
-
-	let chosen = resolutions.find((option) => option.value === DEFAULT_RESOLUTION) ?? resolutions[0]!
-	for (const option of resolutions) {
-		if (span / option.seconds <= PREFER_BARS) {
-			chosen = option
-			break
-		}
-	}
-
-	if (span / chosen.seconds > PREFER_BARS) {
-		chosen = resolutions[resolutions.length - 1]!
-	}
-
-	const spanBars = Math.ceil(span / chosen.seconds)
-	const padding = Math.max(PADDING_BARS, Math.floor((PREFER_BARS - spanBars) / 2))
-	const rightEdgeTime = Math.min(to + padding * chosen.seconds, now)
-
-	return {
-		resolution: chosen.value,
-		leftEdgeTime: from - padding * chosen.seconds,
-		rightEdgeTime,
-	}
-}
-
-function formatChartResolution(resolution: string): string {
-	const timeframe = RESOLUTION_TO_TIMEFRAME[resolution as keyof typeof RESOLUTION_TO_TIMEFRAME]
-	return timeframe ?? RESOLUTION_TO_TIMEFRAME[DEFAULT_RESOLUTION]
-}
-
-function extractPositionMarkers(position: PositionRecord): PositionMarker[] {
-	const orders = asArray(position.orders)
-
-	if (orders.length > 0) {
-		const markers = orders
-			.map((order) => extractOrderMarker(order))
-			.filter((marker): marker is PositionMarker => marker !== null)
-
-		if (markers.length > 0) {
-			return markers
-		}
-	}
-
-	const markers: PositionMarker[] = []
-	const openedAt = readStringField(position, 'opened_at')
-	const closedAt = readStringField(position, 'closed_at')
-
-	if (openedAt !== null) {
-		markers.push({ datetime: toIsoDatetime(openedAt) })
-	}
-
-	if (closedAt !== null) {
-		markers.push({ datetime: toIsoDatetime(closedAt) })
-	}
-
-	return markers
+function chartSupportedResolutions(source: PositionChartSource): readonly string[] {
+	return source.provider === 'yahoo' ? YAHOO_SUPPORTED_RESOLUTIONS : CHART_SUPPORTED_RESOLUTIONS
 }
 
 function readLinkedFrontmatter(
@@ -433,34 +262,6 @@ function resolveCryptoChartSymbolName(symbolName: string, sourceIsPerp: boolean)
 	}
 
 	return isPerp ? `${symbol}.P` : symbol
-}
-
-function extractOrderMarker(order: unknown): PositionMarker | null {
-	if (!isRecord(order)) {
-		return null
-	}
-
-	const datetime = readStringField(order, 'datetime')
-	if (datetime !== null) {
-		return { datetime: toIsoDatetime(datetime) }
-	}
-
-	const lastTradeTimestamp = order.lastTradeTimestamp
-	if (typeof lastTradeTimestamp === 'number' && Number.isFinite(lastTradeTimestamp)) {
-		return { datetime: new Date(lastTradeTimestamp).toISOString() }
-	}
-
-	const timestamp = order.timestamp
-	if (typeof timestamp === 'number' && Number.isFinite(timestamp)) {
-		return { datetime: new Date(timestamp).toISOString() }
-	}
-
-	return null
-}
-
-function getResolutionSeconds(resolution: string): number {
-	return RESOLUTIONS.find((option) => option.value === resolution)?.seconds
-		?? RESOLUTIONS.find((option) => option.value === DEFAULT_RESOLUTION)!.seconds
 }
 
 function buildPositionChartFills(position: PositionRecord): Pick<PositionChartContext, 'entry' | 'exit'> {
@@ -566,10 +367,6 @@ function readNumberField(record: Record<string, unknown>, key: string): number |
 	return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
-function asArray(value: unknown): unknown[] {
-	return Array.isArray(value) ? value : []
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -634,50 +431,6 @@ if (import.meta.vitest) {
 		})
 	})
 
-	describe('computePositionChartTimeframe', () => {
-		it('uses order markers before fallback timestamps', () => {
-			const result = computePositionChartTimeframe({
-				opened_at: '2026-03-20T16:31:05+08:00',
-				orders: [
-					{ lastTradeTimestamp: new Date('2026-03-19T16:31:00Z').getTime() },
-					{ lastTradeTimestamp: new Date('2026-03-21T16:31:00Z').getTime() },
-				],
-			})
-
-			expect(result.leftEdgeTime).toBeLessThan(new Date('2026-03-19T16:31:00Z').getTime() / 1000)
-			expect(result.rightEdgeTime).toBeGreaterThan(new Date('2026-03-21T16:31:00Z').getTime() / 1000)
-		})
-
-		it('selects daily resolution for old Yahoo intraday windows', () => {
-			const nowSeconds = Math.floor(new Date('2026-06-02T00:00:00Z').getTime() / 1000)
-			const result = computePositionChartTimeframe(
-				{
-					opened_at: '2025-05-26T12:33:09.009Z',
-					closed_at: '2025-05-29T02:33:09.009Z',
-				},
-				{
-					minIntradayTime: nowSeconds - YAHOO_INTRADAY_MAX_AGE_SECONDS,
-					supportedResolutions: YAHOO_SUPPORTED_RESOLUTIONS,
-				},
-			)
-
-			expect(result.resolution).toBe('D')
-		})
-	})
-
-	describe('chart resolution helpers', () => {
-		it('maps TradingView daily and higher aliases to host resolutions', () => {
-			expect(normalizeChartResolution('1D')).toBe('D')
-			expect(normalizeChartResolution('1W')).toBe('W')
-			expect(normalizeChartResolution('1M')).toBe('M')
-		})
-
-		it('formats host resolutions to chart timeframes', () => {
-			expect(formatChartResolution('60')).toBe('1h')
-			expect(formatChartResolution('bogus')).toBe('1h')
-		})
-	})
-
 	describe('buildPositionChartConfig', () => {
 		afterEach(() => {
 			vi.unstubAllGlobals()
@@ -714,17 +467,47 @@ if (import.meta.vitest) {
 				entry_price: 100,
 				closed_at: '2026-03-21T18:45:00+08:00',
 				exit_price: 120,
-			}, {
-				isDarkMode: false,
-				nowSeconds: Math.floor(new Date('2026-03-22T00:00:00Z').getTime() / 1000),
 			})
 
 			expect(config?.entry).toEqual({ time: 1773995465, price: 100, side: 'buy' })
 			expect(config?.exit).toEqual({ time: 1774089900, price: 120, side: 'sell' })
 			expect(config?.symbolType).toBe('crypto')
+			expect(config?.resolution).toBe('60')
 			expect(config?.maxBarsPerRequest).toBe(1000)
 			expect(config?.supportedResolutions).toEqual([...CHART_SUPPORTED_RESOLUTIONS])
 			expect(config?.supportedResolutions).not.toContain('40')
+			expect(config).not.toHaveProperty('timeframe')
+			expect(config).not.toHaveProperty('theme')
+			expect(config).not.toHaveProperty('savedState')
+			expect(config).not.toHaveProperty('colors')
+		})
+
+		it('marks Yahoo futures with explicit Yahoo exchange', () => {
+			vi.stubGlobal('activeDocument', {
+				body: {
+					classList: {
+						contains: () => false,
+					},
+				},
+			})
+			vi.stubGlobal('getComputedStyle', () => ({
+				getPropertyValue: () => '',
+			}))
+
+			const plugin = createPlugin([
+				{ basename: 'SBL-Main-E7', frontmatter: { lucr_type: 'symbol', name: 'E7', type: 'Future', account: '[[ACC-Main]]' } },
+				{ basename: 'ACC-Main', frontmatter: { lucr_type: 'account', platform: '[[Interactive Brokers]]' } },
+			])
+			const config = buildPositionChartConfig(plugin, {
+				symbol: '[[SBL-Main-E7]]',
+				side: 'LONG',
+				opened_at: '2026-03-20T16:31:05+08:00',
+				entry_price: 1.08,
+			})
+
+			expect(config?.exchange).toBe('YAHOO')
+			expect(config?.supportedResolutions).toEqual([...YAHOO_SUPPORTED_RESOLUTIONS])
+			expect(config).not.toHaveProperty('timeframe')
 		})
 
 		it('maps short fills to sell then buy executions', () => {
@@ -750,9 +533,6 @@ if (import.meta.vitest) {
 				entry_price: 100,
 				closed_at: '2026-03-21T18:45:00+08:00',
 				exit_price: 90,
-			}, {
-				isDarkMode: false,
-				nowSeconds: Math.floor(new Date('2026-03-22T00:00:00Z').getTime() / 1000),
 			})
 
 			expect(config?.entry).toEqual({ time: 1773995465, price: 100, side: 'sell' })

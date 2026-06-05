@@ -6,7 +6,6 @@ const projectRootUrl = new URL('..', import.meta.url)
 const projectRootPath = ts.sys.resolvePath(projectRootUrl.pathname)
 const ignoredSourceFiles = new Set([
 	ts.sys.resolvePath(new URL('../src/generated-icons/icon-assets.generated.ts', import.meta.url).pathname),
-	ts.sys.resolvePath(new URL('../src/ui/chart/protocol.ts', import.meta.url).pathname),
 ])
 const scriptFiles = ts.sys
 	.readDirectory(join(projectRootPath, 'scripts'), ['.ts'], undefined, ['**/*'])

@@ -2,10 +2,15 @@
 
 import { requestUrl } from 'obsidian'
 
-import { normalizeChartResolution, YAHOO_SUPPORTED_RESOLUTIONS } from './position-chart'
-
 import type { OhlcvBar } from '../platforms/factory'
 
+const REQUEST_RESOLUTION_ALIASES: Record<string, string> = {
+	'1D': 'D',
+	'1W': 'W',
+	'1M': 'M',
+	'1d': 'D',
+	'1w': 'W',
+}
 const RESOLUTION_TO_INTERVAL: Record<string, string> = {
 	1: '1m',
 	5: '5m',
@@ -16,6 +21,7 @@ const RESOLUTION_TO_INTERVAL: Record<string, string> = {
 	W: '1wk',
 	M: '1mo',
 }
+const YAHOO_SUPPORTED_RESOLUTIONS = ['1', '5', '15', '30', '60', 'D', 'W', 'M'] as const
 const YAHOO_TICKER_BY_SYMBOL = new Map([
 	['E7', '6E'],
 ])
@@ -105,6 +111,10 @@ function readQuote(result: YahooResult): YahooQuote | null {
 
 function resolveYahooTicker(symbol: string): string {
 	return YAHOO_TICKER_BY_SYMBOL.get(symbol) ?? symbol
+}
+
+function normalizeChartResolution(resolution: string): string {
+	return REQUEST_RESOLUTION_ALIASES[resolution] ?? resolution
 }
 
 if (import.meta.vitest) {

@@ -7,7 +7,6 @@ import { parseSymbolPair, type SymbolPair } from '../domains/symbol/pair'
 import { EXCHANGE_ID_TO_ADAPTER } from '../platforms'
 
 import { getOhlcvCache, makeCacheKey, mergeOhlcvCache } from './ohlcv-cache'
-import { normalizeChartResolution, RESOLUTION_TO_TIMEFRAME } from './position-chart'
 import { fetchYahooBars } from './yahoo-ohlcv'
 
 import type { PositionChartSource } from './position-chart'
@@ -17,6 +16,25 @@ const MAX_PAGINATION_CALLS = 50
 const OHLCV_BATCH_LIMIT = 1000
 const RATE_LIMIT_STATUS = 429
 const RETRY_DELAY_MS = 1050
+const REQUEST_RESOLUTION_ALIASES: Record<string, string> = {
+	'1D': 'D',
+	'1W': 'W',
+	'1M': 'M',
+	'1d': 'D',
+	'1w': 'W',
+}
+const RESOLUTION_TO_TIMEFRAME = {
+	1: '1m',
+	5: '5m',
+	15: '15m',
+	30: '30m',
+	60: '1h',
+	120: '2h',
+	240: '4h',
+	D: '1d',
+	W: '1w',
+	M: '1M',
+} as const
 
 type OhlcvCacheValue = {
 	bars: OhlcvBar[]
@@ -158,6 +176,10 @@ async function requestJson(url: string): Promise<unknown> {
 
 function wait(ms: number): Promise<void> {
 	return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
+
+function normalizeChartResolution(resolution: string): string {
+	return REQUEST_RESOLUTION_ALIASES[resolution] ?? resolution
 }
 
 if (import.meta.vitest) {

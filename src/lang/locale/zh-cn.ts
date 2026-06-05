@@ -439,4 +439,11 @@ export const zhCN: Partial<Record<keyof typeof en, string>> = {
 	SELECT_CREATE_EMPTY_HINT: '输入名称后即可创建新条目。',
 	SELECT_CREATE_READY: '按回车键或点击 {action} 来创建“{query}”。',
 	SELECT_DISMISS: '关闭',
+	SESSION_LOGIN_REJECTED: '登录链接与当前 Vault 不匹配，请重试。',
+	SESSION_LOGIN_FAILED: '登录未能完成。',
+	SESSION_LOGIN_SUCCESS: '已登录 LucrTrade。',
+	SESSION_SIGNED_OUT: '已退出 LucrTrade。',
+	SESSION_LOGIN_NEEDED: '请登录 LucrTrade 以打开日记。',
+	SESSION_LOGOUT_COMMAND: '退出 LucrTrade 账户',
+	SESSION_SWITCH_ACCOUNT_COMMAND: '切换 LucrTrade 账户',
 }

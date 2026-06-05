@@ -16,6 +16,8 @@ const shouldWatch = process.argv[3] === 'watch';
 const prod = environment === 'production';
 const defaultLucrchartUrl = 'https://lucrchart.lucrtrade.com/';
 const lucrchartUrl = prod ? defaultLucrchartUrl : process.env.LUCRCHART_URL ?? defaultLucrchartUrl;
+const defaultAppUrl = 'https://app.lucrtrade.com';
+const appUrl = prod ? defaultAppUrl : process.env.LUCRJOURNAL_APP_URL ?? defaultAppUrl;
 const buildTimestamp = Date.now().toString();
 const packageJson = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
 const chartVersion = packageJson.chart_version;
@@ -97,6 +99,7 @@ const context = await esbuild.context({
 		__LUCRJOURNAL_REPOSITORY__: JSON.stringify(packageRepository),
 		__LUCRJOURNAL_CHART_VERSION__: JSON.stringify(chartVersion),
 		__LUCRJOURNAL_CHART_IFRAME_URL__: JSON.stringify(lucrchartIframeUrl),
+		__LUCRJOURNAL_APP_URL__: JSON.stringify(appUrl),
 		'import.meta.vitest': 'undefined',
 	},
 	entryPoints: ["src/main.ts"],

@@ -436,4 +436,11 @@ export const en = {
 	SELECT_CREATE_EMPTY_HINT: 'Type a name to create a new entry.',
 	SELECT_CREATE_READY: 'Press Enter or click {action} to create "{query}".',
 	SELECT_DISMISS: 'to dismiss',
+	SESSION_LOGIN_REJECTED: 'Login link did not match this vault. Please try again.',
+	SESSION_LOGIN_FAILED: 'Login could not be completed.',
+	SESSION_LOGIN_SUCCESS: 'Signed in to LucrTrade.',
+	SESSION_SIGNED_OUT: 'Signed out of LucrTrade.',
+	SESSION_LOGIN_NEEDED: 'Sign in to LucrTrade to open the journal.',
+	SESSION_LOGOUT_COMMAND: 'Sign out of LucrTrade',
+	SESSION_SWITCH_ACCOUNT_COMMAND: 'Switch LucrTrade account',
 } as const

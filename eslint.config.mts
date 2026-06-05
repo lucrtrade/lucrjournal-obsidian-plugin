@@ -201,8 +201,11 @@ export default tseslint.config(
 		},
 	},
 	{
-		files: ['src/charts/protocol.ts'],
-		rules: Object.fromEntries(Object.keys(stylistic.rules).map((rule) => [`@stylistic/${rule}`, 'off'])),
+		files: ['src/charts/lucrchart-host.ts'],
+		rules: {
+			...Object.fromEntries(Object.keys(stylistic.rules).map((rule) => [`@stylistic/${rule}`, 'off'])),
+			'curly': 'off',
+		},
 	},
 	globalIgnores([
 		'node_modules',

@@ -1,4 +1,4 @@
-import { addIcon, normalizePath, Plugin } from 'obsidian'
+import { Notice, addIcon, normalizePath, Plugin } from 'obsidian'
 
 import { registerPositionAttachmentOcrRuntime } from './attachments/ocr-runtime'
 import { BUILD_INFO, logBuildInfo } from './build-info'
@@ -18,6 +18,8 @@ import { createLogger, setDebugLoggingEnabled } from './logger'
 import { registerReadonlyLucrTypeProperty } from './metadata/readonly-lucr-type-property'
 import { registerPropertyTypes } from './metadata/register-property-types'
 import { maybeShowReleaseNotes, openReleaseNotes } from './release-notes/release-notes-runtime'
+import { handleAuthCallback, logout, runSessionCheck, startLogin, switchAccount } from './session/login'
+import { getToken } from './session/storage'
 import {
 	createPluginSettings,
 	PluginSettings,
@@ -120,6 +122,26 @@ export default class LucrJournalPlugin extends Plugin {
 				openReleaseNotes(this)
 			},
 		})
+
+		this.registerObsidianProtocolHandler('lucrjournal-auth', ({ code, state }) => {
+			void handleAuthCallback(this.app, this.manifest.version, { code, state })
+		})
+
+		this.addCommand({
+			id: 'logout',
+			name: t('SESSION_LOGOUT_COMMAND'),
+			callback: async () => {
+				await logout(this.app)
+			},
+		})
+
+		this.addCommand({
+			id: 'switch-account',
+			name: t('SESSION_SWITCH_ACCOUNT_COMMAND'),
+			callback: async () => {
+				await switchAccount(this.app)
+			},
+		})
 	}
 
 	private async ensureFolders(): Promise<void> {
@@ -169,9 +191,16 @@ export default class LucrJournalPlugin extends Plugin {
 
 		await this.ensureFolders()
 		await maybeShowReleaseNotes(this)
+		void runSessionCheck(this.app)
 	}
 
 	private async activateJournalView(): Promise<void> {
+		const token = getToken(this.app)
+		if (!token) {
+			new Notice(t('SESSION_LOGIN_NEEDED'))
+			await startLogin(this.app)
+			return
+		}
 		await this.ensureFolders()
 		const span = logger.span('activate journal dashboard', {
 			viewType: LUCR_JOURNAL_VIEW_TYPE,

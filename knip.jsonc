@@ -12,9 +12,6 @@
 		"test/**/*.js",
 		"*.config.{ts,mts}"
 	],
-	"ignore": [
-		"src/charts/protocol.ts"
-	],
 	"ignoreDependencies": [
 		"@fontsource-variable/inter",
 		"@fontsource-variable/jetbrains-mono",

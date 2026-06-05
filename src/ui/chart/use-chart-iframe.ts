@@ -1,27 +1,34 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { render } from '../../charts/lucrchart-host'
 import { fetchBarsWithCache } from '../../charts/ohlcv-fetch'
 import {
 	buildPositionChartConfig,
-	buildPositionChartContext,
-	LUCRCHART_ORIGIN,
 	resolveCurrentChartThemeColors,
 	resolvePositionChartSource,
 } from '../../charts/position-chart'
+import { LUCRCHART_IFRAME_URL, LUCRCHART_ORIGIN } from '../../constant'
+import { getCurrentLocale } from '../../lang/helpers'
 import { createLogger } from '../../logger'
 
-import type {
-	ChartConfig,
-	InboundMessage,
-	MinimalChartState,
-	OutboundMessage,
-} from '../../charts/protocol'
 import type { Position } from '../../domains'
 import type LucrJournalPlugin from '../../main'
 import type { App, TFile } from 'obsidian'
 import type { RefObject } from 'react'
 
 const logger = createLogger('chart-iframe')
+
+type MinimalChartState = {
+	chartType?: number
+	sources?: Record<string, unknown>
+	groups?: Record<string, unknown>
+	symbol?: string
+	timeframe?: {
+		resolution: string
+		right_edge_time: number
+		left_edge_time: number
+	}
+}
 
 type UseChartIframeParams = {
 	plugin: LucrJournalPlugin
@@ -34,7 +41,6 @@ type UseChartIframeReturn = {
 	iframeRef: RefObject<HTMLIFrameElement | null>
 	isChartAvailable: boolean
 	isChartReady: boolean
-	resolution: string
 }
 
 export function useChartIframe({
@@ -45,286 +51,111 @@ export function useChartIframe({
 }: UseChartIframeParams): UseChartIframeReturn {
 	const app: App = plugin.app
 	const iframeRef = useRef<HTMLIFrameElement | null>(null)
+	const hostRef = useRef<ReturnType<typeof render> | null>(null)
+	const buildOptionsRef = useRef<((frame: HTMLIFrameElement) => Parameters<typeof render>[0]) | null>(null)
+	const [isChartAvailable, setIsChartAvailable] = useState(true)
 	const [isChartReady, setIsChartReady] = useState(false)
 	const [isDarkMode, setIsDarkMode] = useState(() => activeDocument.body.classList.contains('theme-dark'))
-	const lastInitSignatureRef = useRef<string | null>(null)
-	const timeframeNowRef = useRef<{ path: string | null; seconds: number } | null>(null)
-	const positionPath = positionFile?.path ?? null
-
-	if (timeframeNowRef.current?.path !== positionPath) {
-		timeframeNowRef.current = {
-			path: positionPath,
-			seconds: Math.floor(Date.now() / 1000),
-		}
-	}
-
-	const chartContext = buildPositionChartContext(plugin, position, timeframeNowRef.current.seconds)
-	const chartConfigSignature = chartContext === null
-		? null
-		: chartIdentitySignature({
-			entry: chartContext.entry,
-			exit: chartContext.exit,
-			symbol: chartContext.source.symbol,
-			exchange: chartContext.source.provider === 'exchange' ? chartContext.source.exchangeId : '',
-			timeframe: {
-				resolution: chartContext.timeframe.resolution,
-				left_edge_time: chartContext.timeframe.leftEdgeTime,
-				right_edge_time: chartContext.timeframe.rightEdgeTime,
-			},
-		})
-	const resolution = chartContext?.resolution ?? '1h'
-	const [chartProbe, setChartProbe] = useState<'probing' | 'available' | 'unavailable'>('probing')
-
-	useEffect(() => {
-		let cancelled = false
-		setChartProbe('probing')
-
-		const context = buildPositionChartContext(plugin, position, timeframeNowRef.current!.seconds)
-		if (context === null) {
-			setChartProbe('unavailable')
-			return
-		}
-
-		void fetchBarsWithCache({
-			...context.source,
-			resolution: context.timeframe.resolution,
-			fromSeconds: context.timeframe.leftEdgeTime,
-			toSeconds: context.timeframe.rightEdgeTime,
-		})
-			.then((bars) => {
-				if (!cancelled) {
-					setChartProbe(bars.length > 0 ? 'available' : 'unavailable')
-				}
-			})
-			.catch((err: unknown) => {
-				logger.warn('failed to probe OHLCV availability for chart', {
-					err,
-					chartSource: context.source,
-					resolution: context.timeframe.resolution,
-				})
-				if (!cancelled) {
-					setChartProbe('unavailable')
-				}
-			})
-
-		return () => {
-			cancelled = true
-		}
-	}, [plugin, position, positionFile?.path, resolution])
-
-	const isChartAvailable = chartProbe === 'available'
-
-	const postToIframe = useCallback((msg: InboundMessage) => {
-		iframeRef.current?.contentWindow?.postMessage(msg, LUCRCHART_ORIGIN)
-	}, [])
 
 	const readSavedState = useCallback((): MinimalChartState | undefined => {
 		if (positionFile === null) {
-			return undefined 
+			return undefined
 		}
 		const fm = app.metadataCache.getFileCache(positionFile)?.frontmatter
 		const raw: unknown = fm?.chart_state
 		if (raw === null || typeof raw !== 'object') {
-			return undefined 
+			return undefined
 		}
 		return raw
 	}, [app, positionFile])
 
 	const writeSavedState = useCallback((state: MinimalChartState) => {
 		if (positionFile === null) {
-			return 
+			return
 		}
 		void app.fileManager.processFrontMatter(positionFile, (fm) => {
 			;(fm as Record<string, unknown>).chart_state = state
 		})
 	}, [app, positionFile])
 
-	const clearSavedState = useCallback(() => {
-		if (positionFile === null) {
-			return
-		}
-		void app.fileManager.processFrontMatter(positionFile, (fm) => {
-			delete (fm as Record<string, unknown>).chart_state
-		})
-	}, [app, positionFile])
-
-	const buildChartConfig = useCallback((savedState: MinimalChartState | undefined): ChartConfig | null => {
-		return buildPositionChartConfig(plugin, position, {
-			isDarkMode,
-			nowSeconds: timeframeNowRef.current!.seconds,
-			savedState,
-		})
-	}, [plugin, position, isDarkMode])
-
-	const sendInitWidget = useCallback((savedState: MinimalChartState | undefined, resetReady: boolean) => {
-		const config = buildChartConfig(savedState)
-		if (config === null) {
-			logger.debug('skipping INIT_WIDGET - unsupported symbol type, missing symbol, or missing exchange', {
-				positionFile: positionFile?.path,
+	const buildOptions = useCallback((frame: HTMLIFrameElement): Parameters<typeof render>[0] => ({
+		frame,
+		src: LUCRCHART_IFRAME_URL,
+		origin: LUCRCHART_ORIGIN,
+		buildConfig: () => buildPositionChartConfig(plugin, position),
+		readSettings: () => ({
+			theme: activeDocument.body.classList.contains('theme-dark') ? 'dark' : 'light',
+			locale: getCurrentLocale(),
+			timezone: plugin.settings.timeZone,
+			colors: resolveCurrentChartThemeColors(),
+		}),
+		readState: readSavedState,
+		writeState: writeSavedState,
+		writeScreenshot: (base64) => onSnapshot?.(base64),
+		fetchHistory: async ({ resolution, from, to }) => {
+			const source = resolvePositionChartSource(plugin, position)
+			if (source === null) {
+				return []
+			}
+			return await fetchBarsWithCache({
+				...source,
+				resolution,
+				fromSeconds: from,
+				toSeconds: to,
 			})
+		},
+		onReady: setIsChartReady,
+		onAvailable: setIsChartAvailable,
+		onError: (error) => logger.warn('lucrchart host error', { error, positionFile: positionFile?.path }),
+	}), [onSnapshot, plugin, plugin.settings.timeZone, position, positionFile?.path, readSavedState, writeSavedState])
+
+	buildOptionsRef.current = buildOptions
+
+	const refreshHost = useCallback(() => {
+		const frame = iframeRef.current
+		const build = buildOptionsRef.current
+		if (frame === null || build === null) {
 			return
 		}
+		hostRef.current?.update(build(frame))
+		hostRef.current?.refresh()
+	}, [])
 
-		if (resetReady) {
-			setIsChartReady(false)
+	useEffect(() => {
+		const frame = iframeRef.current
+		const build = buildOptionsRef.current
+		if (frame === null || build === null) {
+			return
 		}
-		lastInitSignatureRef.current = chartIdentitySignature(config)
-		postToIframe({ type: 'INIT_WIDGET', payload: config })
-	}, [buildChartConfig, positionFile?.path, postToIframe])
+		const host = render(build(frame))
+		hostRef.current = host
+		return () => {
+			host.cleanup()
+			hostRef.current = null
+		}
+	}, [])
 
-	// Observe Obsidian theme changes via body class
+	useEffect(() => {
+		setIsChartAvailable(true)
+		setIsChartReady(false)
+	}, [positionFile?.path])
+
+	useEffect(() => {
+		refreshHost()
+	}, [position, positionFile?.path, plugin.settings.lang, plugin.settings.timeZone, isDarkMode, onSnapshot, refreshHost])
+
 	useEffect(() => {
 		const updateTheme = () => {
 			setIsDarkMode(activeDocument.body.classList.contains('theme-dark'))
+			refreshHost()
 		}
-
-		updateTheme()
-
 		const observer = new MutationObserver(updateTheme)
 		observer.observe(activeDocument.body, {
 			attributes: true,
 			attributeFilter: ['class'],
 		})
-
 		return () => observer.disconnect()
-	}, [])
+	}, [refreshHost])
 
-	// Reset ready state when position file changes
-	useEffect(() => {
-		setIsChartReady(false)
-	}, [isChartAvailable, positionFile?.path])
-
-	useEffect(() => {
-		if (!isChartReady) {
-			return
-		}
-
-		if (chartConfigSignature === null || chartConfigSignature === lastInitSignatureRef.current) {
-			return
-		}
-
-		sendInitWidget(readSavedState(), true)
-	}, [chartConfigSignature, isChartReady, readSavedState, sendInitWidget])
-
-	useEffect(() => {
-		if (!isChartReady) {
-			return
-		}
-
-		postToIframe({
-			type: 'UPDATE_SETTINGS',
-			payload: {
-				theme: isDarkMode ? 'dark' : 'light',
-				colors: resolveCurrentChartThemeColors(),
-			},
-		})
-	}, [isDarkMode, isChartReady, postToIframe])
-
-	useEffect(() => {
-		const handleMessage = (event: MessageEvent) => {
-			if (event.origin !== LUCRCHART_ORIGIN) {
-				return
-			}
-
-			const msg = event.data as OutboundMessage
-			if (!msg || typeof msg.type !== 'string') {
-				return
-			}
-
-			switch (msg.type) {
-				case 'BRIDGE_READY': {
-					sendInitWidget(readSavedState(), false)
-					break
-				}
-
-				case 'WIDGET_READY':
-					setIsChartReady(true)
-					break
-
-				case 'REQ_HISTORY': {
-					const { resolution: reqRes, from, to, reqId } = msg.payload
-
-					const chartSource = resolvePositionChartSource(plugin, position)
-					if (chartSource === null) {
-						postToIframe({
-							type: 'RECEIVE_HISTORY',
-							payload: { reqId, bars: [], noData: true },
-						})
-						return
-					}
-
-					void fetchBarsWithCache({
-						...chartSource,
-						resolution: reqRes,
-						fromSeconds: from,
-						toSeconds: to,
-					})
-						.then((bars) => {
-							postToIframe({
-								type: 'RECEIVE_HISTORY',
-								payload: { reqId, bars, noData: bars.length === 0 },
-							})
-						})
-						.catch((err: unknown) => {
-							logger.warn('failed to fetch OHLCV for chart', {
-								err,
-								chartSource,
-								resolution: reqRes,
-							})
-							postToIframe({
-								type: 'RECEIVE_HISTORY',
-								payload: { reqId, bars: [], noData: true, error: String(err) },
-							})
-						})
-					break
-				}
-
-				case 'SAVE_STATE':
-					writeSavedState(msg.payload)
-					break
-
-				case 'SAVE_SNAPSHOT': {
-					const { base64 } = msg.payload
-					onSnapshot?.(base64)
-					break
-				}
-
-				case 'RESET_VIEW':
-					clearSavedState()
-					sendInitWidget(undefined, true)
-					break
-
-				case 'REQ_SUBSCRIBE':
-				case 'REQ_UNSUBSCRIBE':
-				case 'ON_MARK_CLICK':
-					break
-				default:
-					msg satisfies never
-					throw new Error('Unknown outbound chart message type')
-			}
-		}
-
-		window.addEventListener('message', handleMessage)
-		return () => window.removeEventListener('message', handleMessage)
-	}, [plugin, position, positionFile, clearSavedState, postToIframe, readSavedState, sendInitWidget, writeSavedState, onSnapshot])
-
-	return { iframeRef, isChartAvailable, isChartReady, resolution }
-}
-
-/**
- * Identity fields that, when changed, require a fresh INIT_WIDGET. Theme/colors
- * are excluded (handled via UPDATE_SETTINGS); savedState is excluded (restored,
- * not identity). Single source of truth so the render-time and init-time
- * signatures can never drift apart.
- */
-function chartIdentitySignature(
-	config: Pick<ChartConfig, 'entry' | 'exit' | 'symbol' | 'exchange' | 'timeframe'>,
-): string {
-	return JSON.stringify({
-		entry: config.entry,
-		exchange: config.exchange,
-		exit: config.exit,
-		source: config.symbol,
-		timeframe: config.timeframe,
-	})
+	return { iframeRef, isChartAvailable, isChartReady }
 }
