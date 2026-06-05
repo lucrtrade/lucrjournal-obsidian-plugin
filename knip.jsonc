@@ -20,6 +20,9 @@
 		"protobufjs"
 	],
 	"ignoreIssues": {
+		"src/charts/lucrchart-host.ts": [
+			"types"
+		],
 		"test/mocks/obsidian.js": [
 			"unlisted"
 		]

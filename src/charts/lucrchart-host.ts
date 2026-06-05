@@ -1,4 +1,4 @@
-type Bar = {
+export type Bar = {
   time: number;
   open: number;
   high: number;
@@ -7,19 +7,19 @@ type Bar = {
   volume?: number;
 };
 
-type Timeframe = {
+export type Timeframe = {
   resolution: string;
   right_edge_time: number;
   left_edge_time: number;
 };
 
-type PositionFill = {
+export type PositionFill = {
   time: number;
   side: "buy" | "sell";
   price?: number;
 };
 
-type MinimalChartState = {
+export type MinimalChartState = {
   chartType?: number;
   sources?: Record<string, unknown>;
   groups?: Record<string, unknown>;
@@ -27,29 +27,29 @@ type MinimalChartState = {
   timeframe?: Timeframe;
 };
 
-type ThemeColors = {
-  buyColor?: string;
-  sellColor?: string;
-  buyColorDark?: string;
-  sellColorDark?: string;
-  textOnColor?: string;
-  backgroundColor?: string;
-  loadingFg?: string;
-  separatorColor?: string;
-  crosshairColor?: string;
-  watermarkTransparency?: number;
-  buyBorderColor?: string;
-  sellBorderColor?: string;
-  buyWickColor?: string;
-  sellWickColor?: string;
-  gridColor?: string;
-  scalesTextColor?: string;
-  scalesLineColor?: string;
-  volumeUpColor?: string;
-  volumeDownColor?: string;
+export type ThemeColors = {
+  buyColor: string;
+  sellColor: string;
+  buyColorDark: string;
+  sellColorDark: string;
+  textOnColor: string;
+  backgroundColor: string;
+  loadingFg: string;
+  separatorColor: string;
+  crosshairColor: string;
+  watermarkTransparency: number;
+  buyBorderColor: string;
+  sellBorderColor: string;
+  buyWickColor: string;
+  sellWickColor: string;
+  gridColor: string;
+  scalesTextColor: string;
+  scalesLineColor: string;
+  volumeUpColor: string;
+  volumeDownColor: string;
 };
 
-type ChartConfig = {
+export type ChartConfig = {
   symbol: string;
   symbolType: "crypto" | "futures" | "cfd";
   debug: boolean | undefined;
@@ -57,9 +57,17 @@ type ChartConfig = {
   maxBarsPerRequest: number;
   resolution?: string;
   supportedResolutions?: readonly string[];
+  theme?: "light" | "dark";
+  timezone?: string;
+  locale?: string;
   autosize?: boolean;
   entry?: PositionFill;
   exit?: PositionFill;
+  savedState?: MinimalChartState | undefined;
+  colors?: {
+    light?: Partial<ThemeColors>;
+    dark?: Partial<ThemeColors>;
+  };
 };
 
 type ChartSettings = {
@@ -79,23 +87,37 @@ type HistoryRequest = {
   reqId: string;
 };
 
-type InboundMessage =
+type ChartMarkColor = {
+  border: string;
+  background: string;
+};
+
+export type ChartMark = {
+  id: string;
+  time: number;
+  color: ChartMarkColor;
+  text: string;
+  label: string;
+  labelFontColor: string;
+  minSize: number;
+};
+
+export type InboundMessage =
   | {
       type: "INIT_WIDGET";
-      payload: ChartConfig & {
-        theme?: "light" | "dark";
-        timezone?: string;
-        locale?: string;
-        savedState?: MinimalChartState;
-        colors?: {
-          light?: Partial<ThemeColors>;
-          dark?: Partial<ThemeColors>;
-        };
-      };
+      payload: ChartConfig;
     }
   | {
       type: "RECEIVE_HISTORY";
       payload: { reqId: string; bars: Bar[]; noData: boolean; error?: string };
+    }
+  | {
+      type: "RECEIVE_TICK";
+      payload: Bar;
+    }
+  | {
+      type: "LOAD_STATE";
+      payload: MinimalChartState;
     }
   | {
       type: "UPDATE_SETTINGS";
@@ -105,13 +127,23 @@ type InboundMessage =
         timezone?: string;
         colors?: Partial<ThemeColors>;
       };
+    }
+  | {
+      type: "SAVE_CHART";
+      payload: Record<string, never>;
     };
 
-type OutboundMessage =
+export type OutboundMessage =
   | { type: "BRIDGE_READY"; payload: Record<string, never> }
   | { type: "WIDGET_READY"; payload: Record<string, never> }
   | { type: "REQ_HISTORY"; payload: HistoryRequest }
+  | {
+      type: "REQ_SUBSCRIBE";
+      payload: { symbol: string; resolution: string; uid: string };
+    }
+  | { type: "REQ_UNSUBSCRIBE"; payload: { uid: string } }
   | { type: "SAVE_STATE"; payload: MinimalChartState }
+  | { type: "ON_MARK_CLICK"; payload: Pick<ChartMark, "id"> }
   | { type: "SAVE_SNAPSHOT"; payload: { base64: string } };
 
 type RenderOptions = {
