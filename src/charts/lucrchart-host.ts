@@ -143,7 +143,6 @@ export type OutboundMessage =
     }
   | { type: "REQ_UNSUBSCRIBE"; payload: { uid: string } }
   | { type: "SAVE_STATE"; payload: MinimalChartState }
-  | { type: "ON_MARK_CLICK"; payload: Pick<ChartMark, "id"> }
   | { type: "SAVE_SNAPSHOT"; payload: { base64: string } };
 
 type RenderOptions = {
