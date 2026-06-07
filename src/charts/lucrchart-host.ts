@@ -207,7 +207,6 @@ const sanitizeState = (
 export function render(options: RenderOptions): RenderResult {
   let current = options;
   let bridgeReady = false;
-  let pendingRefresh = false;
   let cleaned = false;
   let generation = 0;
   let lastConfigIdentity = "";
@@ -222,7 +221,6 @@ export function render(options: RenderOptions): RenderResult {
   };
 
   const refresh = () => {
-    pendingRefresh = false;
     if (cleaned) return;
     const config = current.buildConfig();
     if (config === null) {
@@ -230,10 +228,7 @@ export function render(options: RenderOptions): RenderResult {
       current.onAvailable?.(false);
       return;
     }
-    if (!bridgeReady) {
-      pendingRefresh = true;
-      return;
-    }
+    if (!bridgeReady) return;
 
     const settings = current.readSettings();
     const nextConfigIdentity = configIdentity(config);
@@ -307,7 +302,6 @@ export function render(options: RenderOptions): RenderResult {
     if (msg.type === "BRIDGE_READY") {
       bridgeReady = true;
       refresh();
-      if (pendingRefresh) refresh();
       return;
     }
     if (msg.type === "WIDGET_READY") {
@@ -333,7 +327,16 @@ export function render(options: RenderOptions): RenderResult {
       const frameChanged =
         current.frame !== options.frame || current.src !== options.src;
       current = options;
-      if (frameChanged) current.frame.src = current.src;
+      if (frameChanged) {
+        // A new frame/src reloads the iframe: the old widget is gone, so reset
+        // readiness and identities to force a fresh INIT_WIDGET, and bump the
+        // generation to discard history still in flight for the old frame.
+        bridgeReady = false;
+        generation += 1;
+        lastConfigIdentity = "";
+        lastSettingsIdentity = "";
+        current.frame.src = current.src;
+      }
     },
     refresh,
     cleanup: () => {
