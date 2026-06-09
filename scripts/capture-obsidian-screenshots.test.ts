@@ -90,10 +90,10 @@ describe('capture Obsidian screenshots', () => {
 		expect(cryptoDetail.eval.join('\n')).toContain('POS-screenshot-fixture.svg')
 		expect(cryptoDetail.eval.join('\n')).toContain('chart-iframe')
 		expect(cryptoDetail.eval.join('\n')).toContain('data-lj-ready')
-		expect(futureDetail.eval.join('\n')).toContain('MES')
+		expect(futureDetail.eval.join('\n')).toContain('M6E')
 		expect(futureDetail.eval.join('\n')).not.toContain('chart-iframe')
 		expect(futureMedia.eval.join('\n')).toContain('POS-screenshot-fixture.svg')
-		expect(cfdDetail.eval.join('\n')).toContain('EURUSD')
+		expect(cfdDetail.eval.join('\n')).toContain('AUDCHF')
 		expect(cfdDetail.eval.join('\n')).not.toContain('chart-iframe')
 	})
 
@@ -235,6 +235,10 @@ describe('capture Obsidian screenshots', () => {
 				vaultName: 'Obsidian Sandbox',
 			},
 			{
+				args: ['dev:cdp', 'method=Emulation.clearDeviceMetricsOverride'],
+				vaultName: 'Obsidian Sandbox',
+			},
+			{
 				args: ['eval', 'code=app.workspace.detachLeavesOfType("lucrjournal-view")'],
 				vaultName: 'Obsidian Sandbox',
 			},
@@ -283,12 +287,18 @@ describe('capture Obsidian screenshots', () => {
 				vaultName: 'Obsidian Sandbox',
 			},
 			{
+				args: ['dev:cdp', 'method=Emulation.clearDeviceMetricsOverride'],
+				vaultName: 'Obsidian Sandbox',
+			},
+			{
 				args: ['dev:debug', 'off'],
 				vaultName: 'Obsidian Sandbox',
 			},
 		])
 		expect(calls[0].args[1]).toContain('.notice-container')
 		expect(calls[0].args[1]).toContain('.status-bar')
+		expect(calls[0].args[1]).toContain('.mobile-navbar')
+		expect(calls[0].args[1]).toContain('scrollbar-width')
 		expect(calls[0].args[1]).toContain('plugins.sync.disable')
 		expect(writes).toHaveLength(1)
 		expect(writes[0].filePath).toBe(join(process.cwd(), 'document/assets/zh/dark/overview.png'))
@@ -342,13 +352,23 @@ describe('capture Obsidian screenshots', () => {
 		})
 
 		const restoreIndex = calls.findIndex((call) => call.args[0] === 'eval' && call.args[1].includes('lucrjournal-screenshot-cleanup")?.remove'))
+		const setMetricsIndex = calls.findIndex((call) => call.args[0] === 'dev:cdp' && call.args[1] === 'method=Emulation.setDeviceMetricsOverride')
+		const commandIndex = calls.findIndex((call) => call.args[0] === 'command' && call.args[1] === 'id=lucrjournal:open-journal')
+		const clearMetricsIndex = calls.findLastIndex((call) => call.args[0] === 'dev:cdp' && call.args[1] === 'method=Emulation.clearDeviceMetricsOverride')
 		const debugOffIndex = calls.findIndex((call) => call.args[0] === 'dev:debug' && call.args[1] === 'off')
 		const mobileOffIndex = calls.findIndex((call) => call.args[0] === 'dev:mobile' && call.args[1] === 'off')
 
+		expect(setMetricsIndex).toBeGreaterThan(-1)
+		expect(commandIndex).toBeGreaterThan(-1)
+		expect(clearMetricsIndex).toBeGreaterThan(-1)
 		expect(restoreIndex).toBeGreaterThan(-1)
 		expect(debugOffIndex).toBeGreaterThan(-1)
 		expect(mobileOffIndex).toBeGreaterThan(-1)
+		expect(calls[setMetricsIndex]?.args[2]).toContain('"width":393')
+		expect(calls[setMetricsIndex]?.args[2]).toContain('"height":852')
+		expect(setMetricsIndex).toBeLessThan(commandIndex)
 		expect(restoreIndex).toBeLessThan(debugOffIndex)
+		expect(clearMetricsIndex).toBeLessThan(debugOffIndex)
 		expect(debugOffIndex).toBeLessThan(mobileOffIndex)
 	})
 

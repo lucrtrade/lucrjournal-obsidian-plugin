@@ -9,6 +9,12 @@ const DEFAULT_TIMEOUT_MS = 5000
 const DEFAULT_WAIT_MS = 500
 const OBSIDIAN_CLI_TIMEOUT_MS = 120000
 const SCREENSHOT_CLIP_SCALE = 0.5
+const MOBILE_DEVICE_METRICS = {
+	deviceScaleFactor: 2,
+	height: 852,
+	mobile: true,
+	width: 393,
+}
 const ACTIVE_VIEW_SELECTOR = '.workspace-leaf.mod-active .view-content'
 const SCREENSHOT_CLEANUP_STYLE_ID = 'lucrjournal-screenshot-cleanup'
 const SCREENSHOT_CLEANUP_CSS = `
@@ -18,6 +24,7 @@ const SCREENSHOT_CLEANUP_CSS = `
 .sync-status-icon,
 .workspace-sync-status-icon,
 .workspace-drawer-vault-actions,
+.mobile-navbar,
 [aria-label="Open sync log"],
 [aria-label="Sync status"],
 [aria-label*="Sync"] {
@@ -25,6 +32,14 @@ const SCREENSHOT_CLEANUP_CSS = `
 	opacity: 0 !important;
 	visibility: hidden !important;
 	pointer-events: none !important;
+}
+* {
+	scrollbar-width: none !important;
+}
+*::-webkit-scrollbar {
+	display: none !important;
+	width: 0 !important;
+	height: 0 !important;
 }
 `
 
@@ -91,8 +106,8 @@ function buildDefaultScreenshotDefinitions() {
 			waitFor: '[data-lj-tab="Symbols"][data-lj-active="true"]',
 		},
 		...buildPositionDetailDefinitions('crypto', 'BTCUSDT', true),
-		...buildPositionDetailDefinitions('future', 'MES', false),
-		...buildPositionDetailDefinitions('cfd', 'EURUSD', false),
+		...buildPositionDetailDefinitions('future', 'M6E', false),
+		...buildPositionDetailDefinitions('cfd', 'AUDCHF', false),
 		{
 			slug: 'playbook-detail-full',
 			eval: buildOpenFirstPlaybookScript(),
@@ -152,14 +167,14 @@ function buildDefaultScreenshotDefinitions() {
 		},
 		{
 			slug: 'mobile-position-detail-future',
-			eval: buildOpenPositionBySymbolScript('MES', false, true),
+			eval: buildOpenPositionBySymbolScript('M6E', false, true),
 			mobile: true,
 			waitFor: '[data-lj-panel="position-details"]',
 			waitMs: 1000,
 		},
 		{
 			slug: 'mobile-position-detail-cfd',
-			eval: buildOpenPositionBySymbolScript('EURUSD', false, true),
+			eval: buildOpenPositionBySymbolScript('AUDCHF', false, true),
 			mobile: true,
 			waitFor: '[data-lj-panel="position-details"]',
 			waitMs: 1000,
@@ -584,6 +599,7 @@ export async function captureScreenshotPlan(plan, dependencies = {}) {
 	mkdirSync(plan.outputDir, { recursive: true })
 	callObsidian(run, { vaultName: plan.screenshots[0]?.vaultName }, ['eval', `code=${buildCleanScreenshotOverlaysScript()}`])
 	callObsidian(run, { vaultName: plan.screenshots[0]?.vaultName }, ['dev:debug', 'on'])
+	clearDeviceMetrics(run, { vaultName: plan.screenshots[0]?.vaultName })
 
 	try {
 		for (const screenshot of plan.screenshots) {
@@ -596,9 +612,15 @@ export async function captureScreenshotPlan(plan, dependencies = {}) {
 			}
 
 			if (screenshot.mobile !== undefined && screenshot.mobile !== currentMobile) {
+				if (screenshot.mobile === false) {
+					clearDeviceMetrics(run, screenshot)
+				}
 				callObsidian(run, screenshot, ['dev:mobile', screenshot.mobile ? 'on' : 'off'])
 				currentMobile = screenshot.mobile
 				await sleep(screenshot.waitMs)
+				if (screenshot.mobile) {
+					setMobileDeviceMetrics(run, screenshot)
+				}
 			}
 
 			if (screenshot.lang !== undefined && screenshot.lang !== currentLang) {
@@ -652,6 +674,7 @@ export async function captureScreenshotPlan(plan, dependencies = {}) {
 		try {
 			try {
 				callObsidian(run, { vaultName: plan.screenshots[0]?.vaultName }, ['eval', `code=${buildRestoreScreenshotOverlaysScript()}`])
+				clearDeviceMetrics(run, { vaultName: plan.screenshots[0]?.vaultName })
 			} finally {
 				callObsidian(run, { vaultName: plan.screenshots[0]?.vaultName }, ['dev:debug', 'off'])
 			}
@@ -661,6 +684,21 @@ export async function captureScreenshotPlan(plan, dependencies = {}) {
 			}
 		}
 	}
+}
+
+function setMobileDeviceMetrics(run, screenshot) {
+	callObsidian(run, screenshot, [
+		'dev:cdp',
+		'method=Emulation.setDeviceMetricsOverride',
+		`params=${JSON.stringify(MOBILE_DEVICE_METRICS)}`,
+	])
+}
+
+function clearDeviceMetrics(run, screenshot) {
+	callObsidian(run, screenshot, [
+		'dev:cdp',
+		'method=Emulation.clearDeviceMetricsOverride',
+	])
 }
 
 function normalizeFileName(fileName) {
