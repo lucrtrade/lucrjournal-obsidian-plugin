@@ -1,6 +1,8 @@
-import { PluginSettingTab, SettingGroup } from 'obsidian'
+import { ButtonComponent, PluginSettingTab, SettingGroup } from 'obsidian'
 
 import { t } from '../lang/helpers'
+import { startLogin } from '../session/login'
+import { getProfile, getToken } from '../session/storage'
 
 import {
 	DOMAIN_MODIFIED_UPDATE_MODES,
@@ -27,6 +29,18 @@ export class PluginSettingsTab extends PluginSettingTab {
 
 	public override getSettingDefinitions(): SettingDefinitionItem<PluginSettingsControlKey>[] {
 		return [
+			{
+				type: 'group',
+				heading: t('SETTINGS_ACCOUNT'),
+				items: [
+					{
+						name: t('SETTINGS_ACCOUNT'),
+						render: (setting) => {
+							this.renderAccountSection(setting.settingEl, () => this.updateDefinitions())
+						},
+					},
+				],
+			},
 			{
 				type: 'group',
 				heading: t('SETTINGS_GENERAL'),
@@ -154,6 +168,12 @@ export class PluginSettingsTab extends PluginSettingTab {
 		containerEl.empty()
 
 		new SettingGroup(containerEl)
+			.setHeading(t('SETTINGS_ACCOUNT'))
+			.addSetting((setting) => {
+				this.renderAccountSection(setting.settingEl, () => this.renderLegacy())
+			})
+
+		new SettingGroup(containerEl)
 			.setHeading(t('SETTINGS_GENERAL'))
 			.addSetting((setting) => {
 				setting
@@ -264,4 +284,54 @@ export class PluginSettingsTab extends PluginSettingTab {
 					})
 			})
 	}
+
+	private renderAccountSection(el: HTMLElement, reRender: () => void): void {
+		el.empty()
+		el.addClass('lj-settings-account')
+		const app = this.plugin.app
+
+		if (getToken(app) === null) {
+			new ButtonComponent(el)
+				.setButtonText(t('SESSION_LOGIN_BUTTON'))
+				.setClass('lj-settings-account-signin')
+				.onClick(() => {
+					void startLogin(app)
+				})
+				.buttonEl.setAttribute('data-lj-action', 'signin')
+			return
+		}
+
+		const profile = getProfile(app)
+		const info = el.createDiv({ cls: 'lj-settings-account-info' })
+		const avatar = info.createDiv({
+			cls: 'lj-settings-account-avatar',
+			attr: { 'data-lj-account': 'avatar' },
+		})
+		if (profile?.avatarUrl) {
+			avatar.createEl('img', { attr: { src: profile.avatarUrl, alt: '' } })
+		} else {
+			avatar.setText(accountInitial(profile?.email))
+		}
+		if (profile?.email) {
+			info.createDiv({
+				cls: 'lj-settings-account-email',
+				text: profile.email,
+				attr: { 'data-lj-account': 'email' },
+			})
+		}
+
+		new ButtonComponent(el)
+			.setButtonText(t('SETTINGS_LOGOUT'))
+			.setClass('lj-settings-account-logout')
+			.onClick(() => {
+				this.plugin.logout()
+				reRender()
+			})
+			.buttonEl.setAttribute('data-lj-action', 'logout')
+	}
+}
+
+function accountInitial(email: string | null | undefined): string {
+	const ch = email?.trim().charAt(0)
+	return ch ? ch.toUpperCase() : '?'
 }

@@ -49,6 +49,19 @@ export async function checkSession(token: string): Promise<CheckResult> {
 	}
 }
 
+export async function revokeSession(token: string): Promise<void> {
+	try {
+		await requestUrl({
+			url: `${APP_URL}/api/obsidian/logout`,
+			method: 'POST',
+			headers: { Authorization: `Bearer ${token}` },
+			throw: false,
+		})
+	} catch (_e) {
+		// best-effort; clearSession already signed the user out locally
+	}
+}
+
 export async function claimSession(
 	code: string,
 	codeVerifier: string,

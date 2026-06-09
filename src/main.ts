@@ -19,7 +19,9 @@ import { createLogger, setDebugLoggingEnabled } from './logger'
 import { registerReadonlyLucrTypeProperty } from './metadata/readonly-lucr-type-property'
 import { registerPropertyTypes } from './metadata/register-property-types'
 import { maybeShowReleaseNotes, openReleaseNotes } from './release-notes/release-notes-runtime'
+import { revokeSession } from './session/api'
 import { handleAuthCallback, runSessionCheck } from './session/login'
+import { clearSession, getToken } from './session/storage'
 import {
 	createPluginSettings,
 	PluginSettings,
@@ -31,6 +33,7 @@ import {
 	LUCR_TRADE_REQUIRED_DIRS,
 } from './trade-directories'
 import { registerDomainFileRouting, registerDomainMarkdownActions } from './views/domain-file-routing'
+import { DomainFileView } from './views/domain-file-view'
 import { LucrJournalView } from './views/lucr-journal-view'
 import { PlaybookFileView } from './views/playbook-file-view'
 import { PositionFileView } from './views/position-file-view'
@@ -231,8 +234,20 @@ export default class LucrJournalPlugin extends Plugin {
 	}
 
 	public requestJournalViewsRender(): void {
-		for (const leaf of this.app.workspace.getLeavesOfType(LUCR_JOURNAL_VIEW_TYPE)) {
-			this.getJournalView(leaf).requestRender()
+		this.app.workspace.iterateAllLeaves((leaf) => {
+			const view = leaf.view
+			if (view instanceof LucrJournalView || view instanceof DomainFileView) {
+				view.requestRender()
+			}
+		})
+	}
+
+	public logout(): void {
+		const token = getToken(this.app)
+		clearSession(this.app)
+		this.requestJournalViewsRender()
+		if (token !== null) {
+			void revokeSession(token)
 		}
 	}
 }

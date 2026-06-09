@@ -3,6 +3,8 @@ import { type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 
 import { t } from '../lang/helpers'
+import { getToken } from '../session/storage'
+import { LoginScreen } from '../ui/login-screen'
 
 import { openDomainFileAsMarkdown } from './domain-file-routing'
 
@@ -80,9 +82,22 @@ export abstract class DomainFileView<Value> extends FileView {
 		this.root?.render(null)
 	}
 
+	public requestRender(): void {
+		this.render()
+	}
+
 	private render(): void {
+		if (this.root === null) {
+			return
+		}
+
+		if (getToken(this.app) === null) {
+			this.root.render(<LoginScreen app={this.app} />)
+			return
+		}
+
 		const file = this.file
-		if (this.root === null || !(file instanceof TFile)) {
+		if (!(file instanceof TFile)) {
 			return
 		}
 

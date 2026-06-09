@@ -2,6 +2,8 @@ import type { en } from './en'
 
 export const zhCN: Partial<Record<keyof typeof en, string>> = {
 	OPEN_JOURNAL: '打开日记',
+	SETTINGS_ACCOUNT: '账号',
+	SETTINGS_LOGOUT: '退出登录',
 	SETTINGS_GENERAL: '通用',
 	SETTINGS_LANGUAGE: '语言',
 	SETTINGS_LANGUAGE_DESC: '选择使用的语言。选择系统会跟随当前 Obsidian 语言。',

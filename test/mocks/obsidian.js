@@ -41,6 +41,11 @@ class MockElement {
 		this.cls = cls
 	}
 
+	setAttribute(name, value) {
+		this.attrs ??= {}
+		this.attrs[name] = value
+	}
+
 	empty() {
 		this.textContent = ''
 		this.children = []
@@ -62,6 +67,30 @@ class MockElement {
 
 	addEventListener(event, callback) {
 		this.listeners.set(event, callback)
+	}
+}
+
+export class ButtonComponent {
+	constructor(containerEl) {
+		this.buttonEl = new MockElement()
+		if (containerEl && Array.isArray(containerEl.children)) {
+			containerEl.children.push(this.buttonEl)
+		}
+	}
+
+	setButtonText(text) {
+		this.buttonEl.textContent = text
+		return this
+	}
+
+	setClass(cls) {
+		this.buttonEl.cls = cls
+		return this
+	}
+
+	onClick(callback) {
+		this.buttonEl.onClick = callback
+		return this
 	}
 }
 

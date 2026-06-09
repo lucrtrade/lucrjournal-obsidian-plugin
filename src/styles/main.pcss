@@ -674,6 +674,47 @@ body {
 	box-shadow: 0 0 60px rgba(255, 255, 255, 0.25);
 }
 
+.lj-settings-account {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.lj-settings-account-info {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex: 1;
+	min-inline-size: 0;
+}
+
+.lj-settings-account-avatar {
+	display: grid;
+	place-items: center;
+	flex: none;
+	inline-size: 40px;
+	block-size: 40px;
+	border-radius: 50%;
+	overflow: hidden;
+	background: var(--lj-surf-inset);
+	color: color-mix(in srgb, var(--lj-text) 60%, transparent);
+	font-weight: 600;
+}
+
+.lj-settings-account-avatar img {
+	inline-size: 100%;
+	block-size: 100%;
+	object-fit: cover;
+}
+
+.lj-settings-account-email {
+	overflow: hidden;
+	color: var(--lj-text);
+	font-size: 14px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 .lj-login-screen {
 	position: relative;
 	isolation: isolate;

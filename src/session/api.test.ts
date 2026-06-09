@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { mapCheckResponse } from './api'
 
-const minProfile = { userId: 'u', username: null, displayName: null, avatarUrl: null }
+const minProfile = { userId: 'u', username: null, displayName: null, avatarUrl: null, email: null }
 
 describe('mapCheckResponse', () => {
 	it('active', () => {

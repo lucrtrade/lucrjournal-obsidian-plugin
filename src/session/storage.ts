@@ -9,6 +9,7 @@ export type SessionProfile = {
 	username: string | null
 	displayName: string | null
 	avatarUrl: string | null
+	email: string | null
 }
 export type PendingLogin = { state: string; codeVerifier: string }
 
@@ -28,6 +29,10 @@ export function clearSession(app: App): void {
 
 export function setProfile(app: App, profile: SessionProfile): void {
 	app.saveLocalStorage(PROFILE_KEY, profile)
+}
+
+export function getProfile(app: App): SessionProfile | null {
+	return app.loadLocalStorage(PROFILE_KEY) as SessionProfile | null
 }
 
 export function getPendingLogin(app: App): PendingLogin | null {

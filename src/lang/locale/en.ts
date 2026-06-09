@@ -1,5 +1,7 @@
 export const en = {
 	OPEN_JOURNAL: 'Open journal',
+	SETTINGS_ACCOUNT: 'Account',
+	SETTINGS_LOGOUT: 'Log out',
 	SETTINGS_GENERAL: 'General',
 	SETTINGS_LANGUAGE: 'Language',
 	SETTINGS_LANGUAGE_DESC: 'Choose the language used by LucrJournal. System follows the current Obsidian locale.',
