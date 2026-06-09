@@ -3,7 +3,9 @@ import { createRoot, type Root } from 'react-dom/client'
 
 import { LUCR_JOURNAL_VIEW_TYPE } from '../constant'
 import { createLogger } from '../logger'
+import { getToken } from '../session/storage'
 import { DashboardScreen } from '../ui/dashboard-screen'
+import { LoginScreen } from '../ui/login-screen'
 
 import { isCommandClick, type LinkActivationEvent } from './link-activation'
 import {
@@ -112,6 +114,11 @@ export class LucrJournalView extends ItemView {
 
 	private render(): void {
 		if (this.root === null) {
+			return
+		}
+
+		if (getToken(this.app) === null) {
+			this.root.render(<LoginScreen app={this.app} />)
 			return
 		}
 

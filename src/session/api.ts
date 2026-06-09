@@ -75,19 +75,6 @@ export async function claimSession(
 	}
 }
 
-export async function logoutSession(token: string): Promise<void> {
-	try {
-		await requestUrl({
-			url: `${APP_URL}/api/obsidian/logout`,
-			method: 'POST',
-			headers: { Authorization: `Bearer ${token}` },
-			throw: false,
-		})
-	} catch (_e) {
-		// best-effort
-	}
-}
-
 function parseJson(text: string): Record<string, unknown> | null {
 	try {
 		const parsed: unknown = JSON.parse(text)

@@ -674,6 +674,108 @@ body {
 	box-shadow: 0 0 60px rgba(255, 255, 255, 0.25);
 }
 
+.lj-login-screen {
+	position: relative;
+	isolation: isolate;
+	display: grid;
+	place-items: center;
+	block-size: 100%;
+	min-block-size: 420px;
+	overflow: hidden;
+	padding: 24px;
+	background:
+		linear-gradient(135deg, color-mix(in srgb, var(--lj-surf-tint) 58%, transparent), transparent 44%),
+		linear-gradient(180deg, var(--lj-bg), var(--lj-surf-inset));
+	color: var(--lj-text);
+	font-family: var(--font-sans);
+}
+
+.lj-login-card {
+	display: grid;
+	justify-items: center;
+	inline-size: min(100%, 392px);
+	border: 1px solid var(--lj-alpha-12);
+	border-radius: 18px;
+	padding: 42px 34px 34px;
+	background:
+		linear-gradient(180deg, color-mix(in srgb, var(--lj-surf-raised) 92%, white), var(--lj-surf-raised));
+	box-shadow: 0 20px 52px var(--lj-shadow-subtle), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+	cursor: pointer;
+	transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.lj-login-card:hover,
+.lj-login-card:focus-visible {
+	border-color: var(--lj-alpha-20);
+	box-shadow: 0 24px 58px var(--lj-shadow-subtle), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.lj-login-card:focus-visible {
+	outline: 2px solid var(--lj-ring-accent);
+	outline-offset: 4px;
+}
+
+.theme-dark .lj-login-card {
+	background:
+		linear-gradient(180deg, color-mix(in srgb, var(--lj-surf-raised) 88%, white), var(--lj-surf-raised));
+	box-shadow: 0 24px 64px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.lj-login-title {
+	margin: 0 0 28px;
+	color: var(--lj-c-strong);
+	font-size: 30px;
+	font-weight: 600;
+	line-height: 1.15;
+	text-align: center;
+}
+
+.lj-login-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	inline-size: 100%;
+	min-block-size: 52px;
+	gap: 10px;
+	border: 1px solid transparent;
+	border-radius: 12px;
+	padding: 0 24px;
+	background: var(--lj-c-strong);
+	color: var(--lj-c-inv);
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1;
+	box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
+	transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+.lj-login-card:hover .lj-login-button,
+.lj-login-card:focus-visible .lj-login-button {
+	border-color: var(--lj-alpha-20);
+	background: var(--lj-fill-contrast-soft);
+	box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+	transform: translateY(-1px);
+}
+
+.lj-login-card:active .lj-login-button {
+	transform: translateY(0) scale(0.99);
+}
+
+@media (max-width: 420px) {
+	.lj-login-screen {
+		padding: 16px;
+	}
+
+	.lj-login-card {
+		border-radius: 16px;
+		padding: 34px 22px 24px;
+	}
+
+	.lj-login-title {
+		font-size: 27px;
+	}
+}
+
 	.lj-dashboard-header-elevated {
 		box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
 	}

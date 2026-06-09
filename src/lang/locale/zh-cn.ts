@@ -443,7 +443,6 @@ export const zhCN: Partial<Record<keyof typeof en, string>> = {
 	SESSION_LOGIN_FAILED: '登录未能完成。',
 	SESSION_LOGIN_SUCCESS: '已登录 LucrTrade。',
 	SESSION_SIGNED_OUT: '已退出 LucrTrade。',
-	SESSION_LOGIN_NEEDED: '请登录 LucrTrade 以打开日记。',
-	SESSION_LOGOUT_COMMAND: '退出 LucrTrade 账户',
-	SESSION_SWITCH_ACCOUNT_COMMAND: '切换 LucrTrade 账户',
+	SESSION_LOGIN_TITLE: '登录',
+	SESSION_LOGIN_BUTTON: '使用 LucrTrade 继续',
 }

@@ -440,7 +440,6 @@ export const en = {
 	SESSION_LOGIN_FAILED: 'Login could not be completed.',
 	SESSION_LOGIN_SUCCESS: 'Signed in to LucrTrade.',
 	SESSION_SIGNED_OUT: 'Signed out of LucrTrade.',
-	SESSION_LOGIN_NEEDED: 'Sign in to LucrTrade to open the journal.',
-	SESSION_LOGOUT_COMMAND: 'Sign out of LucrTrade',
-	SESSION_SWITCH_ACCOUNT_COMMAND: 'Switch LucrTrade account',
+	SESSION_LOGIN_TITLE: 'Sign in',
+	SESSION_LOGIN_BUTTON: 'Continue with LucrTrade',
 } as const
