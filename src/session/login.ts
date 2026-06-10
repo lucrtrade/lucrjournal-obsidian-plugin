@@ -49,23 +49,25 @@ export async function handleAuthCallback(
 	return true
 }
 
-export async function runSessionCheck(app: App): Promise<void> {
+export type SessionCheckOutcome = 'active' | 'kept' | 'signed_out'
+
+export async function runSessionCheck(app: App): Promise<SessionCheckOutcome> {
 	const token = getToken(app)
 	if (token == null) {
-		return
+		return 'signed_out'
 	}
 	const result = await checkSession(token)
 	switch (result.kind) {
 		case 'active':
 			setProfile(app, result.profile)
-			break
+			return 'active'
 		case 'revoked':
 		case 'account_disabled':
 			clearSession(app)
 			new Notice(t('SESSION_SIGNED_OUT'))
-			break
+			return 'signed_out'
 		case 'keep':
-			break
+			return 'kept'
 		default:
 			result satisfies never
 			throw new Error('Unknown result kind')

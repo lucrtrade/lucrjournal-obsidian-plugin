@@ -42,9 +42,12 @@ import type { WorkspaceLeaf } from 'obsidian'
 
 const logger = createLogger('plugin')
 
+const SESSION_CHECK_INTERVAL_MS = 60 * 60 * 1000
+
 export default class LucrJournalPlugin extends Plugin {
 	public override settings = new PluginSettings()
 	public settingsManager = new PluginSettingsManager(this)
+	private settingsTab: PluginSettingsTab | null = null
 
 	public override async onload(): Promise<void> {
 		const persistedSettings = await this.loadData() as unknown
@@ -53,7 +56,8 @@ export default class LucrJournalPlugin extends Plugin {
 		setCurrentLocaleSetting(this.settings.lang)
 		setCurrentTimeZoneSetting(this.settings.timeZone)
 		this.applyDebugMode()
-		this.addSettingTab(new PluginSettingsTab(this))
+		this.settingsTab = new PluginSettingsTab(this)
+		this.addSettingTab(this.settingsTab)
 
 		await this.onloadImpl()
 
@@ -130,6 +134,7 @@ export default class LucrJournalPlugin extends Plugin {
 			const signedIn = await handleAuthCallback(this.app, this.manifest.version, { code, state })
 			if (signedIn) {
 				this.requestJournalViewsRender()
+				this.settingsTab?.refresh()
 			}
 		})
 	}
@@ -183,6 +188,18 @@ export default class LucrJournalPlugin extends Plugin {
 		await maybeShowReleaseNotes(this)
 		await runSessionCheck(this.app)
 		this.requestJournalViewsRender()
+
+		this.registerInterval(window.setInterval(() => {
+			void this.checkSessionPeriodically()
+		}, SESSION_CHECK_INTERVAL_MS))
+	}
+
+	private async checkSessionPeriodically(): Promise<void> {
+		const outcome = await runSessionCheck(this.app)
+		if (outcome === 'signed_out') {
+			this.requestJournalViewsRender()
+			this.settingsTab?.refresh()
+		}
 	}
 
 	private async activateJournalView(): Promise<void> {

@@ -163,6 +163,15 @@ export class PluginSettingsTab extends PluginSettingTab {
 		(this as unknown as { update: () => void }).update()
 	}
 
+	public refresh(): void {
+		const framework = this as unknown as { update?: () => void }
+		if (typeof framework.update === 'function') {
+			framework.update()
+		} else {
+			this.renderLegacy()
+		}
+	}
+
 	private renderLegacy(): void {
 		const { containerEl } = this
 		containerEl.empty()
