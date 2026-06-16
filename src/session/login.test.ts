@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as api from './api'
-import { runSessionCheck } from './login'
+import { runSessionCheck, startLogin } from './login'
+import * as pkce from './pkce'
 import * as storage from './storage'
 
 import type { App } from 'obsidian'
 
 vi.mock('./api')
+vi.mock('./pkce')
 vi.mock('./storage')
 
 const app = {} as unknown as App
@@ -14,6 +16,28 @@ const app = {} as unknown as App
 describe('runSessionCheck', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
+		vi.unstubAllGlobals()
+	})
+
+	it('opens authorize directly so an existing web session can be reused', async () => {
+		const open = vi.fn()
+		vi.stubGlobal('window', { open })
+		vi.mocked(pkce.createPkcePair).mockResolvedValue({
+			state: 'state_1',
+			codeVerifier: 'verifier_1',
+			codeChallenge: 'challenge_1',
+		})
+
+		await startLogin(app)
+
+		expect(storage.setPendingLogin).toHaveBeenCalledWith(app, {
+			state: 'state_1',
+			codeVerifier: 'verifier_1',
+		})
+		expect(open).toHaveBeenCalledWith(
+			'https://app.lucrtrade.com/obsidian/authorize?state=state_1&plugin=lucrjournal&code_challenge=challenge_1&code_challenge_method=S256',
+			'_blank',
+		)
 	})
 
 	it('signs out when the token is absent', async () => {

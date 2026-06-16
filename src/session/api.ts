@@ -55,6 +55,8 @@ export async function revokeSession(token: string): Promise<void> {
 			url: `${APP_URL}/api/obsidian/logout`,
 			method: 'POST',
 			headers: { Authorization: `Bearer ${token}` },
+			contentType: 'application/json',
+			body: '{}',
 			throw: false,
 		})
 	} catch (_e) {

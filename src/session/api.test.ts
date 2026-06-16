@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import * as Obsidian from 'obsidian'
 
-import { mapCheckResponse } from './api'
+import { mapCheckResponse, revokeSession } from './api'
 
 const minProfile = { userId: 'u', username: null, displayName: null, avatarUrl: null, email: null }
 
@@ -24,5 +25,25 @@ describe('mapCheckResponse', () => {
 	})
 	it('non-json -> keep', () => {
 		expect(mapCheckResponse(200, null)).toEqual({ kind: 'keep' })
+	})
+})
+
+describe('revokeSession', () => {
+	it('posts json so Astro does not treat the cross-site request as a form submission', async () => {
+		const requestUrl = vi.spyOn(Obsidian, 'requestUrl').mockResolvedValue({
+			status: 200,
+			text: '{}',
+		} as Awaited<ReturnType<typeof Obsidian.requestUrl>>)
+
+		await revokeSession('lj_token')
+
+		expect(requestUrl).toHaveBeenCalledWith({
+			url: 'https://app.lucrtrade.com/api/obsidian/logout',
+			method: 'POST',
+			headers: { Authorization: 'Bearer lj_token' },
+			contentType: 'application/json',
+			body: '{}',
+			throw: false,
+		})
 	})
 })

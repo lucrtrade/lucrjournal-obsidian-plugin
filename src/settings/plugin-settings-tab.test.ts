@@ -108,9 +108,19 @@ function appWith(token: string, profile: unknown) {
 	return { secretStorage: { getSecret: () => token }, loadLocalStorage: () => profile }
 }
 
-function renderAccount(tab: PluginSettingsTab, el: FakeNode, reRender: () => void): void {
-	(tab as unknown as { renderAccountSection: (el: FakeNode, reRender: () => void) => void })
-		.renderAccountSection(el, reRender)
+function mutableAppWith(token: string, profile: unknown) {
+	return {
+		setToken(next: string) {
+			token = next
+		},
+		secretStorage: { getSecret: () => token },
+		loadLocalStorage: () => profile,
+	}
+}
+
+function renderAccount(tab: PluginSettingsTab, el: FakeNode): void {
+	(tab as unknown as { renderAccountSection: (el: FakeNode) => void })
+		.renderAccountSection(el)
 }
 
 describe('PluginSettingsTab', () => {
@@ -195,8 +205,7 @@ describe('PluginSettingsTab', () => {
 		})
 		const tab = new PluginSettingsTab(plugin)
 		const el = fakeEl()
-		const reRender = vi.fn()
-		renderAccount(tab, el, reRender)
+		renderAccount(tab, el)
 
 		const all = collect(el)
 		const email = all.find((node) => attrValue(node, 'data-lj-account') === 'email')
@@ -208,7 +217,6 @@ describe('PluginSettingsTab', () => {
 
 		logoutButton?.onClick?.()
 		expect(logout).toHaveBeenCalledTimes(1)
-		expect(reRender).toHaveBeenCalledTimes(1)
 	})
 
 	it('renders a sign-in button and no email when signed out', () => {
@@ -217,10 +225,33 @@ describe('PluginSettingsTab', () => {
 		Object.assign(plugin, { app: appWith('', null) })
 		const tab = new PluginSettingsTab(plugin)
 		const el = fakeEl()
-		renderAccount(tab, el, vi.fn())
+		renderAccount(tab, el)
 
 		const all = collect(el)
 		expect(all.find((node) => attrValue(node, 'data-lj-action') === 'signin')).toBeTruthy()
 		expect(all.find((node) => attrValue(node, 'data-lj-account') === 'email')).toBeUndefined()
+	})
+
+	it('refreshes the rendered account row after the token changes', () => {
+		setCurrentLocaleSetting('en')
+		const { plugin } = createPlugin()
+		const app = mutableAppWith('lj_token', {
+			userId: 'u1',
+			username: 'alice',
+			displayName: 'Alice',
+			avatarUrl: null,
+			email: 'alice@example.com',
+		})
+		Object.assign(plugin, { app, logout: vi.fn() })
+		const tab = new PluginSettingsTab(plugin)
+		const el = fakeEl()
+		renderAccount(tab, el)
+
+		app.setToken('')
+		tab.refresh()
+
+		const all = collect(el)
+		expect(all.find((node) => attrValue(node, 'data-lj-action') === 'signin')).toBeTruthy()
+		expect(all.find((node) => attrValue(node, 'data-lj-action') === 'logout')).toBeUndefined()
 	})
 })

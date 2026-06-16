@@ -23,6 +23,8 @@ type PluginSettingsControlKey =
 	| 'showReleaseNotes'
 
 export class PluginSettingsTab extends PluginSettingTab {
+	private accountSectionEl: HTMLElement | null = null
+
 	public constructor(public plugin: LucrJournalPlugin) {
 		super(plugin.app, plugin)
 	}
@@ -36,7 +38,7 @@ export class PluginSettingsTab extends PluginSettingTab {
 					{
 						name: t('SETTINGS_ACCOUNT'),
 						render: (setting) => {
-							this.renderAccountSection(setting.settingEl, () => this.updateDefinitions())
+							this.renderAccountSection(setting.settingEl)
 						},
 					},
 				],
@@ -164,6 +166,11 @@ export class PluginSettingsTab extends PluginSettingTab {
 	}
 
 	public refresh(): void {
+		if (this.accountSectionEl !== null) {
+			this.renderAccountSection(this.accountSectionEl)
+			return
+		}
+
 		const framework = this as unknown as { update?: () => void }
 		if (typeof framework.update === 'function') {
 			framework.update()
@@ -179,7 +186,7 @@ export class PluginSettingsTab extends PluginSettingTab {
 		new SettingGroup(containerEl)
 			.setHeading(t('SETTINGS_ACCOUNT'))
 			.addSetting((setting) => {
-				this.renderAccountSection(setting.settingEl, () => this.renderLegacy())
+				this.renderAccountSection(setting.settingEl)
 			})
 
 		new SettingGroup(containerEl)
@@ -294,7 +301,8 @@ export class PluginSettingsTab extends PluginSettingTab {
 			})
 	}
 
-	private renderAccountSection(el: HTMLElement, reRender: () => void): void {
+	private renderAccountSection(el: HTMLElement): void {
+		this.accountSectionEl = el
 		el.empty()
 		el.addClass('lj-settings-account')
 		const app = this.plugin.app
@@ -334,7 +342,6 @@ export class PluginSettingsTab extends PluginSettingTab {
 			.setClass('lj-settings-account-logout')
 			.onClick(() => {
 				this.plugin.logout()
-				reRender()
 			})
 			.buttonEl.setAttribute('data-lj-action', 'logout')
 	}

@@ -22,8 +22,7 @@ function clientInfo(pluginVersion: string): ClientInfo {
 export async function startLogin(app: App): Promise<void> {
 	const { state, codeVerifier, codeChallenge } = await createPkcePair()
 	setPendingLogin(app, { state, codeVerifier })
-	const callback = `/obsidian/authorize?state=${state}&plugin=lucrjournal&code_challenge=${codeChallenge}&code_challenge_method=S256`
-	const url = `${APP_URL}/login?next=${encodeURIComponent(callback)}`
+	const url = `${APP_URL}/obsidian/authorize?state=${state}&plugin=lucrjournal&code_challenge=${codeChallenge}&code_challenge_method=S256`
 	window.open(url, '_blank')
 }
 

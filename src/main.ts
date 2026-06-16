@@ -134,7 +134,7 @@ export default class LucrJournalPlugin extends Plugin {
 			const signedIn = await handleAuthCallback(this.app, this.manifest.version, { code, state })
 			if (signedIn) {
 				this.requestJournalViewsRender()
-				this.settingsTab?.refresh()
+				this.refreshSettings()
 			}
 		})
 	}
@@ -198,7 +198,7 @@ export default class LucrJournalPlugin extends Plugin {
 		const outcome = await runSessionCheck(this.app)
 		if (outcome === 'signed_out') {
 			this.requestJournalViewsRender()
-			this.settingsTab?.refresh()
+			this.refreshSettings()
 		}
 	}
 
@@ -259,10 +259,15 @@ export default class LucrJournalPlugin extends Plugin {
 		})
 	}
 
+	private refreshSettings(): void {
+		this.settingsTab?.refresh()
+	}
+
 	public logout(): void {
 		const token = getToken(this.app)
 		clearSession(this.app)
 		this.requestJournalViewsRender()
+		this.refreshSettings()
 		if (token !== null) {
 			void revokeSession(token)
 		}
