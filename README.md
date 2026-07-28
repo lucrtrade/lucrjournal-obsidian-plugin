@@ -32,6 +32,7 @@ LucrJournal is not a broker, an order-entry tool, a real-time trading terminal, 
 ## Installation
 
 LucrJournal requires Obsidian `1.11.4` or later.
+Using the plugin requires signing in with a LucrTrade account that includes LucrJournal access.
 
 For a manual install, copy these files into your vault plugin folder:
 

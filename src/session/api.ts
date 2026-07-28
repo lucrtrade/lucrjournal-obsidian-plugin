@@ -2,12 +2,19 @@ import { requestUrl } from 'obsidian'
 
 import { APP_URL } from '../constant'
 
-import type { SessionProfile } from './storage'
+import {
+	hasFeature,
+	isFeatureKey,
+	isPlanKey,
+	isProductKey,
+	isSubscriptionStatus,
+	type AccountContext,
+	type FeatureKey,
+} from './account.generated'
 
 export type CheckResult =
-	| { kind: 'active'; profile: SessionProfile }
-	| { kind: 'revoked' }
-	| { kind: 'account_disabled' }
+	| { kind: 'active'; context: AccountContext }
+	| { kind: 'signed_out' }
 	| { kind: 'keep' }
 
 export type ClientInfo = {
@@ -17,19 +24,82 @@ export type ClientInfo = {
 	platform: string
 }
 
+function coercePlan(value: unknown): AccountContext['plan'] | undefined {
+	if (value == null) {
+		return null 
+	}
+	if (typeof value !== 'object' || Array.isArray(value)) {
+		return undefined 
+	}
+	const key = (value as { key?: unknown }).key
+	const status = (value as { status?: unknown }).status
+	if (typeof key !== 'string' || typeof status !== 'string') {
+		return undefined 
+	}
+	if (!isPlanKey(key) || !isSubscriptionStatus(status)) {
+		return undefined 
+	}
+	return { key, status }
+}
+
+function coerceProducts(value: unknown): AccountContext['products'] {
+	if (!Array.isArray(value)) {
+		return [] 
+	}
+	return value.filter((product): product is AccountContext['products'][number] =>
+		typeof product === 'string' && isProductKey(product),
+	)
+}
+
+function coerceContext(body: Record<string, unknown>): AccountContext | null {
+	const profile = body.profile
+	const entitlements = body.entitlements
+	if (profile == null || typeof profile !== 'object' || Array.isArray(profile)) {
+		return null 
+	}
+	if (entitlements == null || typeof entitlements !== 'object' || Array.isArray(entitlements)) {
+		return null 
+	}
+	const rawFeatures = (entitlements as { features?: unknown }).features
+	if (!Array.isArray(rawFeatures)) {
+		return null 
+	}
+	const features = rawFeatures.filter((feature): feature is FeatureKey =>
+		typeof feature === 'string' && isFeatureKey(feature),
+	)
+	const plan = coercePlan(body.plan)
+	if (plan === undefined) {
+		return null 
+	}
+	return {
+		profile: profile as AccountContext['profile'],
+		entitlements: { features },
+		plan,
+		products: coerceProducts(body.products),
+	}
+}
+
 export function mapCheckResponse(
 	status: number,
-	body: { status?: string; code?: string; profile?: SessionProfile } | null,
+	body: { status?: string; code?: string } & Record<string, unknown> | null,
 ): CheckResult {
-	if (status === 200 && body?.status === 'active' && body.profile != null) {
-		return { kind: 'active', profile: body.profile }
+	if (status === 200 && body?.status === 'active') {
+		const context = coerceContext(body)
+		if (context == null) {
+			return { kind: 'keep' }
+		}
+		return hasFeature(context.entitlements, 'journal_basic')
+			? { kind: 'active', context }
+			: { kind: 'signed_out' }
 	}
 	const code = body?.code
-	if (code === 'revoked') {
-		return { kind: 'revoked' }
-	}
-	if (code === 'account_disabled') {
-		return { kind: 'account_disabled' }
+	if (
+		code === 'revoked'
+		|| code === 'account_disabled'
+		|| code === 'invalid_token'
+		|| code === 'lucrjournal_entitlement_required'
+	) {
+		return { kind: 'signed_out' }
 	}
 	return { kind: 'keep' }
 }
@@ -68,7 +138,7 @@ export async function claimSession(
 	code: string,
 	codeVerifier: string,
 	client: ClientInfo,
-): Promise<{ token: string; profile: SessionProfile } | null> {
+): Promise<{ token: string; context: AccountContext } | null> {
 	try {
 		const res = await requestUrl({
 			url: `${APP_URL}/api/obsidian/session/claim`,
@@ -81,10 +151,14 @@ export async function claimSession(
 			return null
 		}
 		const body = parseJson(res.text)
-		if (body == null || typeof body.token !== 'string' || body.profile == null) {
+		if (body == null || typeof body.token !== 'string') {
 			return null
 		}
-		return { token: body.token, profile: body.profile as SessionProfile }
+		const context = coerceContext(body)
+		if (context == null || !hasFeature(context.entitlements, 'journal_basic')) {
+			return null 
+		}
+		return { token: body.token, context }
 	} catch (_e) {
 		return null
 	}

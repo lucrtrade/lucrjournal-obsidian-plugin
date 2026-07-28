@@ -7,6 +7,7 @@ const projectRootPath = ts.sys.resolvePath(projectRootUrl.pathname)
 const ignoredSourceFiles = new Set([
 	ts.sys.resolvePath(new URL('../src/charts/lucrchart-host.ts', import.meta.url).pathname),
 	ts.sys.resolvePath(new URL('../src/generated-icons/icon-assets.generated.ts', import.meta.url).pathname),
+	ts.sys.resolvePath(new URL('../src/session/account.generated.ts', import.meta.url).pathname),
 ])
 const scriptFiles = ts.sys
 	.readDirectory(join(projectRootPath, 'scripts'), ['.ts'], undefined, ['**/*'])

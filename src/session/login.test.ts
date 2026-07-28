@@ -5,6 +5,7 @@ import { runSessionCheck, startLogin } from './login'
 import * as pkce from './pkce'
 import * as storage from './storage'
 
+import type { AccountContext } from './account.generated'
 import type { App } from 'obsidian'
 
 vi.mock('./api')
@@ -48,14 +49,7 @@ describe('runSessionCheck', () => {
 
 	it('signs out when the session is revoked', async () => {
 		vi.mocked(storage.getToken).mockReturnValue('lj_token')
-		vi.mocked(api.checkSession).mockResolvedValue({ kind: 'revoked' })
-		expect(await runSessionCheck(app)).toBe('signed_out')
-		expect(storage.clearSession).toHaveBeenCalledTimes(1)
-	})
-
-	it('signs out when the account is disabled', async () => {
-		vi.mocked(storage.getToken).mockReturnValue('lj_token')
-		vi.mocked(api.checkSession).mockResolvedValue({ kind: 'account_disabled' })
+		vi.mocked(api.checkSession).mockResolvedValue({ kind: 'signed_out' })
 		expect(await runSessionCheck(app)).toBe('signed_out')
 		expect(storage.clearSession).toHaveBeenCalledTimes(1)
 	})
@@ -67,18 +61,25 @@ describe('runSessionCheck', () => {
 		expect(storage.clearSession).not.toHaveBeenCalled()
 	})
 
-	it('refreshes the cached profile while active', async () => {
-		const profile = {
-			userId: 'u1',
-			username: null,
-			displayName: null,
-			avatarUrl: null,
-			email: 'alice@example.com',
+	it('refreshes the cached account context while active', async () => {
+		const context: AccountContext = {
+			profile: {
+				userId: 'u1',
+				username: null,
+				displayName: null,
+				avatarUrl: null,
+				email: 'alice@example.com',
+			},
+			entitlements: {
+				features: ['journal_basic'],
+			},
+			plan: null,
+			products: [],
 		}
 		vi.mocked(storage.getToken).mockReturnValue('lj_token')
-		vi.mocked(api.checkSession).mockResolvedValue({ kind: 'active', profile })
+		vi.mocked(api.checkSession).mockResolvedValue({ kind: 'active', context })
 		expect(await runSessionCheck(app)).toBe('active')
-		expect(storage.setProfile).toHaveBeenCalledWith(app, profile)
+		expect(storage.setAccountContext).toHaveBeenCalledWith(app, context)
 		expect(storage.clearSession).not.toHaveBeenCalled()
 	})
 })

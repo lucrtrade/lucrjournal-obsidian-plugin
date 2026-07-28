@@ -32,6 +32,7 @@ LucrJournal 不是券商、下单工具、实时交易终端，也不提供投�
 ## 安装
 
 LucrJournal 需要 Obsidian `1.11.4` 或更高版本。
+使用插件需要登录具备 LucrJournal 使用权益的 LucrTrade 账户。
 
 手动安装时，将以下文件复制到库的插件目录：
 

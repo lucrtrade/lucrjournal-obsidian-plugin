@@ -1,7 +1,8 @@
 /// <reference types="vitest/importMeta" />
 
 import { PositionDomain, type Position } from '../../domains'
-import { roundAmountValue } from '../../utils'
+import { getCurrentTimeZoneSetting, setCurrentTimeZoneSetting } from '../../settings/plugin-settings'
+import { roundAmountValue, toDateKey, toDateKeyInTimeZone } from '../../utils'
 
 import type { DashboardTimeframeKey } from './dashboard-constants'
 
@@ -12,13 +13,6 @@ type OverviewStats = {
 	totalWin: number
 	totalLoss: number
 	winRate: number
-}
-
-const TIMEFRAME_WINDOW_MS: Record<Exclude<DashboardTimeframeKey, 'DASHBOARD_TIMEFRAME_ALL_TIME'>, number> = {
-	DASHBOARD_TIMEFRAME_ONE_WEEK: 7 * 24 * 60 * 60 * 1000,
-	DASHBOARD_TIMEFRAME_ONE_MONTH: 30 * 24 * 60 * 60 * 1000,
-	DASHBOARD_TIMEFRAME_ONE_QUARTER: 90 * 24 * 60 * 60 * 1000,
-	DASHBOARD_TIMEFRAME_ONE_YEAR: 365 * 24 * 60 * 60 * 1000,
 }
 
 export function getOverviewStats(
@@ -72,38 +66,100 @@ function filterPositionsByOpenedAt(
 		return positions
 	}
 
-	const cutoff = now.getTime() - TIMEFRAME_WINDOW_MS[timeframeKey]
+	const timeZone = getCurrentTimeZoneSetting()
+	const [start, end] = resolveTimeframeRange(timeframeKey, now, timeZone)
 	return positions.filter((position) => {
 		if (position.opened_at == null) {
 			return false
 		}
 
-		return Date.parse(position.opened_at) >= cutoff
+		const openedAt = new Date(position.opened_at)
+		if (Number.isNaN(openedAt.getTime())) {
+			return false
+		}
+
+		const openedAtKey = toDateKeyInTimeZone(openedAt, timeZone)
+		return openedAtKey >= start && openedAtKey < end
 	})
 }
 
+function resolveTimeframeRange(
+	timeframeKey: Exclude<DashboardTimeframeKey, 'DASHBOARD_TIMEFRAME_ALL_TIME'>,
+	now: Date,
+	timeZone: string,
+) {
+	const [year, month, day] = parseDateKey(toDateKeyInTimeZone(now, timeZone))
+
+	if (timeframeKey === 'DASHBOARD_TIMEFRAME_ONE_WEEK') {
+		const mondayOffset = (new Date(year, month - 1, day).getDay() + 6) % 7
+		return [
+			formatDateKey(year, month, day - mondayOffset),
+			formatDateKey(year, month, day - mondayOffset + 7),
+		] as const
+	}
+
+	if (timeframeKey === 'DASHBOARD_TIMEFRAME_ONE_MONTH') {
+		return [formatDateKey(year, month, 1), formatDateKey(year, month + 1, 1)] as const
+	}
+
+	if (timeframeKey === 'DASHBOARD_TIMEFRAME_ONE_QUARTER') {
+		const quarterMonth = Math.floor((month - 1) / 3) * 3 + 1
+		return [formatDateKey(year, quarterMonth, 1), formatDateKey(year, quarterMonth + 3, 1)] as const
+	}
+
+	return [formatDateKey(year, 1, 1), formatDateKey(year + 1, 1, 1)] as const
+}
+
+function parseDateKey(dateKey: string) {
+	const parts = dateKey.split('-')
+	return [Number(parts[0]), Number(parts[1]), Number(parts[2])] as const
+}
+
+function formatDateKey(year: number, month: number, day: number) {
+	return toDateKey(new Date(year, month - 1, day))
+}
+
 if (import.meta.vitest) {
-	const { describe, expect, it } = import.meta.vitest
+	const { afterEach, describe, expect, it } = import.meta.vitest
 
 	describe('getOverviewStats', () => {
-		const now = new Date('2026-03-27T12:00:00Z')
+		const defaultTimeZone = getCurrentTimeZoneSetting()
+		const now = new Date('2026-03-27T12:00:00')
 
-		it('filters bounded timeframes by opened_at and only counts closed positions in stats', () => {
+		afterEach(() => {
+			setCurrentTimeZoneSetting(defaultTimeZone)
+		})
+
+		it('filters bounded timeframes to the current calendar period by opened_at', () => {
+			const positions = [
+				{ lucr_type: 'position', status: 'close', profit: 1, opened_at: '2025-12-31T12:00:00' },
+				{ lucr_type: 'position', status: 'close', profit: 2, opened_at: '2026-01-01T00:00:00' },
+				{ lucr_type: 'position', status: 'close', profit: 4, opened_at: '2026-02-28T12:00:00' },
+				{ lucr_type: 'position', status: 'close', profit: 8, opened_at: '2026-03-01T00:00:00' },
+				{ lucr_type: 'position', status: 'close', profit: 16, opened_at: '2026-03-22T23:59:59' },
+				{ lucr_type: 'position', status: 'close', profit: 32, opened_at: '2026-03-23T00:00:00' },
+				{ lucr_type: 'position', status: 'close', profit: 64, opened_at: '2026-03-29T23:59:59' },
+				{ lucr_type: 'position', status: 'close', profit: 128, opened_at: '2026-03-30T00:00:00' },
+				{ lucr_type: 'position', status: 'close', profit: 256, opened_at: '2026-04-01T00:00:00' },
+				{ lucr_type: 'position', status: 'close', profit: 512, opened_at: '2026-12-31T23:59:59' },
+				{ lucr_type: 'position', status: 'close', profit: 1024, opened_at: '2027-01-01T00:00:00' },
+				{ lucr_type: 'position', status: 'close', profit: 2048, opened_at: null },
+			] as Position[]
+
+			expect(getOverviewStats(positions, 'DASHBOARD_TIMEFRAME_ONE_WEEK', now).netProfit).toBe(96)
+			expect(getOverviewStats(positions, 'DASHBOARD_TIMEFRAME_ONE_MONTH', now).netProfit).toBe(248)
+			expect(getOverviewStats(positions, 'DASHBOARD_TIMEFRAME_ONE_QUARTER', now).netProfit).toBe(254)
+			expect(getOverviewStats(positions, 'DASHBOARD_TIMEFRAME_ONE_YEAR', now).netProfit).toBe(1022)
+		})
+
+		it('uses the configured timezone when resolving the current calendar period', () => {
+			setCurrentTimeZoneSetting('America/New_York')
 			const stats = getOverviewStats([
-				{ lucr_type: 'position', status: 'close', profit: 120, opened_at: '2026-03-26T10:00:00+00:00' },
-				{ lucr_type: 'position', status: 'close', profit: -20, opened_at: '2026-03-24T10:00:00+00:00' },
-				{ lucr_type: 'position', status: 'close', profit: 0, opened_at: '2026-03-24T11:00:00+00:00' },
-				{ lucr_type: 'position', status: 'open', profit: 999, opened_at: '2026-03-25T10:00:00+00:00' },
-				{ lucr_type: 'position', status: 'close', profit: 80, opened_at: '2026-03-10T10:00:00+00:00' },
-				{ lucr_type: 'position', status: 'close', profit: 50, opened_at: null },
-			] as Position[], 'DASHBOARD_TIMEFRAME_ONE_WEEK', now)
+				{ lucr_type: 'position', status: 'close', profit: 10, opened_at: '2026-02-28T23:00:00-05:00' },
+				{ lucr_type: 'position', status: 'close', profit: 20, opened_at: '2026-03-01T00:30:00-05:00' },
+			] as Position[], 'DASHBOARD_TIMEFRAME_ONE_MONTH', new Date('2026-03-01T04:30:00Z'))
 
-			expect(stats.positions).toHaveLength(4)
-			expect(stats.closedPositions).toHaveLength(3)
-			expect(stats.totalWin).toBe(120)
-			expect(stats.totalLoss).toBe(20)
-			expect(stats.netProfit).toBe(100)
-			expect(stats.winRate).toBe(50)
+			expect(stats.netProfit).toBe(10)
 		})
 
 		it('keeps all positions for all time but still computes stats from closed positions only', () => {

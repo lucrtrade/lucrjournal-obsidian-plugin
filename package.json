@@ -1,6 +1,6 @@
 {
 	"name": "lucrjournal",
-	"version": "0.1.4",
+	"version": "0.1.6",
 	"chart_version": "3.0",
 	"description": "Record your trades as local Markdown files and link every entry to its key levels, confluences, market analysis, and news — turning your journal into a connected, private knowledge graph.",
 	"main": "main.js",

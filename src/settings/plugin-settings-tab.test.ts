@@ -6,6 +6,7 @@ import { PluginSettings, PluginSettingsManager } from './plugin-settings'
 import { PluginSettingsTab } from './plugin-settings-tab'
 
 import type LucrJournalPlugin from '../main'
+import type { AccountContext, AccountProfile } from '../session/account.generated'
 
 function createPlugin() {
 	const settings = new PluginSettings()
@@ -104,17 +105,26 @@ function collect(node: FakeNode, out: FakeNode[] = []): FakeNode[] {
 	return out
 }
 
-function appWith(token: string, profile: unknown) {
-	return { secretStorage: { getSecret: () => token }, loadLocalStorage: () => profile }
+function accountContext(profile: AccountProfile): AccountContext {
+	return {
+		profile,
+		entitlements: { features: [] },
+		plan: null,
+		products: [],
+	}
 }
 
-function mutableAppWith(token: string, profile: unknown) {
+function appWith(token: string, context: AccountContext | null) {
+	return { secretStorage: { getSecret: () => token }, loadLocalStorage: () => context }
+}
+
+function mutableAppWith(token: string, context: AccountContext | null) {
 	return {
 		setToken(next: string) {
 			token = next
 		},
 		secretStorage: { getSecret: () => token },
-		loadLocalStorage: () => profile,
+		loadLocalStorage: () => context,
 	}
 }
 
@@ -194,13 +204,13 @@ describe('PluginSettingsTab', () => {
 		const { plugin } = createPlugin()
 		const logout = vi.fn()
 		Object.assign(plugin, {
-			app: appWith('lj_token', {
+			app: appWith('lj_token', accountContext({
 				userId: 'u1',
 				username: 'alice',
 				displayName: 'Alice',
 				avatarUrl: 'https://img/a.png',
 				email: 'alice@example.com',
-			}),
+			})),
 			logout,
 		})
 		const tab = new PluginSettingsTab(plugin)
@@ -235,13 +245,13 @@ describe('PluginSettingsTab', () => {
 	it('refreshes the rendered account row after the token changes', () => {
 		setCurrentLocaleSetting('en')
 		const { plugin } = createPlugin()
-		const app = mutableAppWith('lj_token', {
+		const app = mutableAppWith('lj_token', accountContext({
 			userId: 'u1',
 			username: 'alice',
 			displayName: 'Alice',
 			avatarUrl: null,
 			email: 'alice@example.com',
-		})
+		}))
 		Object.assign(plugin, { app, logout: vi.fn() })
 		const tab = new PluginSettingsTab(plugin)
 		const el = fakeEl()

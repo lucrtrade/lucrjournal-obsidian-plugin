@@ -5,7 +5,7 @@ import { t } from '../lang/helpers'
 
 import { checkSession, claimSession } from './api'
 import { createPkcePair } from './pkce'
-import { clearPendingLogin, clearSession, getPendingLogin, getToken, setPendingLogin, setProfile, setToken } from './storage'
+import { clearPendingLogin, clearSession, getPendingLogin, getToken, setAccountContext, setPendingLogin, setToken } from './storage'
 
 import type { ClientInfo } from './api'
 import type { App } from 'obsidian'
@@ -43,7 +43,7 @@ export async function handleAuthCallback(
 		return false
 	}
 	setToken(app, result.token)
-	setProfile(app, result.profile)
+	setAccountContext(app, result.context)
 	new Notice(t('SESSION_LOGIN_SUCCESS'))
 	return true
 }
@@ -58,10 +58,9 @@ export async function runSessionCheck(app: App): Promise<SessionCheckOutcome> {
 	const result = await checkSession(token)
 	switch (result.kind) {
 		case 'active':
-			setProfile(app, result.profile)
+			setAccountContext(app, result.context)
 			return 'active'
-		case 'revoked':
-		case 'account_disabled':
+		case 'signed_out':
 			clearSession(app)
 			new Notice(t('SESSION_SIGNED_OUT'))
 			return 'signed_out'
