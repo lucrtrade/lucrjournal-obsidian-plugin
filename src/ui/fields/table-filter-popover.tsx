@@ -137,7 +137,7 @@ export function TableFilterPopover<
 								)
 							default:
 								definition satisfies never
-								// eslint-disable-next-line i18next/no-literal-string
+								// eslint-disable-next-line i18next/no-literal-string -- Internal error message not user facing
 								throw new Error('Unknown table filter definition type')
 						}
 					})}

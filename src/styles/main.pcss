@@ -802,6 +802,45 @@ body {
 	transform: translateY(0) scale(0.99);
 }
 
+.lj-upgrade-card {
+	cursor: default;
+}
+
+.lj-upgrade-description {
+	margin: -12px 0 28px;
+	color: var(--lj-text-muted);
+	font-size: 14px;
+	line-height: 1.6;
+	text-align: center;
+}
+
+.lj-upgrade-actions {
+	display: flex;
+	align-items: center;
+	inline-size: 100%;
+	gap: 12px;
+}
+
+.lj-upgrade-actions .lj-login-button {
+	flex: 1;
+	inline-size: auto;
+	text-decoration: none;
+}
+
+.lj-upgrade-recheck {
+	border: 0;
+	padding: 8px 4px;
+	background: transparent;
+	color: var(--lj-text-muted);
+	font-size: 13px;
+	cursor: pointer;
+}
+
+.lj-upgrade-recheck:hover,
+.lj-upgrade-recheck:focus-visible {
+	color: var(--lj-text);
+}
+
 @media (max-width: 420px) {
 	.lj-login-screen {
 		padding: 16px;

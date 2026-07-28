@@ -28,7 +28,7 @@ export type TableRendererRegistry<TFieldType extends FieldType = FieldType> = {
 
 // Replace the old ColumnMeta augmentation from positions-table-columns.tsx
 declare module '@tanstack/react-table' {
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Type parameters required to match module declaration interface
 	interface ColumnMeta<TData, TValue> {
 		field?: FieldDescriptor<unknown>
 		tableLayout?: TableFieldLayout

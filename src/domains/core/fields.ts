@@ -18,7 +18,7 @@ interface BaseFieldTypeRegistry {
 	'wikilink-array': true
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- Allow interface extension point for custom field types
 interface FieldTypeRegistry extends BaseFieldTypeRegistry {}
 
 export type BaseFieldType = keyof BaseFieldTypeRegistry

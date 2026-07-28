@@ -442,6 +442,11 @@ export const en = {
 	SESSION_LOGIN_FAILED: 'Login could not be completed.',
 	SESSION_LOGIN_SUCCESS: 'Signed in to LucrTrade.',
 	SESSION_SIGNED_OUT: 'Signed out of LucrTrade.',
+	SESSION_UPGRADE_REQUIRED: 'LucrJournal access is required.',
 	SESSION_LOGIN_TITLE: 'Sign in',
 	SESSION_LOGIN_BUTTON: 'Continue with LucrTrade',
+	SESSION_UPGRADE_TITLE: 'LucrJournal access required',
+	SESSION_UPGRADE_DESCRIPTION: 'This account does not include LucrJournal access yet.',
+	SESSION_UPGRADE_BUTTON: 'View upgrade options',
+	SESSION_UPGRADE_RECHECK: 'Check again',
 } as const

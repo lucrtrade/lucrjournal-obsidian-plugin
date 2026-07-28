@@ -5,7 +5,7 @@ import { LUCR_JOURNAL_VIEW_TYPE } from '../constant'
 import { createLogger } from '../logger'
 import { getToken } from '../session/storage'
 import { DashboardScreen } from '../ui/dashboard-screen'
-import { LoginScreen } from '../ui/login-screen'
+import { SessionGateScreen } from '../ui/login-screen'
 
 import { isCommandClick, type LinkActivationEvent } from './link-activation'
 import {
@@ -34,7 +34,6 @@ export class LucrJournalView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		// eslint-disable-next-line obsidianmd/ui/sentence-case
 		return 'LucrJournal'
 	}
 
@@ -118,7 +117,7 @@ export class LucrJournalView extends ItemView {
 		}
 
 		if (getToken(this.app) === null) {
-			this.root.render(<LoginScreen app={this.app} />)
+			this.root.render(<SessionGateScreen app={this.app} />)
 			return
 		}
 

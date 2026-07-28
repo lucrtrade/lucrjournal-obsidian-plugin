@@ -130,6 +130,13 @@ export default tseslint.config(
 				packageDir: ['.', './node_modules/obsidian'],
 				peerDependencies: true,
 			}],
+			'import-x/no-extraneous-dependencies': ['error', {
+				packageDir: ['.', './node_modules/obsidian'],
+				peerDependencies: true,
+			}],
+			'obsidianmd/ui/sentence-case': ['warn', {
+				brands: ['LucrJournal'],
+			}],
 			'no-console': 'error',
 			'object-shorthand': ['error', 'always'],
 			'prefer-object-spread': 'error',

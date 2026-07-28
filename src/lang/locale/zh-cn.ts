@@ -445,6 +445,11 @@ export const zhCN: Partial<Record<keyof typeof en, string>> = {
 	SESSION_LOGIN_FAILED: '登录未能完成。',
 	SESSION_LOGIN_SUCCESS: '已登录 LucrTrade。',
 	SESSION_SIGNED_OUT: '已退出 LucrTrade。',
+	SESSION_UPGRADE_REQUIRED: '当前账户缺少 LucrJournal 权益。',
 	SESSION_LOGIN_TITLE: '登录',
 	SESSION_LOGIN_BUTTON: '使用 LucrTrade 继续',
+	SESSION_UPGRADE_TITLE: '需要 LucrJournal 权益',
+	SESSION_UPGRADE_DESCRIPTION: '当前账户还没有 LucrJournal 使用权益。',
+	SESSION_UPGRADE_BUTTON: '查看升级选项',
+	SESSION_UPGRADE_RECHECK: '重新检查',
 }

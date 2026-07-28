@@ -48,7 +48,7 @@ export function EditablePositionNumberCell({
 
 		const numericValue = trimmed === '' ? null : parseFloat(trimmed)
 
-		// eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
+		// eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style -- Explicit type assertion needed for isNaN check
 		if (trimmed !== '' && isNaN(numericValue as number)) {
 			return
 		}
@@ -100,7 +100,7 @@ export function EditablePositionNumberCell({
 	}
 
 	const numValue = value == null ? null : (typeof value === 'string' ? parseFloat(value) : value)
-	// eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
+	// eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style -- Explicit type assertion needed for isNaN check
 	const { text, valueClassName } = formatDisplay(isNaN(numValue as number) ? null : numValue)
 
 	return (

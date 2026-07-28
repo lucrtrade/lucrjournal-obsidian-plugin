@@ -41,10 +41,18 @@ class FakeElement {
 	) {}
 
 	public append(child: FakeElement): void {
+		const index = this.children.indexOf(child)
+		if (index !== -1) {
+			this.children.splice(index, 1)
+		}
 		this.children.push(child)
 	}
 
 	public prepend(child: FakeElement): void {
+		const index = this.children.indexOf(child)
+		if (index !== -1) {
+			this.children.splice(index, 1)
+		}
 		this.children.unshift(child)
 	}
 
@@ -66,6 +74,26 @@ class FakeElement {
 			result.push(...child.querySelectorAll(selector))
 			return result
 		}, matches)
+	}
+
+	public createDiv(options?: { cls?: string; attr?: Record<string, string> }): FakeElement {
+		const el = new FakeElement('div')
+		if (options?.cls !== undefined) {
+			el.classList.add(options.cls)
+		}
+		if (options?.attr !== undefined) {
+			for (const [key, val] of Object.entries(options.attr)) {
+				el.setAttribute(key, val)
+			}
+		}
+		this.append(el)
+		return el
+	}
+
+	public createSpan(): FakeElement {
+		const el = new FakeElement('span')
+		this.append(el)
+		return el
 	}
 
 	private matches(selector: string): boolean {

@@ -1,6 +1,7 @@
 import { requestUrl } from 'obsidian'
 
 import { APP_URL } from '../constant'
+import { createLogger } from '../logger'
 
 import {
 	hasFeature,
@@ -12,10 +13,20 @@ import {
 	type FeatureKey,
 } from './account.generated'
 
+const logger = createLogger('session')
+const SESSION_ENDPOINT = `${APP_URL}/api/obsidian/session`
+const CLAIM_ENDPOINT = `${SESSION_ENDPOINT}/claim`
+const LOGOUT_ENDPOINT = `${APP_URL}/api/obsidian/logout`
+
 export type CheckResult =
 	| { kind: 'active'; context: AccountContext }
-	| { kind: 'signed_out' }
+	| { kind: 'signed_out'; reason: 'entitlement_required' | 'invalid_session' }
 	| { kind: 'keep' }
+
+export type ClaimResult =
+	| { kind: 'active'; token: string; context: AccountContext }
+	| { kind: 'entitlement_required'; context: AccountContext | null }
+	| { kind: 'failed' }
 
 export type ClientInfo = {
 	pluginId: string
@@ -90,16 +101,14 @@ export function mapCheckResponse(
 		}
 		return hasFeature(context.entitlements, 'journal_basic')
 			? { kind: 'active', context }
-			: { kind: 'signed_out' }
+			: { kind: 'signed_out', reason: 'entitlement_required' }
 	}
 	const code = body?.code
-	if (
-		code === 'revoked'
-		|| code === 'account_disabled'
-		|| code === 'invalid_token'
-		|| code === 'lucrjournal_entitlement_required'
-	) {
-		return { kind: 'signed_out' }
+	if (code === 'lucrjournal_entitlement_required') {
+		return { kind: 'signed_out', reason: 'entitlement_required' }
+	}
+	if (code === 'revoked' || code === 'account_disabled' || code === 'invalid_token') {
+		return { kind: 'signed_out', reason: 'invalid_session' }
 	}
 	return { kind: 'keep' }
 }
@@ -107,30 +116,60 @@ export function mapCheckResponse(
 export async function checkSession(token: string): Promise<CheckResult> {
 	try {
 		const res = await requestUrl({
-			url: `${APP_URL}/api/obsidian/session`,
+			url: SESSION_ENDPOINT,
 			method: 'GET',
 			headers: { Authorization: `Bearer ${token}` },
 			throw: false,
 		})
 		const body = parseJson(res.text)
-		return mapCheckResponse(res.status, body)
-	} catch (_e) {
+		const result = mapCheckResponse(res.status, body)
+		if (result.kind !== 'active') {
+			logger.error(
+				result.kind === 'signed_out' ? 'session check rejected' : 'session check could not be classified',
+				{
+					endpoint: SESSION_ENDPOINT,
+					status: res.status,
+					code: typeof body?.code === 'string' ? body.code : null,
+					bodyKeys: body == null ? [] : Object.keys(body),
+					responseLength: res.text.length,
+				},
+			)
+		}
+		return result
+	} catch (error: unknown) {
+		logger.error('session check request failed', {
+			endpoint: SESSION_ENDPOINT,
+			error,
+		})
 		return { kind: 'keep' }
 	}
 }
 
 export async function revokeSession(token: string): Promise<void> {
 	try {
-		await requestUrl({
-			url: `${APP_URL}/api/obsidian/logout`,
+		const res = await requestUrl({
+			url: LOGOUT_ENDPOINT,
 			method: 'POST',
 			headers: { Authorization: `Bearer ${token}` },
 			contentType: 'application/json',
 			body: '{}',
 			throw: false,
 		})
-	} catch (_e) {
-		// best-effort; clearSession already signed the user out locally
+		if (res.status < 200 || res.status >= 300) {
+			const body = parseJson(res.text)
+			logger.error('session revoke rejected', {
+				endpoint: LOGOUT_ENDPOINT,
+				status: res.status,
+				code: typeof body?.code === 'string' ? body.code : null,
+				bodyKeys: body == null ? [] : Object.keys(body),
+				responseLength: res.text.length,
+			})
+		}
+	} catch (error: unknown) {
+		logger.error('session revoke request failed', {
+			endpoint: LOGOUT_ENDPOINT,
+			error,
+		})
 	}
 }
 
@@ -138,29 +177,70 @@ export async function claimSession(
 	code: string,
 	codeVerifier: string,
 	client: ClientInfo,
-): Promise<{ token: string; context: AccountContext } | null> {
+): Promise<ClaimResult> {
 	try {
 		const res = await requestUrl({
-			url: `${APP_URL}/api/obsidian/session/claim`,
+			url: CLAIM_ENDPOINT,
 			method: 'POST',
 			contentType: 'application/json',
 			body: JSON.stringify({ code, codeVerifier, client }),
 			throw: false,
 		})
-		if (res.status !== 200) {
-			return null
-		}
 		const body = parseJson(res.text)
-		if (body == null || typeof body.token !== 'string') {
-			return null
+		if (res.status !== 200) {
+			logger.error('session claim rejected', {
+				endpoint: CLAIM_ENDPOINT,
+				status: res.status,
+				code: typeof body?.code === 'string' ? body.code : null,
+				bodyKeys: body == null ? [] : Object.keys(body),
+				responseLength: res.text.length,
+			})
+			return body?.code === 'lucrjournal_entitlement_required'
+				? { kind: 'entitlement_required', context: null }
+				: { kind: 'failed' }
+		}
+		if (body == null) {
+			logger.error('session claim returned invalid JSON', {
+				endpoint: CLAIM_ENDPOINT,
+				status: res.status,
+				responseLength: res.text.length,
+			})
+			return { kind: 'failed' }
+		}
+		if (typeof body.token !== 'string') {
+			logger.error('session claim response missing token', {
+				endpoint: CLAIM_ENDPOINT,
+				status: res.status,
+				bodyKeys: Object.keys(body),
+			})
+			return { kind: 'failed' }
 		}
 		const context = coerceContext(body)
-		if (context == null || !hasFeature(context.entitlements, 'journal_basic')) {
-			return null 
+		if (context == null) {
+			logger.error('session claim response has invalid account context', {
+				endpoint: CLAIM_ENDPOINT,
+				status: res.status,
+				bodyKeys: Object.keys(body).filter((key) => key !== 'token'),
+			})
+			return { kind: 'failed' }
 		}
-		return { token: body.token, context }
-	} catch (_e) {
-		return null
+		if (!hasFeature(context.entitlements, 'journal_basic')) {
+			logger.error('session claim missing journal access', {
+				endpoint: CLAIM_ENDPOINT,
+				status: res.status,
+				features: context.entitlements.features,
+				plan: context.plan?.key ?? null,
+				products: context.products,
+			})
+			return { kind: 'entitlement_required', context }
+		}
+		return { kind: 'active', token: body.token, context }
+	} catch (error: unknown) {
+		logger.error('session claim request failed', {
+			endpoint: CLAIM_ENDPOINT,
+			error,
+		})
+		return { kind: 'failed' }
 	}
 }
 

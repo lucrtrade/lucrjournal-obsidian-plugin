@@ -131,8 +131,8 @@ export default class LucrJournalPlugin extends Plugin {
 		})
 
 		this.registerObsidianProtocolHandler('lucrjournal-auth', async ({ code, state }) => {
-			const signedIn = await handleAuthCallback(this.app, this.manifest.version, { code, state })
-			if (signedIn) {
+			const outcome = await handleAuthCallback(this.app, this.manifest.version, { code, state })
+			if (outcome !== 'failed') {
 				this.requestJournalViewsRender()
 				this.refreshSettings()
 			}

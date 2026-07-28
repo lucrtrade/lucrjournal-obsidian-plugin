@@ -419,7 +419,7 @@ const textRenderer: TableRendererEntry = {
 			case 'linked-symbol-count':
 				return (
 					<div className="lj:px-1 lj:truncate lj:text-lj-c-tertiary">
-						{/* eslint-disable-next-line @typescript-eslint/no-base-to-string */}
+						{/* eslint-disable-next-line @typescript-eslint/no-base-to-string -- Explicit String conversion for fallback rendering */}
 						{value == null ? '-' : String(value)}
 					</div>
 				)
@@ -514,18 +514,18 @@ const numberRenderer: TableRendererEntry = {
 									[field.writeback?.field ?? field.key]: nextValue,
 								})
 							}}
-							/* eslint-disable i18next/no-literal-string */
+							/* eslint-disable i18next/no-literal-string -- Display format specifier contains non-user facing fallback text */
 							formatDisplay={(currentValue) => ({
 								text: currentValue == null ? '-' : String(currentValue),
 								valueClassName: 'lj:text-lj-c-tertiary',
 							})}
-							/* eslint-enable i18next/no-literal-string */
+							/* eslint-enable i18next/no-literal-string -- Resume literal string check */
 						/>
 					)
 				}
 				return (
 					<div className="lj:px-1 lj:text-right lj:font-mono lj:text-lj-c-tertiary">
-						{/* eslint-disable-next-line @typescript-eslint/no-base-to-string */}
+						{/* eslint-disable-next-line @typescript-eslint/no-base-to-string -- Explicit String conversion for fallback rendering */}
 						{value == null ? '-' : String(value)}
 					</div>
 				)
@@ -647,7 +647,7 @@ const numberRenderer: TableRendererEntry = {
 			case 'linked-groups':
 				return (
 					<div className="lj:px-1 lj:text-right lj:font-mono lj:text-lj-c-tertiary">
-						{/* eslint-disable-next-line @typescript-eslint/no-base-to-string */}
+						{/* eslint-disable-next-line @typescript-eslint/no-base-to-string -- Explicit String conversion for fallback rendering */}
 						{value == null ? '-' : String(value)}
 					</div>
 				)
@@ -661,7 +661,7 @@ const numberRenderer: TableRendererEntry = {
 const enumRenderer: TableRendererEntry = {
 	align: 'left',
 	renderCell: (value, entry, field, context) => {
-		// eslint-disable-next-line @typescript-eslint/no-base-to-string
+		// eslint-disable-next-line @typescript-eslint/no-base-to-string -- Explicit String conversion for enum normalization
 		const normalizedValue = value == null ? null : String(value)
 		const selectedOption = normalizedValue == null
 			? field.options?.find((option) => option.value === '')
@@ -689,11 +689,11 @@ const enumRenderer: TableRendererEntry = {
 						}}
 						align="left"
 						showChevron={false}
-						/* eslint-disable i18next/no-literal-string */
+						/* eslint-disable i18next/no-literal-string -- Tailwind CSS class strings for confidence dropdown */
 						triggerClassName="lj:flex lj:w-full lj:min-w-[88px] lj:items-center lj:justify-center lj:px-2 lj:py-1 lj:rounded-lg lj:border lj:border-transparent lj:hover:border-lj-alpha-10 lj:transition-all"
 						menuClassName="lj:bg-lj-surf-popover lj:border lj:border-lj-alpha-10 lj:rounded-xl lj:shadow-xl lj:py-1 lj:min-w-[80px]"
 						optionClassName={(selected) => `lj:flex lj:w-full lj:items-center lj:justify-center lj:px-3 lj:py-2 lj:transition-colors ${selected ? 'lj:bg-lj-alpha-10' : 'lj:hover:bg-lj-alpha-5'}`}
-						/* eslint-enable i18next/no-literal-string */
+						/* eslint-enable i18next/no-literal-string -- Resume literal string check */
 						renderTriggerContent={() => value == null ? <span className="lj:text-lj-c-muted">-</span> : renderPositionConfidenceContent(Number(value) as PositionConfidence)}
 						renderOptionContent={(option) => renderPositionConfidenceContent(Number(option.value) as PositionConfidence)}
 					/>
@@ -722,7 +722,7 @@ const enumRenderer: TableRendererEntry = {
 						}}
 						align="left"
 						showChevron={false}
-						/* eslint-disable i18next/no-literal-string */
+						/* eslint-disable i18next/no-literal-string -- Tailwind CSS class strings for enum dropdown */
 						triggerClassName={`lj:flex lj:w-full lj:items-center lj:justify-center lj:border lj:border-transparent lj:transition-all lj:hover:border-lj-alpha-10 ${
 							field.table?.display === 'enum-badge-side'
 								? 'lj:min-w-12 lj:rounded lj:px-0 lj:py-0'
@@ -730,7 +730,7 @@ const enumRenderer: TableRendererEntry = {
 						}`}
 						menuClassName="lj:min-w-[80px] lj:rounded-xl lj:border lj:border-lj-alpha-10 lj:bg-lj-surf-popover lj:py-1 lj:shadow-xl"
 						optionClassName={(selected) => `lj:flex lj:w-full lj:items-center lj:justify-center lj:px-3 lj:py-2 lj:transition-colors ${selected ? 'lj:bg-lj-alpha-10' : 'lj:hover:bg-lj-alpha-5'}`}
-						/* eslint-enable i18next/no-literal-string */
+						/* eslint-enable i18next/no-literal-string -- Resume literal string check */
 						renderTriggerContent={() => renderEnumBadgeTriggerContent(selectedOption, normalizedValue, badgeVariant)}
 						renderOptionContent={(option) => {
 							const rendererOption = field.options?.find((item) => item.value === option.value)
@@ -802,7 +802,7 @@ const datetimeRenderer: TableRendererEntry = {
 
 		return (
 			<div className="lj:px-1 lj:font-mono lj:text-lj-c-tertiary-muted lj:text-[11px]">
-				{/* eslint-disable-next-line @typescript-eslint/no-base-to-string */}
+				{/* eslint-disable-next-line @typescript-eslint/no-base-to-string -- Explicit String conversion for fallback rendering */}
 				{value == null ? '-' : String(value)}
 			</div>
 		)

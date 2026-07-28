@@ -120,12 +120,14 @@ function syncLucrTypeIcon(propertyEl: Element): void {
 		return
 	}
 
-	const iconEl = valueEl.ownerDocument.createElement('div')
-	iconEl.classList.add(ICON_CLASS)
-	iconEl.setAttribute('aria-hidden', 'true')
-	iconEl.setAttribute(ICON_NAME_ATTRIBUTE, iconName)
-	const iconTarget = valueEl.ownerDocument.createElement('span')
-	iconEl.append(iconTarget)
+	const iconEl = (valueEl).createDiv({
+		cls: ICON_CLASS,
+		attr: {
+			'aria-hidden': 'true',
+			[ICON_NAME_ATTRIBUTE]: iconName,
+		},
+	})
+	const iconTarget = (iconEl as HTMLElement).createSpan()
 	setIcon(iconTarget, iconName)
 	valueEl.prepend(iconEl)
 }

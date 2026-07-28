@@ -1,7 +1,7 @@
 import * as Obsidian from 'obsidian'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { claimSession, mapCheckResponse, revokeSession } from './api'
+import { checkSession, claimSession, mapCheckResponse, revokeSession } from './api'
 
 const context = {
 	profile: { userId: 'u', username: null, displayName: null, avatarUrl: null, email: null },
@@ -11,6 +11,10 @@ const context = {
 	plan: null,
 	products: [],
 } as const
+
+afterEach(() => {
+	vi.restoreAllMocks()
+})
 
 describe('mapCheckResponse', () => {
 	it('active', () => {
@@ -32,7 +36,7 @@ describe('mapCheckResponse', () => {
 			status: 'active',
 			...context,
 			entitlements: { features: [] },
-		})).toEqual({ kind: 'signed_out' })
+		})).toEqual({ kind: 'signed_out', reason: 'entitlement_required' })
 	})
 	it('filters unknown products', () => {
 		expect(mapCheckResponse(200, {
@@ -59,20 +63,22 @@ describe('mapCheckResponse', () => {
 		})).toEqual({ kind: 'keep' })
 	})
 	it('revoked', () => {
-		expect(mapCheckResponse(401, { status: 'revoked', code: 'revoked' })).toEqual({ kind: 'signed_out' })
+		expect(mapCheckResponse(401, { status: 'revoked', code: 'revoked' }))
+			.toEqual({ kind: 'signed_out', reason: 'invalid_session' })
 	})
 	it('account_disabled', () => {
 		expect(mapCheckResponse(403, { status: 'account_disabled', code: 'account_disabled' }))
-			.toEqual({ kind: 'signed_out' })
+			.toEqual({ kind: 'signed_out', reason: 'invalid_session' })
 	})
 	it('invalid_token -> signed_out', () => {
-		expect(mapCheckResponse(401, { code: 'invalid_token' })).toEqual({ kind: 'signed_out' })
+		expect(mapCheckResponse(401, { code: 'invalid_token' }))
+			.toEqual({ kind: 'signed_out', reason: 'invalid_session' })
 	})
 	it('lucrjournal_entitlement_required -> signed_out', () => {
 		expect(mapCheckResponse(403, {
 			status: 'entitlement_required',
 			code: 'lucrjournal_entitlement_required',
-		})).toEqual({ kind: 'signed_out' })
+		})).toEqual({ kind: 'signed_out', reason: 'entitlement_required' })
 	})
 	it('5xx -> keep', () => {
 		expect(mapCheckResponse(500, null)).toEqual({ kind: 'keep' })
@@ -82,8 +88,25 @@ describe('mapCheckResponse', () => {
 	})
 })
 
+describe('checkSession', () => {
+	it('logs request errors through console.error while keeping the session', async () => {
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+		const requestError = new Error('network down')
+		vi.spyOn(Obsidian, 'requestUrl').mockRejectedValue(requestError)
+
+		expect(await checkSession('lj_token')).toEqual({ kind: 'keep' })
+		expect(error.mock.calls[0]?.[0]).toContain('session check request failed')
+		expect(error.mock.calls[0]?.[5]).toEqual({
+			endpoint: 'https://app.lucrtrade.com/api/obsidian/session',
+			error: requestError,
+		})
+		expect(JSON.stringify(error.mock.calls)).not.toContain('lj_token')
+	})
+})
+
 describe('claimSession', () => {
-	it('rejects a claim without journal_basic', async () => {
+	it('logs a claim without journal_basic through console.error', async () => {
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {})
 		vi.spyOn(Obsidian, 'requestUrl').mockResolvedValue({
 			status: 200,
 			text: JSON.stringify({
@@ -98,20 +121,75 @@ describe('claimSession', () => {
 			pluginVersion: '0.1.5',
 			obsidianVersion: '1.13.1',
 			platform: 'desktop',
-		})).toBeNull()
+		})).toEqual({
+			kind: 'entitlement_required',
+			context: { ...context, entitlements: { features: [] } },
+		})
+		expect(error).toHaveBeenCalledTimes(1)
+		expect(error.mock.calls[0]?.[0]).toContain('session claim missing journal access')
+		expect(error.mock.calls[0]?.[5]).toEqual({
+			endpoint: 'https://app.lucrtrade.com/api/obsidian/session/claim',
+			status: 200,
+			features: [],
+			plan: null,
+			products: [],
+		})
+	})
+
+	it('logs the server rejection without exposing claim credentials', async () => {
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+		vi.spyOn(Obsidian, 'requestUrl').mockResolvedValue({
+			status: 403,
+			text: JSON.stringify({ code: 'lucrjournal_entitlement_required' }),
+		} as Awaited<ReturnType<typeof Obsidian.requestUrl>>)
+
+		expect(await claimSession('secret_code', 'secret_verifier', {
+			pluginId: 'lucrjournal',
+			pluginVersion: '0.1.7',
+			obsidianVersion: '1.13.1',
+			platform: 'desktop',
+		})).toEqual({ kind: 'entitlement_required', context: null })
+		expect(error.mock.calls[0]?.[0]).toContain('session claim rejected')
+		expect(error.mock.calls[0]?.[5]).toEqual({
+			endpoint: 'https://app.lucrtrade.com/api/obsidian/session/claim',
+			status: 403,
+			code: 'lucrjournal_entitlement_required',
+			bodyKeys: ['code'],
+			responseLength: 43,
+		})
+		expect(JSON.stringify(error.mock.calls)).not.toContain('secret_code')
+		expect(JSON.stringify(error.mock.calls)).not.toContain('secret_verifier')
+	})
+
+	it('logs request errors through console.error', async () => {
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+		const requestError = new Error('network down')
+		vi.spyOn(Obsidian, 'requestUrl').mockRejectedValue(requestError)
+
+		expect(await claimSession('code', 'verifier', {
+			pluginId: 'lucrjournal',
+			pluginVersion: '0.1.7',
+			obsidianVersion: '1.13.1',
+			platform: 'desktop',
+		})).toEqual({ kind: 'failed' })
+		expect(error.mock.calls[0]?.[0]).toContain('session claim request failed')
+		expect(error.mock.calls[0]?.[5]).toEqual({
+			endpoint: 'https://app.lucrtrade.com/api/obsidian/session/claim',
+			error: requestError,
+		})
 	})
 })
 
 describe('revokeSession', () => {
 	it('posts json so Astro does not treat the cross-site request as a form submission', async () => {
-		const requestUrl = vi.spyOn(Obsidian, 'requestUrl').mockResolvedValue({
+		const request = vi.spyOn(Obsidian, 'requestUrl').mockResolvedValue({
 			status: 200,
 			text: '{}',
 		} as Awaited<ReturnType<typeof Obsidian.requestUrl>>)
 
 		await revokeSession('lj_token')
 
-		expect(requestUrl).toHaveBeenCalledWith({
+		expect(request).toHaveBeenCalledWith({
 			url: 'https://app.lucrtrade.com/api/obsidian/logout',
 			method: 'POST',
 			headers: { Authorization: 'Bearer lj_token' },
@@ -119,5 +197,25 @@ describe('revokeSession', () => {
 			body: '{}',
 			throw: false,
 		})
+	})
+
+	it('logs a server rejection through console.error', async () => {
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+		vi.spyOn(Obsidian, 'requestUrl').mockResolvedValue({
+			status: 503,
+			text: JSON.stringify({ code: 'auth_unavailable' }),
+		} as Awaited<ReturnType<typeof Obsidian.requestUrl>>)
+
+		await revokeSession('lj_token')
+
+		expect(error.mock.calls[0]?.[0]).toContain('session revoke rejected')
+		expect(error.mock.calls[0]?.[5]).toEqual({
+			endpoint: 'https://app.lucrtrade.com/api/obsidian/logout',
+			status: 503,
+			code: 'auth_unavailable',
+			bodyKeys: ['code'],
+			responseLength: 27,
+		})
+		expect(JSON.stringify(error.mock.calls)).not.toContain('lj_token')
 	})
 })

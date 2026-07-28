@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as api from './api'
-import { runSessionCheck, startLogin } from './login'
+import { handleAuthCallback, runSessionCheck, startLogin } from './login'
 import * as pkce from './pkce'
 import * as storage from './storage'
 
@@ -11,8 +11,26 @@ import type { App } from 'obsidian'
 vi.mock('./api')
 vi.mock('./pkce')
 vi.mock('./storage')
+vi.mock('obsidian', () => ({
+	Notice: vi.fn(),
+	Platform: { isDesktop: true },
+	apiVersion: '1.13.1',
+	moment: { locale: () => 'en' },
+}))
 
 const app = {} as unknown as App
+const context: AccountContext = {
+	profile: {
+		userId: 'u1',
+		username: null,
+		displayName: null,
+		avatarUrl: null,
+		email: 'alice@example.com',
+	},
+	entitlements: { features: ['journal_basic'] },
+	plan: null,
+	products: [],
+}
 
 describe('runSessionCheck', () => {
 	beforeEach(() => {
@@ -41,6 +59,71 @@ describe('runSessionCheck', () => {
 		)
 	})
 
+	it('logs a mismatched auth callback through console.error without logging its values', async () => {
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+		vi.mocked(storage.getPendingLogin).mockReturnValue({
+			state: 'expected_state',
+			codeVerifier: 'secret_verifier',
+		})
+
+		expect(await handleAuthCallback(app, '0.1.7', {
+			code: 'secret_code',
+			state: 'wrong_state',
+		})).toBe('failed')
+		expect(api.claimSession).not.toHaveBeenCalled()
+		expect(error.mock.calls[0]?.[0]).toContain('session auth callback rejected')
+		expect(error.mock.calls[0]?.[5]).toEqual({
+			hasPendingLogin: true,
+			hasCode: true,
+			hasState: true,
+			stateMatches: false,
+		})
+		expect(JSON.stringify(error.mock.calls)).not.toContain('secret_code')
+		expect(JSON.stringify(error.mock.calls)).not.toContain('secret_verifier')
+		expect(JSON.stringify(error.mock.calls)).not.toContain('wrong_state')
+	})
+
+	it('renders the upgrade gate when the claimed account lacks journal_basic', async () => {
+		const deniedContext: AccountContext = {
+			...context,
+			entitlements: { features: [] },
+		}
+		vi.mocked(storage.getPendingLogin).mockReturnValue({
+			state: 'expected_state',
+			codeVerifier: 'verifier',
+		})
+		vi.mocked(api.claimSession).mockResolvedValue({
+			kind: 'entitlement_required',
+			context: deniedContext,
+		})
+
+		expect(await handleAuthCallback(app, '0.1.7', {
+			code: 'code',
+			state: 'expected_state',
+		})).toBe('upgrade')
+		expect(storage.denyJournalAccess).toHaveBeenCalledWith(app, deniedContext)
+		expect(storage.setToken).not.toHaveBeenCalled()
+	})
+
+	it('stores an active claimed session', async () => {
+		vi.mocked(storage.getPendingLogin).mockReturnValue({
+			state: 'expected_state',
+			codeVerifier: 'verifier',
+		})
+		vi.mocked(api.claimSession).mockResolvedValue({
+			kind: 'active',
+			token: 'lj_token',
+			context,
+		})
+
+		expect(await handleAuthCallback(app, '0.1.7', {
+			code: 'code',
+			state: 'expected_state',
+		})).toBe('active')
+		expect(storage.setToken).toHaveBeenCalledWith(app, 'lj_token')
+		expect(storage.setAccountContext).toHaveBeenCalledWith(app, context)
+	})
+
 	it('signs out when the token is absent', async () => {
 		vi.mocked(storage.getToken).mockReturnValue(null)
 		expect(await runSessionCheck(app)).toBe('signed_out')
@@ -49,9 +132,20 @@ describe('runSessionCheck', () => {
 
 	it('signs out when the session is revoked', async () => {
 		vi.mocked(storage.getToken).mockReturnValue('lj_token')
-		vi.mocked(api.checkSession).mockResolvedValue({ kind: 'signed_out' })
+		vi.mocked(api.checkSession).mockResolvedValue({ kind: 'signed_out', reason: 'invalid_session' })
 		expect(await runSessionCheck(app)).toBe('signed_out')
 		expect(storage.clearSession).toHaveBeenCalledTimes(1)
+	})
+
+	it('switches to the upgrade gate when journal_basic is removed', async () => {
+		vi.mocked(storage.getToken).mockReturnValue('lj_token')
+		vi.mocked(api.checkSession).mockResolvedValue({
+			kind: 'signed_out',
+			reason: 'entitlement_required',
+		})
+		expect(await runSessionCheck(app)).toBe('signed_out')
+		expect(storage.denyJournalAccess).toHaveBeenCalledWith(app, null)
+		expect(storage.clearSession).not.toHaveBeenCalled()
 	})
 
 	it('keeps the session silently on a network/ambiguous result', async () => {
@@ -62,20 +156,6 @@ describe('runSessionCheck', () => {
 	})
 
 	it('refreshes the cached account context while active', async () => {
-		const context: AccountContext = {
-			profile: {
-				userId: 'u1',
-				username: null,
-				displayName: null,
-				avatarUrl: null,
-				email: 'alice@example.com',
-			},
-			entitlements: {
-				features: ['journal_basic'],
-			},
-			plan: null,
-			products: [],
-		}
 		vi.mocked(storage.getToken).mockReturnValue('lj_token')
 		vi.mocked(api.checkSession).mockResolvedValue({ kind: 'active', context })
 		expect(await runSessionCheck(app)).toBe('active')
