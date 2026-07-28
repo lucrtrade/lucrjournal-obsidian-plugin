@@ -1,21 +1,52 @@
 import { type App } from 'obsidian'
-import { type KeyboardEvent } from 'react'
+import { type KeyboardEvent, useState } from 'react'
 
-import { APP_URL } from '../constant'
-import { getCurrentLocale, t } from '../lang/helpers'
-import { startLogin } from '../session/login'
-import { requiresJournalUpgrade } from '../session/storage'
+import { t } from '../lang/helpers'
+import { getJournalUpgradeUrl, isSessionClaimPending, startLogin } from '../session/login'
+import { getProfile, requiresJournalUpgrade } from '../session/storage'
 
 type LoginScreenProps = {
 	app: App
 }
 
-export function SessionGateScreen({ app }: LoginScreenProps) {
+type SessionGateScreenProps = LoginScreenProps & {
+	onRecheck: () => Promise<void>
+}
+
+export function SessionGateScreen({ app, onRecheck }: SessionGateScreenProps) {
+	if (isSessionClaimPending()) {
+		return <ClaimLoadingScreen />
+	}
+
 	if (requiresJournalUpgrade(app)) {
-		return <UpgradeScreen app={app} />
+		return <UpgradeScreen app={app} onRecheck={onRecheck} />
 	}
 
 	return <LoginScreen app={app} />
+}
+
+function ClaimLoadingScreen() {
+	return (
+		<div
+			aria-busy="true"
+			aria-live="polite"
+			className="lj-login-screen"
+			data-lj-screen="claim-loading"
+		>
+			<div className="lj-login-card lj-claim-card">
+				<h2 className="lj-login-title">
+					{t('SESSION_CLAIM_LOADING_TITLE')}
+				</h2>
+				<p className="lj-upgrade-description">
+					{t('SESSION_CLAIM_LOADING_DESCRIPTION')}
+				</p>
+				<progress
+					aria-label={t('SESSION_CLAIM_LOADING_TITLE')}
+					className="lj-claim-progress"
+				/>
+			</div>
+		</div>
+	)
 }
 
 function LoginScreen({ app }: LoginScreenProps) {
@@ -58,8 +89,18 @@ function LoginScreen({ app }: LoginScreenProps) {
 	)
 }
 
-function UpgradeScreen({ app }: LoginScreenProps) {
-	const billingPath = getCurrentLocale() === 'zh' ? '/zh/profile/' : '/profile/'
+function UpgradeScreen({ app, onRecheck }: SessionGateScreenProps) {
+	const profile = getProfile(app)
+	const initial = profile?.email?.trim().charAt(0)
+	const [checking, setChecking] = useState(false)
+	const recheck = async () => {
+		setChecking(true)
+		try {
+			await onRecheck()
+		} finally {
+			setChecking(false)
+		}
+	}
 
 	return (
 		<div
@@ -67,6 +108,26 @@ function UpgradeScreen({ app }: LoginScreenProps) {
 			data-lj-screen="upgrade"
 		>
 			<div className="lj-login-card lj-upgrade-card">
+				<div className="lj-upgrade-account">
+					<span
+						className="lj-upgrade-avatar"
+						data-lj-account="avatar"
+					>
+						{profile?.avatarUrl
+							? <img alt="" src={profile.avatarUrl} />
+							: initial ? initial.toUpperCase() : '?'}
+					</span>
+					{profile?.email
+						? (
+							<span
+								className="lj-upgrade-email"
+								data-lj-account="email"
+							>
+								{profile.email}
+							</span>
+						)
+						: null}
+				</div>
 				<h2 className="lj-login-title">
 					{t('SESSION_UPGRADE_TITLE')}
 				</h2>
@@ -77,7 +138,7 @@ function UpgradeScreen({ app }: LoginScreenProps) {
 					<a
 						className="lj-login-button"
 						data-lj-action="upgrade"
-						href={`${APP_URL}${billingPath}?section=billing`}
+						href={getJournalUpgradeUrl()}
 						rel="noreferrer"
 						target="_blank"
 					>
@@ -86,10 +147,11 @@ function UpgradeScreen({ app }: LoginScreenProps) {
 					<button
 						className="lj-upgrade-recheck"
 						data-lj-action="recheck"
-						onClick={() => void startLogin(app)}
+						disabled={checking}
+						onClick={() => void recheck()}
 						type="button"
 					>
-						{t('SESSION_UPGRADE_RECHECK')}
+						{checking ? t('SESSION_UPGRADE_RECHECKING') : t('SESSION_UPGRADE_RECHECK')}
 					</button>
 				</div>
 			</div>

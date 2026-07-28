@@ -26,17 +26,19 @@ export function clearSession(app: App): void {
 }
 
 export function denyJournalAccess(app: App, context: AccountContext | null): void {
-	app.secretStorage.setSecret(TOKEN_SECRET_ID, '')
-	app.saveLocalStorage(ACCOUNT_CONTEXT_KEY, context)
+	if (context !== null) {
+		app.saveLocalStorage(ACCOUNT_CONTEXT_KEY, context)
+	}
 	app.saveLocalStorage(ACCESS_DENIED_KEY, true)
 }
 
 export function requiresJournalUpgrade(app: App): boolean {
-	return getToken(app) === null && app.loadLocalStorage(ACCESS_DENIED_KEY) === true
+	return getToken(app) !== null && app.loadLocalStorage(ACCESS_DENIED_KEY) === true
 }
 
 export function setAccountContext(app: App, context: AccountContext): void {
 	app.saveLocalStorage(ACCOUNT_CONTEXT_KEY, context)
+	app.saveLocalStorage(ACCESS_DENIED_KEY, false)
 }
 
 function getAccountContext(app: App): AccountContext | null {

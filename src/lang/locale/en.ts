@@ -445,8 +445,11 @@ export const en = {
 	SESSION_UPGRADE_REQUIRED: 'LucrJournal access is required.',
 	SESSION_LOGIN_TITLE: 'Sign in',
 	SESSION_LOGIN_BUTTON: 'Continue with LucrTrade',
+	SESSION_CLAIM_LOADING_TITLE: 'Checking LucrJournal access',
+	SESSION_CLAIM_LOADING_DESCRIPTION: 'Completing sign-in and checking your account access.',
 	SESSION_UPGRADE_TITLE: 'LucrJournal access required',
 	SESSION_UPGRADE_DESCRIPTION: 'This account does not include LucrJournal access yet.',
 	SESSION_UPGRADE_BUTTON: 'View upgrade options',
 	SESSION_UPGRADE_RECHECK: 'Check again',
+	SESSION_UPGRADE_RECHECKING: 'Checking...',
 } as const

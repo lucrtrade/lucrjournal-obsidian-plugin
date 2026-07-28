@@ -3,12 +3,13 @@ import { type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 
 import { t } from '../lang/helpers'
-import { getToken } from '../session/storage'
+import { getToken, requiresJournalUpgrade } from '../session/storage'
 import { SessionGateScreen } from '../ui/login-screen'
 
 import { openDomainFileAsMarkdown } from './domain-file-routing'
 
 import type { DomainFileViewDescriptor } from './domain-file-view-registry'
+import type LucrJournalPlugin from '../main'
 
 export type DomainFileViewConfig<Value> = {
 	descriptor: DomainFileViewDescriptor<Value>
@@ -26,7 +27,7 @@ export abstract class DomainFileView<Value> extends FileView {
 
 	protected abstract readonly config: DomainFileViewConfig<Value>
 
-	constructor(leaf: WorkspaceLeaf) {
+	constructor(leaf: WorkspaceLeaf, protected readonly plugin: LucrJournalPlugin) {
 		super(leaf)
 	}
 
@@ -91,8 +92,11 @@ export abstract class DomainFileView<Value> extends FileView {
 			return
 		}
 
-		if (getToken(this.app) === null) {
-			this.root.render(<SessionGateScreen app={this.app} />)
+		if (getToken(this.app) === null || requiresJournalUpgrade(this.app)) {
+			this.root.render(<SessionGateScreen
+				app={this.app}
+				onRecheck={() => this.plugin.recheckJournalAccess()}
+			/>)
 			return
 		}
 

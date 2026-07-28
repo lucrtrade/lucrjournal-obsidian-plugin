@@ -97,7 +97,7 @@ describe('checkSession', () => {
 		expect(await checkSession('lj_token')).toEqual({ kind: 'keep' })
 		expect(error.mock.calls[0]?.[0]).toContain('session check request failed')
 		expect(error.mock.calls[0]?.[5]).toEqual({
-			endpoint: 'https://app.lucrtrade.com/api/obsidian/session',
+			endpoint: 'https://app.lucrtrade.com/api/obsidian/session/',
 			error: requestError,
 		})
 		expect(JSON.stringify(error.mock.calls)).not.toContain('lj_token')
@@ -107,7 +107,7 @@ describe('checkSession', () => {
 describe('claimSession', () => {
 	it('logs a claim without journal_basic through console.error', async () => {
 		const error = vi.spyOn(console, 'error').mockImplementation(() => {})
-		vi.spyOn(Obsidian, 'requestUrl').mockResolvedValue({
+		const request = vi.spyOn(Obsidian, 'requestUrl').mockResolvedValue({
 			status: 200,
 			text: JSON.stringify({
 				token: 'lj_token',
@@ -123,12 +123,18 @@ describe('claimSession', () => {
 			platform: 'desktop',
 		})).toEqual({
 			kind: 'entitlement_required',
+			token: 'lj_token',
 			context: { ...context, entitlements: { features: [] } },
 		})
+		expect(request).toHaveBeenCalledWith(expect.objectContaining({
+			url: 'https://app.lucrtrade.com/api/obsidian/session/claim/',
+			method: 'POST',
+			throw: false,
+		}))
 		expect(error).toHaveBeenCalledTimes(1)
 		expect(error.mock.calls[0]?.[0]).toContain('session claim missing journal access')
 		expect(error.mock.calls[0]?.[5]).toEqual({
-			endpoint: 'https://app.lucrtrade.com/api/obsidian/session/claim',
+			endpoint: 'https://app.lucrtrade.com/api/obsidian/session/claim/',
 			status: 200,
 			features: [],
 			plan: null,
@@ -148,10 +154,10 @@ describe('claimSession', () => {
 			pluginVersion: '0.1.7',
 			obsidianVersion: '1.13.1',
 			platform: 'desktop',
-		})).toEqual({ kind: 'entitlement_required', context: null })
+		})).toEqual({ kind: 'failed' })
 		expect(error.mock.calls[0]?.[0]).toContain('session claim rejected')
 		expect(error.mock.calls[0]?.[5]).toEqual({
-			endpoint: 'https://app.lucrtrade.com/api/obsidian/session/claim',
+			endpoint: 'https://app.lucrtrade.com/api/obsidian/session/claim/',
 			status: 403,
 			code: 'lucrjournal_entitlement_required',
 			bodyKeys: ['code'],
@@ -174,7 +180,7 @@ describe('claimSession', () => {
 		})).toEqual({ kind: 'failed' })
 		expect(error.mock.calls[0]?.[0]).toContain('session claim request failed')
 		expect(error.mock.calls[0]?.[5]).toEqual({
-			endpoint: 'https://app.lucrtrade.com/api/obsidian/session/claim',
+			endpoint: 'https://app.lucrtrade.com/api/obsidian/session/claim/',
 			error: requestError,
 		})
 	})
@@ -190,7 +196,7 @@ describe('revokeSession', () => {
 		await revokeSession('lj_token')
 
 		expect(request).toHaveBeenCalledWith({
-			url: 'https://app.lucrtrade.com/api/obsidian/logout',
+			url: 'https://app.lucrtrade.com/api/obsidian/logout/',
 			method: 'POST',
 			headers: { Authorization: 'Bearer lj_token' },
 			contentType: 'application/json',
@@ -210,7 +216,7 @@ describe('revokeSession', () => {
 
 		expect(error.mock.calls[0]?.[0]).toContain('session revoke rejected')
 		expect(error.mock.calls[0]?.[5]).toEqual({
-			endpoint: 'https://app.lucrtrade.com/api/obsidian/logout',
+			endpoint: 'https://app.lucrtrade.com/api/obsidian/logout/',
 			status: 503,
 			code: 'auth_unavailable',
 			bodyKeys: ['code'],

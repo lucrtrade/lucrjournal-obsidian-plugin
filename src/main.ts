@@ -102,7 +102,7 @@ export default class LucrJournalPlugin extends Plugin {
 		)
 		this.registerView(
 			LUCR_PLAYBOOK_VIEW_TYPE,
-			(leaf: WorkspaceLeaf) => new PlaybookFileView(leaf),
+			(leaf: WorkspaceLeaf) => new PlaybookFileView(leaf, this),
 		)
 		registerDomainFileRouting(this)
 
@@ -131,11 +131,10 @@ export default class LucrJournalPlugin extends Plugin {
 		})
 
 		this.registerObsidianProtocolHandler('lucrjournal-auth', async ({ code, state }) => {
-			const outcome = await handleAuthCallback(this.app, this.manifest.version, { code, state })
-			if (outcome !== 'failed') {
-				this.requestJournalViewsRender()
-				this.refreshSettings()
-			}
+			const callback = handleAuthCallback(this.app, this.manifest.version, { code, state })
+			this.refreshSessionUi()
+			await callback
+			this.refreshSessionUi()
 		})
 	}
 
@@ -196,9 +195,8 @@ export default class LucrJournalPlugin extends Plugin {
 
 	private async checkSessionPeriodically(): Promise<void> {
 		const outcome = await runSessionCheck(this.app)
-		if (outcome === 'signed_out') {
-			this.requestJournalViewsRender()
-			this.refreshSettings()
+		if (outcome !== 'kept') {
+			this.refreshSessionUi()
 		}
 	}
 
@@ -257,6 +255,16 @@ export default class LucrJournalPlugin extends Plugin {
 				view.requestRender()
 			}
 		})
+	}
+
+	public async recheckJournalAccess(): Promise<void> {
+		await runSessionCheck(this.app)
+		this.refreshSessionUi()
+	}
+
+	private refreshSessionUi(): void {
+		this.requestJournalViewsRender()
+		this.refreshSettings()
 	}
 
 	private refreshSettings(): void {

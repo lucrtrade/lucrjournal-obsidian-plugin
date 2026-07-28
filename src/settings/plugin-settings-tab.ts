@@ -1,8 +1,8 @@
 import { ButtonComponent, PluginSettingTab, SettingGroup } from 'obsidian'
 
 import { t } from '../lang/helpers'
-import { startLogin } from '../session/login'
-import { getProfile, getToken } from '../session/storage'
+import { getJournalUpgradeUrl, isSessionClaimPending, startLogin } from '../session/login'
+import { getProfile, getToken, requiresJournalUpgrade } from '../session/storage'
 
 import {
 	DOMAIN_MODIFIED_UPDATE_MODES,
@@ -307,6 +307,18 @@ export class PluginSettingsTab extends PluginSettingTab {
 		el.addClass('lj-settings-account')
 		const app = this.plugin.app
 
+		if (isSessionClaimPending()) {
+			el.createDiv({
+				cls: 'lj-settings-account-status',
+				text: t('SESSION_CLAIM_LOADING_TITLE'),
+				attr: {
+					'aria-busy': 'true',
+					'data-lj-screen': 'claim-loading',
+				},
+			})
+			return
+		}
+
 		if (getToken(app) === null) {
 			new ButtonComponent(el)
 				.setButtonText(t('SESSION_LOGIN_BUTTON'))
@@ -319,7 +331,9 @@ export class PluginSettingsTab extends PluginSettingTab {
 		}
 
 		const profile = getProfile(app)
-		const info = el.createDiv({ cls: 'lj-settings-account-info' })
+		const upgradeRequired = requiresJournalUpgrade(app)
+		const header = el.createDiv({ cls: 'lj-settings-account-header' })
+		const info = header.createDiv({ cls: 'lj-settings-account-info' })
 		const avatar = info.createDiv({
 			cls: 'lj-settings-account-avatar',
 			attr: { 'data-lj-account': 'avatar' },
@@ -329,21 +343,48 @@ export class PluginSettingsTab extends PluginSettingTab {
 		} else {
 			avatar.setText(accountInitial(profile?.email))
 		}
+		const details = info.createDiv({ cls: 'lj-settings-account-details' })
 		if (profile?.email) {
-			info.createDiv({
+			details.createDiv({
 				cls: 'lj-settings-account-email',
 				text: profile.email,
 				attr: { 'data-lj-account': 'email' },
 			})
 		}
 
-		new ButtonComponent(el)
+		new ButtonComponent(header)
 			.setButtonText(t('SETTINGS_LOGOUT'))
 			.setClass('lj-settings-account-logout')
 			.onClick(() => {
 				this.plugin.logout()
 			})
 			.buttonEl.setAttribute('data-lj-action', 'logout')
+
+		if (upgradeRequired) {
+			const access = el.createDiv({ cls: 'lj-settings-account-access' })
+			access.createDiv({
+				cls: 'lj-settings-account-status',
+				text: t('SESSION_UPGRADE_DESCRIPTION'),
+			})
+			const actions = access.createDiv({ cls: 'lj-settings-account-actions' })
+			new ButtonComponent(actions)
+				.setButtonText(t('SESSION_UPGRADE_BUTTON'))
+				.setClass('lj-settings-account-upgrade')
+				.onClick(() => {
+					window.open(getJournalUpgradeUrl(), '_blank')
+				})
+				.buttonEl.setAttribute('data-lj-action', 'upgrade')
+
+			const recheck = new ButtonComponent(actions)
+				.setButtonText(t('SESSION_UPGRADE_RECHECK'))
+				.setClass('lj-settings-account-recheck')
+				.onClick(() => {
+					recheck.buttonEl.disabled = true
+					recheck.setButtonText(t('SESSION_UPGRADE_RECHECKING'))
+					void this.plugin.recheckJournalAccess()
+				})
+			recheck.buttonEl.setAttribute('data-lj-action', 'recheck')
+		}
 	}
 }
 

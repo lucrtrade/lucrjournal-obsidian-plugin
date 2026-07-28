@@ -14,9 +14,9 @@ import {
 } from './account.generated'
 
 const logger = createLogger('session')
-const SESSION_ENDPOINT = `${APP_URL}/api/obsidian/session`
-const CLAIM_ENDPOINT = `${SESSION_ENDPOINT}/claim`
-const LOGOUT_ENDPOINT = `${APP_URL}/api/obsidian/logout`
+const SESSION_ENDPOINT = `${APP_URL}/api/obsidian/session/`
+const CLAIM_ENDPOINT = `${SESSION_ENDPOINT}claim/`
+const LOGOUT_ENDPOINT = `${APP_URL}/api/obsidian/logout/`
 
 export type CheckResult =
 	| { kind: 'active'; context: AccountContext }
@@ -25,7 +25,7 @@ export type CheckResult =
 
 export type ClaimResult =
 	| { kind: 'active'; token: string; context: AccountContext }
-	| { kind: 'entitlement_required'; context: AccountContext | null }
+	| { kind: 'entitlement_required'; token: string; context: AccountContext }
 	| { kind: 'failed' }
 
 export type ClientInfo = {
@@ -195,9 +195,7 @@ export async function claimSession(
 				bodyKeys: body == null ? [] : Object.keys(body),
 				responseLength: res.text.length,
 			})
-			return body?.code === 'lucrjournal_entitlement_required'
-				? { kind: 'entitlement_required', context: null }
-				: { kind: 'failed' }
+			return { kind: 'failed' }
 		}
 		if (body == null) {
 			logger.error('session claim returned invalid JSON', {
@@ -232,7 +230,7 @@ export async function claimSession(
 				plan: context.plan?.key ?? null,
 				products: context.products,
 			})
-			return { kind: 'entitlement_required', context }
+			return { kind: 'entitlement_required', token: body.token, context }
 		}
 		return { kind: 'active', token: body.token, context }
 	} catch (error: unknown) {

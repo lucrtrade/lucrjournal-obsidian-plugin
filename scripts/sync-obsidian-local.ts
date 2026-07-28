@@ -4,6 +4,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 
 const shouldInstallFromCli = process.argv.includes("--install");
 const SANDBOX_VAULT_NAME = "Obsidian Sandbox";
+const CLI_TIMEOUT_MS = 5_000;
 const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 globalThis.__LUCRJOURNAL_CHART_VERSION__ = packageJson.chart_version;
 globalThis.__LUCRJOURNAL_CHART_IFRAME_URL__ = `https://lucrchart.lucrtrade.com/lc/${packageJson.chart_version}`;
@@ -17,17 +18,22 @@ function isCiEnvironment() {
 	return process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
 }
 
+function isCliTimeoutError(error) {
+	return "code" in error && error.code === "ETIMEDOUT";
+}
+
 function hasObsidianCli() {
 	const result = spawnSync("obsidian", ["version"], {
 		encoding: "utf8",
 		stdio: ["ignore", "pipe", "pipe"],
+		timeout: CLI_TIMEOUT_MS,
 	});
 
 	if (result.error === undefined) {
 		return true;
 	}
 
-	if ("code" in result.error && result.error.code === "ENOENT") {
+	if ("code" in result.error && (result.error.code === "ENOENT" || result.error.code === "ETIMEDOUT")) {
 		return false;
 	}
 
@@ -42,6 +48,7 @@ function runObsidianCommand(args, options = {}) {
 	return execFileSync("obsidian", commandArgs, {
 		encoding: "utf8",
 		stdio: ["ignore", "pipe", "pipe"],
+		timeout: CLI_TIMEOUT_MS,
 	}).trim();
 }
 
@@ -148,102 +155,111 @@ if (!pluginId) {
 	throw new Error("[obsidian-sync] manifest.json is missing an id.");
 }
 
-ensureSandboxVaultExists();
+try {
+	ensureSandboxVaultExists();
 
-const vaultPath = getSandboxVaultPath();
+	const vaultPath = getSandboxVaultPath();
 
-if (!vaultPath) {
-	throw new Error(`[obsidian-sync] Unable to resolve the vault path for "${SANDBOX_VAULT_NAME}".`);
-}
-
-resetSandboxTradeRoot(vaultPath);
-
-const installedPluginIds = runSandboxObsidianCommand(["plugins"])
-	.split("\n")
-	.map((line) => line.trim())
-	.filter(Boolean);
-
-const isInstalled = installedPluginIds.includes(pluginId);
-const enabledPluginIds = getEnabledCommunityPluginIds(vaultPath);
-const isEnabled = enabledPluginIds.includes(pluginId);
-const shouldInstall = shouldInstallFromCli || !isInstalled;
-const shouldEnable = shouldInstall || !isEnabled;
-
-if (!shouldInstall && !isInstalled) {
-	console.log(`[obsidian-sync] Plugin ${pluginId} is not installed in the current vault; skipping sync.`);
-	process.exit(0);
-}
-
-const pluginDir = path.join(vaultPath, ".obsidian", "plugins", pluginId);
-mkdirSync(pluginDir, { recursive: true });
-
-for (const assetDirName of ["onnxruntime-web", "ocr"]) {
-	rmSync(path.join(pluginDir, assetDirName), { recursive: true, force: true });
-}
-
-for (const fileName of ["main.js", "manifest.json", "styles.css"]) {
-	if (!existsSync(fileName)) {
-		throw new Error(`[obsidian-sync] Missing build artifact: ${fileName}.`);
+	if (!vaultPath) {
+		throw new Error(`[obsidian-sync] Unable to resolve the vault path for "${SANDBOX_VAULT_NAME}".`);
 	}
 
-	cpSync(fileName, path.join(pluginDir, fileName));
-}
+	resetSandboxTradeRoot(vaultPath);
 
-const ocrAssetDir = path.join(process.cwd(), "assets", "ocr");
-if (!existsSync(ocrAssetDir)) {
-	throw new Error(`[obsidian-sync] Missing OCR assets: ${ocrAssetDir}. Run bun run ocr:assets.`);
-}
-cpSync(path.join(ocrAssetDir, "onnxruntime-web"), path.join(pluginDir, "onnxruntime-web"), {
-	recursive: true,
-});
-mkdirSync(path.join(pluginDir, "ocr"), { recursive: true });
-cpSync(path.join(ocrAssetDir, "models"), path.join(pluginDir, "ocr", "models"), {
-	recursive: true,
-});
-cpSync(path.join(ocrAssetDir, "manifest.json"), path.join(pluginDir, "ocr", "manifest.json"));
+	const installedPluginIds = runSandboxObsidianCommand(["plugins"])
+		.split("\n")
+		.map((line) => line.trim())
+		.filter(Boolean);
 
-if (shouldEnable) {
-	await sleep(100);
+	const isInstalled = installedPluginIds.includes(pluginId);
+	const enabledPluginIds = getEnabledCommunityPluginIds(vaultPath);
+	const isEnabled = enabledPluginIds.includes(pluginId);
+	const shouldInstall = shouldInstallFromCli || !isInstalled;
+	const shouldEnable = shouldInstall || !isEnabled;
 
-	const enableResult = runSandboxObsidianCommand(["plugin:enable", `id=${pluginId}`]);
-	if (enableResult === null) {
-		console.warn(`[obsidian-sync] Plugin ${pluginId} was copied, but automatic enable did not succeed.`);
+	if (!shouldInstall && !isInstalled) {
+		console.log(`[obsidian-sync] Plugin ${pluginId} is not installed in the current vault; skipping sync.`);
+		process.exit(0);
+	}
+
+	const pluginDir = path.join(vaultPath, ".obsidian", "plugins", pluginId);
+	mkdirSync(pluginDir, { recursive: true });
+
+	for (const assetDirName of ["onnxruntime-web", "ocr"]) {
+		rmSync(path.join(pluginDir, assetDirName), { recursive: true, force: true });
+	}
+
+	for (const fileName of ["main.js", "manifest.json", "styles.css"]) {
+		if (!existsSync(fileName)) {
+			throw new Error(`[obsidian-sync] Missing build artifact: ${fileName}.`);
+		}
+
+		cpSync(fileName, path.join(pluginDir, fileName));
+	}
+
+	const ocrAssetDir = path.join(process.cwd(), "assets", "ocr");
+	if (!existsSync(ocrAssetDir)) {
+		throw new Error(`[obsidian-sync] Missing OCR assets: ${ocrAssetDir}. Run bun run ocr:assets.`);
+	}
+	cpSync(path.join(ocrAssetDir, "onnxruntime-web"), path.join(pluginDir, "onnxruntime-web"), {
+		recursive: true,
+	});
+	mkdirSync(path.join(pluginDir, "ocr"), { recursive: true });
+	cpSync(path.join(ocrAssetDir, "models"), path.join(pluginDir, "ocr", "models"), {
+		recursive: true,
+	});
+	cpSync(path.join(ocrAssetDir, "manifest.json"), path.join(pluginDir, "ocr", "manifest.json"));
+
+	if (shouldEnable) {
+		await sleep(100);
+
+		const enableResult = runSandboxObsidianCommand(["plugin:enable", `id=${pluginId}`]);
+		if (enableResult === null) {
+			console.warn(`[obsidian-sync] Plugin ${pluginId} was copied, but automatic enable did not succeed.`);
+		}
+
+		await sleep(100);
+	}
+
+	const reloadResult = runSandboxObsidianCommand(["plugin:reload", `id=${pluginId}`]);
+
+	if (reloadResult === null) {
+		console.warn(`[obsidian-sync] Plugin files were copied to ${pluginDir}, but automatic reload did not succeed.`);
+		process.exit(0);
+	}
+
+	const detachResult = runSandboxObsidianCommand([
+		"eval",
+		`code=app.workspace.detachLeavesOfType('${LUCR_JOURNAL_VIEW_TYPE}')`,
+	]);
+
+	if (detachResult === null) {
+		console.warn(`[obsidian-sync] Plugin ${pluginId} reloaded, but closing ${LUCR_JOURNAL_VIEW_TYPE} tabs did not succeed.`);
 	}
 
 	await sleep(100);
-}
 
-const reloadResult = runSandboxObsidianCommand(["plugin:reload", `id=${pluginId}`]);
+	const reopenResult = runSandboxObsidianCommand([
+		"command",
+		`id=${openJournalCommandId}`,
+	]);
 
-if (reloadResult === null) {
-	console.warn(`[obsidian-sync] Plugin files were copied to ${pluginDir}, but automatic reload did not succeed.`);
-	process.exit(0);
-}
+	if (reopenResult === null) {
+		console.warn(`[obsidian-sync] Plugin ${pluginId} reloaded, but reopening ${openJournalCommandId} did not succeed.`);
+	}
 
-const detachResult = runSandboxObsidianCommand([
-	"eval",
-	`code=app.workspace.detachLeavesOfType('${LUCR_JOURNAL_VIEW_TYPE}')`,
-]);
+	if (shouldInstallFromCli || !isInstalled) {
+		console.log(`[obsidian-sync] Installed plugin ${pluginId} into ${pluginDir} and reloaded it.`);
+	} else if (!isEnabled) {
+		console.log(`[obsidian-sync] Enabled plugin ${pluginId} in ${pluginDir}, synced files, and reloaded it.`);
+	} else {
+		console.log(`[obsidian-sync] Synced plugin ${pluginId} to ${pluginDir} and reloaded it.`);
+	}
+} catch (error) {
+	if (isCliTimeoutError(error)) {
+		console.warn(`[obsidian-sync] Obsidian CLI stopped responding (timed out after ${CLI_TIMEOUT_MS}ms); skipping local vault sync.`);
+		process.exit(0);
+	}
 
-if (detachResult === null) {
-	console.warn(`[obsidian-sync] Plugin ${pluginId} reloaded, but closing ${LUCR_JOURNAL_VIEW_TYPE} tabs did not succeed.`);
-}
-
-await sleep(100);
-
-const reopenResult = runSandboxObsidianCommand([
-	"command",
-	`id=${openJournalCommandId}`,
-]);
-
-if (reopenResult === null) {
-	console.warn(`[obsidian-sync] Plugin ${pluginId} reloaded, but reopening ${openJournalCommandId} did not succeed.`);
-}
-
-if (shouldInstallFromCli || !isInstalled) {
-	console.log(`[obsidian-sync] Installed plugin ${pluginId} into ${pluginDir} and reloaded it.`);
-} else if (!isEnabled) {
-	console.log(`[obsidian-sync] Enabled plugin ${pluginId} in ${pluginDir}, synced files, and reloaded it.`);
-} else {
-	console.log(`[obsidian-sync] Synced plugin ${pluginId} to ${pluginDir} and reloaded it.`);
+	throw error;
 }

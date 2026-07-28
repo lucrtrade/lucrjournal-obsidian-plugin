@@ -3,7 +3,7 @@ import { createRoot, type Root } from 'react-dom/client'
 
 import { LUCR_JOURNAL_VIEW_TYPE } from '../constant'
 import { createLogger } from '../logger'
-import { getToken } from '../session/storage'
+import { getToken, requiresJournalUpgrade } from '../session/storage'
 import { DashboardScreen } from '../ui/dashboard-screen'
 import { SessionGateScreen } from '../ui/login-screen'
 
@@ -116,8 +116,11 @@ export class LucrJournalView extends ItemView {
 			return
 		}
 
-		if (getToken(this.app) === null) {
-			this.root.render(<SessionGateScreen app={this.app} />)
+		if (getToken(this.app) === null || requiresJournalUpgrade(this.app)) {
+			this.root.render(<SessionGateScreen
+				app={this.app}
+				onRecheck={() => this.plugin.recheckJournalAccess()}
+			/>)
 			return
 		}
 

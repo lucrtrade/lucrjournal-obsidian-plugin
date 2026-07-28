@@ -675,9 +675,17 @@ body {
 }
 
 .lj-settings-account {
+	display: grid;
+	gap: 14px;
+	inline-size: 100%;
+}
+
+.lj-settings-account-header {
 	display: flex;
 	align-items: center;
-	gap: 12px;
+	justify-content: space-between;
+	min-inline-size: 0;
+	gap: 16px;
 }
 
 .lj-settings-account-info {
@@ -686,6 +694,12 @@ body {
 	gap: 12px;
 	flex: 1;
 	min-inline-size: 0;
+}
+
+.lj-settings-account-details {
+	display: grid;
+	min-inline-size: 0;
+	gap: 2px;
 }
 
 .lj-settings-account-avatar {
@@ -713,6 +727,57 @@ body {
 	font-size: 14px;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.lj-settings-account-status {
+	color: var(--lj-text-muted);
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.lj-settings-account-access {
+	display: grid;
+	grid-template-columns: minmax(240px, 1fr) auto;
+	align-items: center;
+	min-inline-size: 0;
+	padding-inline-start: 52px;
+	gap: 16px;
+}
+
+.lj-settings-account-actions {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.lj-settings-account-recheck {
+	border-color: transparent;
+	background: transparent;
+	color: var(--lj-text-muted);
+}
+
+.lj-settings-account-upgrade {
+	border-color: transparent;
+	background: var(--lj-c-strong);
+	color: var(--lj-c-inv);
+}
+
+.lj-settings-account-upgrade:hover,
+.lj-settings-account-upgrade:focus-visible {
+	background: var(--lj-fill-contrast-soft);
+	color: var(--lj-c-inv);
+}
+
+@media (max-width: 760px) {
+	.lj-settings-account-access {
+		grid-template-columns: 1fr;
+	}
+
+	.lj-settings-account-actions {
+		justify-content: flex-start;
+	}
 }
 
 .lj-login-screen {
@@ -806,6 +871,51 @@ body {
 	cursor: default;
 }
 
+.lj-upgrade-account {
+	display: flex;
+	align-items: center;
+	max-inline-size: 100%;
+	min-inline-size: 0;
+	margin-block-end: 24px;
+	gap: 10px;
+}
+
+.lj-upgrade-avatar {
+	display: grid;
+	place-items: center;
+	flex: none;
+	inline-size: 42px;
+	block-size: 42px;
+	border-radius: 50%;
+	overflow: hidden;
+	background: var(--lj-surf-inset);
+	color: var(--lj-text-muted);
+	font-weight: 600;
+}
+
+.lj-upgrade-avatar img {
+	inline-size: 100%;
+	block-size: 100%;
+	object-fit: cover;
+}
+
+.lj-upgrade-email {
+	overflow: hidden;
+	color: var(--lj-text);
+	font-size: 14px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.lj-claim-card {
+	cursor: wait;
+}
+
+.lj-claim-progress {
+	inline-size: 100%;
+	accent-color: var(--lj-c-strong);
+}
+
 .lj-upgrade-description {
 	margin: -12px 0 28px;
 	color: var(--lj-text-muted);
@@ -841,7 +951,16 @@ body {
 	color: var(--lj-text);
 }
 
+.lj-upgrade-recheck:disabled {
+	opacity: 0.5;
+	cursor: wait;
+}
+
 @media (max-width: 420px) {
+	.lj-settings-account-access {
+		padding-inline-start: 0;
+	}
+
 	.lj-login-screen {
 		padding: 16px;
 	}

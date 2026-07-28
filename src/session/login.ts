@@ -1,7 +1,7 @@
 import { Notice, Platform, apiVersion } from 'obsidian'
 
 import { APP_URL } from '../constant'
-import { t } from '../lang/helpers'
+import { getCurrentLocale, t } from '../lang/helpers'
 import { createLogger } from '../logger'
 
 import { checkSession, claimSession } from './api'
@@ -12,6 +12,7 @@ import type { ClientInfo } from './api'
 import type { App } from 'obsidian'
 
 const logger = createLogger('session')
+let sessionClaimPending = false
 
 function clientInfo(pluginVersion: string): ClientInfo {
 	return {
@@ -36,6 +37,14 @@ export async function startLogin(app: App): Promise<void> {
 
 export type AuthCallbackOutcome = 'active' | 'upgrade' | 'failed'
 
+export function isSessionClaimPending(): boolean {
+	return sessionClaimPending
+}
+
+export function getJournalUpgradeUrl(): string {
+	return `${APP_URL}${getCurrentLocale() === 'zh' ? '/zh/profile/' : '/profile/'}?section=billing`
+}
+
 export async function handleAuthCallback(
 	app: App,
 	pluginVersion: string,
@@ -52,13 +61,17 @@ export async function handleAuthCallback(
 		new Notice(t('SESSION_LOGIN_REJECTED'))
 		return 'failed'
 	}
-	const result = await claimSession(params.code, pending.codeVerifier, clientInfo(pluginVersion))
-	clearPendingLogin(app)
+	sessionClaimPending = true
+	const result = await claimSession(params.code, pending.codeVerifier, clientInfo(pluginVersion)).finally(() => {
+		sessionClaimPending = false
+		clearPendingLogin(app)
+	})
 	if (result.kind === 'failed') {
 		new Notice(t('SESSION_LOGIN_FAILED'))
 		return 'failed'
 	}
 	if (result.kind === 'entitlement_required') {
+		setToken(app, result.token)
 		denyJournalAccess(app, result.context)
 		new Notice(t('SESSION_UPGRADE_REQUIRED'))
 		return 'upgrade'

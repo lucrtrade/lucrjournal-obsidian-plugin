@@ -1,12 +1,15 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { setCurrentLocaleSetting } from '../lang/helpers'
+import * as login from '../session/login'
 
 import { PluginSettings, PluginSettingsManager } from './plugin-settings'
 import { PluginSettingsTab } from './plugin-settings-tab'
 
 import type LucrJournalPlugin from '../main'
 import type { AccountContext, AccountProfile } from '../session/account.generated'
+
+vi.mock('../session/login')
 
 function createPlugin() {
 	const settings = new PluginSettings()
@@ -15,6 +18,7 @@ function createPlugin() {
 		app: {},
 		settings,
 		applyDebugMode: vi.fn(),
+		recheckJournalAccess: vi.fn(async () => {}),
 		refreshLocalizedUi,
 		saveData: vi.fn(),
 	} as unknown as LucrJournalPlugin
@@ -114,8 +118,11 @@ function accountContext(profile: AccountProfile): AccountContext {
 	}
 }
 
-function appWith(token: string, context: AccountContext | null) {
-	return { secretStorage: { getSecret: () => token }, loadLocalStorage: () => context }
+function appWith(token: string, context: AccountContext | null, accessDenied = false) {
+	return {
+		secretStorage: { getSecret: () => token },
+		loadLocalStorage: (key: string) => key === 'lucrjournal-access-denied' ? accessDenied : context,
+	}
 }
 
 function mutableAppWith(token: string, context: AccountContext | null) {
@@ -124,7 +131,7 @@ function mutableAppWith(token: string, context: AccountContext | null) {
 			token = next
 		},
 		secretStorage: { getSecret: () => token },
-		loadLocalStorage: () => context,
+		loadLocalStorage: (key: string) => key === 'lucrjournal-access-denied' ? false : context,
 	}
 }
 
@@ -134,6 +141,11 @@ function renderAccount(tab: PluginSettingsTab, el: FakeNode): void {
 }
 
 describe('PluginSettingsTab', () => {
+	beforeEach(() => {
+		vi.clearAllMocks()
+		vi.mocked(login.isSessionClaimPending).mockReturnValue(false)
+	})
+
 	it('exposes declarative setting definitions', () => {
 		setCurrentLocaleSetting('en')
 		const { plugin } = createPlugin()
@@ -240,6 +252,50 @@ describe('PluginSettingsTab', () => {
 		const all = collect(el)
 		expect(all.find((node) => attrValue(node, 'data-lj-action') === 'signin')).toBeTruthy()
 		expect(all.find((node) => attrValue(node, 'data-lj-account') === 'email')).toBeUndefined()
+	})
+
+	it('renders upgrade and API recheck actions while keeping the signed-in account', () => {
+		setCurrentLocaleSetting('en')
+		const { plugin } = createPlugin()
+		const recheckJournalAccess = vi.fn(async () => {})
+		Object.assign(plugin, {
+			app: appWith('lj_token', accountContext({
+				userId: 'u1',
+				username: 'alice',
+				displayName: 'Alice',
+				avatarUrl: null,
+				email: 'alice@example.com',
+			}), true),
+			logout: vi.fn(),
+			recheckJournalAccess,
+		})
+		const tab = new PluginSettingsTab(plugin)
+		const el = fakeEl()
+		renderAccount(tab, el)
+
+		const all = collect(el)
+		expect(all.find((node) => attrValue(node, 'data-lj-action') === 'signin')).toBeUndefined()
+		expect(all.find((node) => attrValue(node, 'data-lj-account') === 'email')?.textContent)
+			.toBe('alice@example.com')
+		expect(all.find((node) => node.cls === 'lj-settings-account-actions')).toBeTruthy()
+		expect(all.find((node) => attrValue(node, 'data-lj-action') === 'upgrade')).toBeTruthy()
+		const recheck = all.find((node) => attrValue(node, 'data-lj-action') === 'recheck')
+		expect(recheck).toBeTruthy()
+
+		recheck?.onClick?.()
+		expect(recheckJournalAccess).toHaveBeenCalledTimes(1)
+	})
+
+	it('renders claim loading in settings', () => {
+		vi.mocked(login.isSessionClaimPending).mockReturnValue(true)
+		const { plugin } = createPlugin()
+		const tab = new PluginSettingsTab(plugin)
+		const el = fakeEl()
+		renderAccount(tab, el)
+
+		const loading = collect(el).find((node) => attrValue(node, 'data-lj-screen') === 'claim-loading')
+		expect(loading?.textContent).toBe('Checking LucrJournal access')
+		expect(attrValue(loading!, 'aria-busy')).toBe('true')
 	})
 
 	it('refreshes the rendered account row after the token changes', () => {

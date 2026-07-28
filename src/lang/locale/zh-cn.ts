@@ -448,8 +448,11 @@ export const zhCN: Partial<Record<keyof typeof en, string>> = {
 	SESSION_UPGRADE_REQUIRED: '当前账户缺少 LucrJournal 权益。',
 	SESSION_LOGIN_TITLE: '登录',
 	SESSION_LOGIN_BUTTON: '使用 LucrTrade 继续',
+	SESSION_CLAIM_LOADING_TITLE: '正在检查 LucrJournal 权益',
+	SESSION_CLAIM_LOADING_DESCRIPTION: '正在完成登录并检查账户权益。',
 	SESSION_UPGRADE_TITLE: '需要 LucrJournal 权益',
 	SESSION_UPGRADE_DESCRIPTION: '当前账户还没有 LucrJournal 使用权益。',
 	SESSION_UPGRADE_BUTTON: '查看升级选项',
 	SESSION_UPGRADE_RECHECK: '重新检查',
+	SESSION_UPGRADE_RECHECKING: '正在检查…',
 }

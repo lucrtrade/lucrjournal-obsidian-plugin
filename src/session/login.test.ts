@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as api from './api'
-import { handleAuthCallback, runSessionCheck, startLogin } from './login'
+import { handleAuthCallback, isSessionClaimPending, runSessionCheck, startLogin } from './login'
 import * as pkce from './pkce'
 import * as storage from './storage'
 
@@ -94,6 +94,7 @@ describe('runSessionCheck', () => {
 		})
 		vi.mocked(api.claimSession).mockResolvedValue({
 			kind: 'entitlement_required',
+			token: 'lj_token',
 			context: deniedContext,
 		})
 
@@ -101,8 +102,8 @@ describe('runSessionCheck', () => {
 			code: 'code',
 			state: 'expected_state',
 		})).toBe('upgrade')
+		expect(storage.setToken).toHaveBeenCalledWith(app, 'lj_token')
 		expect(storage.denyJournalAccess).toHaveBeenCalledWith(app, deniedContext)
-		expect(storage.setToken).not.toHaveBeenCalled()
 	})
 
 	it('stores an active claimed session', async () => {
@@ -122,6 +123,27 @@ describe('runSessionCheck', () => {
 		})).toBe('active')
 		expect(storage.setToken).toHaveBeenCalledWith(app, 'lj_token')
 		expect(storage.setAccountContext).toHaveBeenCalledWith(app, context)
+	})
+
+	it('exposes loading only while claim is pending', async () => {
+		let resolveClaim!: (result: api.ClaimResult) => void
+		vi.mocked(storage.getPendingLogin).mockReturnValue({
+			state: 'expected_state',
+			codeVerifier: 'verifier',
+		})
+		vi.mocked(api.claimSession).mockReturnValue(new Promise((resolve) => {
+			resolveClaim = resolve
+		}))
+
+		const callback = handleAuthCallback(app, '0.1.7', {
+			code: 'code',
+			state: 'expected_state',
+		})
+		expect(isSessionClaimPending()).toBe(true)
+
+		resolveClaim({ kind: 'failed' })
+		await callback
+		expect(isSessionClaimPending()).toBe(false)
 	})
 
 	it('signs out when the token is absent', async () => {
