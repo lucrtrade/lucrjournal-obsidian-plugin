@@ -18,7 +18,7 @@ vi.mock('obsidian', () => ({
 	moment: { locale: () => 'en' },
 }))
 
-const app = {} as unknown as App
+const app = { appId: '5bbbb19dfa9f730f' } as unknown as App
 const context: AccountContext = {
 	profile: {
 		userId: 'u1',
@@ -29,6 +29,7 @@ const context: AccountContext = {
 	},
 	entitlements: { features: ['journal_basic'] },
 	plan: null,
+	subscription: null,
 	products: [],
 }
 
@@ -54,7 +55,7 @@ describe('runSessionCheck', () => {
 			codeVerifier: 'verifier_1',
 		})
 		expect(open).toHaveBeenCalledWith(
-			'https://app.lucrtrade.com/obsidian/authorize?state=state_1&plugin=lucrjournal&code_challenge=challenge_1&code_challenge_method=S256',
+			'https://app.lucrtrade.com/obsidian/authorize?state=state_1&plugin=lucrjournal&code_challenge=challenge_1&code_challenge_method=S256&device_id=5bbbb19dfa9f730f',
 			'_blank',
 		)
 	})
@@ -164,6 +165,7 @@ describe('runSessionCheck', () => {
 		vi.mocked(api.checkSession).mockResolvedValue({
 			kind: 'signed_out',
 			reason: 'entitlement_required',
+			context: null,
 		})
 		expect(await runSessionCheck(app)).toBe('signed_out')
 		expect(storage.denyJournalAccess).toHaveBeenCalledWith(app, null)

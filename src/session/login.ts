@@ -14,8 +14,17 @@ import type { App } from 'obsidian'
 const logger = createLogger('session')
 let sessionClaimPending = false
 
-function clientInfo(pluginVersion: string): ClientInfo {
+function deviceId(app: App): string {
+	const value = (app as App & { appId?: string }).appId
+	if (!value) {
+		throw new Error('Obsidian appId unavailable')
+	}
+	return value
+}
+
+function clientInfo(app: App, pluginVersion: string): ClientInfo {
 	return {
+		deviceId: deviceId(app),
 		pluginId: 'lucrjournal',
 		pluginVersion,
 		obsidianVersion: apiVersion,
@@ -26,8 +35,9 @@ function clientInfo(pluginVersion: string): ClientInfo {
 export async function startLogin(app: App): Promise<void> {
 	try {
 		const { state, codeVerifier, codeChallenge } = await createPkcePair()
+		const currentDeviceId = deviceId(app)
 		setPendingLogin(app, { state, codeVerifier })
-		const url = `${APP_URL}/obsidian/authorize?state=${state}&plugin=lucrjournal&code_challenge=${codeChallenge}&code_challenge_method=S256`
+		const url = `${APP_URL}/obsidian/authorize?state=${state}&plugin=lucrjournal&code_challenge=${codeChallenge}&code_challenge_method=S256&device_id=${currentDeviceId}`
 		window.open(url, '_blank')
 	} catch (error: unknown) {
 		logger.error('session login start failed', { error })
@@ -62,7 +72,7 @@ export async function handleAuthCallback(
 		return 'failed'
 	}
 	sessionClaimPending = true
-	const result = await claimSession(params.code, pending.codeVerifier, clientInfo(pluginVersion)).finally(() => {
+	const result = await claimSession(params.code, pending.codeVerifier, clientInfo(app, pluginVersion)).finally(() => {
 		sessionClaimPending = false
 		clearPendingLogin(app)
 	})
@@ -96,7 +106,7 @@ export async function runSessionCheck(app: App): Promise<SessionCheckOutcome> {
 			return 'active'
 		case 'signed_out':
 			if (result.reason === 'entitlement_required') {
-				denyJournalAccess(app, null)
+				denyJournalAccess(app, result.context)
 				new Notice(t('SESSION_UPGRADE_REQUIRED'))
 			} else {
 				clearSession(app)

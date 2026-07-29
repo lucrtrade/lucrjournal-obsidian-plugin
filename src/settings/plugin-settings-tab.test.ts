@@ -109,19 +109,24 @@ function collect(node: FakeNode, out: FakeNode[] = []): FakeNode[] {
 	return out
 }
 
-function accountContext(profile: AccountProfile): AccountContext {
+function accountContext(
+	profile: AccountProfile,
+	plan: AccountContext['plan'] = null,
+	subscription: AccountContext['subscription'] = null,
+): AccountContext {
 	return {
 		profile,
 		entitlements: { features: [] },
-		plan: null,
+		plan,
+		subscription,
 		products: [],
 	}
 }
 
-function appWith(token: string, context: AccountContext | null, accessDenied = false) {
+function appWith(token: string, context: AccountContext | null) {
 	return {
 		secretStorage: { getSecret: () => token },
-		loadLocalStorage: (key: string) => key === 'lucrjournal-access-denied' ? accessDenied : context,
+		loadLocalStorage: (key: string) => key === 'lucrjournal-access-denied' ? false : context,
 	}
 }
 
@@ -216,13 +221,21 @@ describe('PluginSettingsTab', () => {
 		const { plugin } = createPlugin()
 		const logout = vi.fn()
 		Object.assign(plugin, {
-			app: appWith('lj_token', accountContext({
-				userId: 'u1',
-				username: 'alice',
-				displayName: 'Alice',
-				avatarUrl: 'https://img/a.png',
-				email: 'alice@example.com',
-			})),
+			app: appWith('lj_token', accountContext(
+				{
+					userId: 'u1',
+					username: 'alice',
+					displayName: 'Alice',
+					avatarUrl: 'https://img/a.png',
+					email: 'alice@example.com',
+				},
+				{ key: 'lucrjournal', status: 'active' },
+				{
+					interval: 'month',
+					currentPeriodEnd: '2026-08-31T00:00:00.000Z',
+					cancelAtPeriodEnd: false,
+				},
+			)),
 			logout,
 		})
 		const tab = new PluginSettingsTab(plugin)
@@ -232,6 +245,10 @@ describe('PluginSettingsTab', () => {
 		const all = collect(el)
 		const email = all.find((node) => attrValue(node, 'data-lj-account') === 'email')
 		expect(email?.textContent).toBe('alice@example.com')
+		const plan = all.find((node) => attrValue(node, 'data-lj-account') === 'plan')
+		expect(plan?.textContent).toBe('LucrJournal (Monthly) · Renews on Aug 31, 2026')
+		const planBadge = all.find((node) => attrValue(node, 'data-lj-account') === 'plan-badge')
+		expect(planBadge?.textContent).toBe('Premium')
 		const avatar = all.find((node) => attrValue(node, 'data-lj-account') === 'avatar')
 		expect(avatar?.children.length).toBe(1)
 		const logoutButton = all.find((node) => attrValue(node, 'data-lj-action') === 'logout')
@@ -252,38 +269,6 @@ describe('PluginSettingsTab', () => {
 		const all = collect(el)
 		expect(all.find((node) => attrValue(node, 'data-lj-action') === 'signin')).toBeTruthy()
 		expect(all.find((node) => attrValue(node, 'data-lj-account') === 'email')).toBeUndefined()
-	})
-
-	it('renders upgrade and API recheck actions while keeping the signed-in account', () => {
-		setCurrentLocaleSetting('en')
-		const { plugin } = createPlugin()
-		const recheckJournalAccess = vi.fn(async () => {})
-		Object.assign(plugin, {
-			app: appWith('lj_token', accountContext({
-				userId: 'u1',
-				username: 'alice',
-				displayName: 'Alice',
-				avatarUrl: null,
-				email: 'alice@example.com',
-			}), true),
-			logout: vi.fn(),
-			recheckJournalAccess,
-		})
-		const tab = new PluginSettingsTab(plugin)
-		const el = fakeEl()
-		renderAccount(tab, el)
-
-		const all = collect(el)
-		expect(all.find((node) => attrValue(node, 'data-lj-action') === 'signin')).toBeUndefined()
-		expect(all.find((node) => attrValue(node, 'data-lj-account') === 'email')?.textContent)
-			.toBe('alice@example.com')
-		expect(all.find((node) => node.cls === 'lj-settings-account-actions')).toBeTruthy()
-		expect(all.find((node) => attrValue(node, 'data-lj-action') === 'upgrade')).toBeTruthy()
-		const recheck = all.find((node) => attrValue(node, 'data-lj-action') === 'recheck')
-		expect(recheck).toBeTruthy()
-
-		recheck?.onClick?.()
-		expect(recheckJournalAccess).toHaveBeenCalledTimes(1)
 	})
 
 	it('renders claim loading in settings', () => {

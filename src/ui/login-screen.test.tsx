@@ -53,7 +53,8 @@ describe('SessionGateScreen', () => {
 		expect(markup).toContain('data-lj-action="upgrade"')
 		expect(markup).toContain('href="https://app.lucrtrade.com/profile/?section=billing"')
 		expect(markup).toContain('data-lj-action="recheck"')
-		expect(markup).toContain('Check again')
+		// renderToStaticMarkup escapes the apostrophe, so match past it.
+		expect(markup).toContain('upgraded — check again')
 	})
 
 	it('renders loading while the callback claim is pending', () => {

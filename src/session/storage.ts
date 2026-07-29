@@ -41,7 +41,7 @@ export function setAccountContext(app: App, context: AccountContext): void {
 	app.saveLocalStorage(ACCESS_DENIED_KEY, false)
 }
 
-function getAccountContext(app: App): AccountContext | null {
+export function getAccountContext(app: App): AccountContext | null {
 	return app.loadLocalStorage(ACCOUNT_CONTEXT_KEY) as AccountContext | null
 }
 

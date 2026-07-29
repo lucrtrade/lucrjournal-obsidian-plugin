@@ -44,10 +44,17 @@ export type AccountPlan = {
 	status: AccountSubscriptionStatus
 } | null
 
+export type AccountSubscription = {
+	interval: 'month' | 'year'
+	currentPeriodEnd: string | null
+	cancelAtPeriodEnd: boolean
+} | null
+
 export type AccountContext = {
 	profile: AccountProfile
 	entitlements: AccountEntitlements
 	plan: AccountPlan
+	subscription: AccountSubscription
 	products: AccountProductKey[]
 }
 

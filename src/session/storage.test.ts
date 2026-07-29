@@ -50,6 +50,7 @@ describe('journal access storage', () => {
 			},
 			entitlements: { features: [] },
 			plan: null,
+			subscription: null,
 			products: [],
 		})
 

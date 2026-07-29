@@ -3,17 +3,17 @@
 	"files": [
 		{
 			"path": "main.js",
-			"bytes": 1930026,
+			"bytes": 1932305,
 			"size": "1.84 MiB"
 		},
 		{
 			"path": "styles.css",
-			"bytes": 1567463,
-			"size": "1.49 MiB"
+			"bytes": 1568123,
+			"size": "1.50 MiB"
 		}
 	],
 	"total": {
-		"bytes": 3497489,
+		"bytes": 3500428,
 		"size": "3.34 MiB"
 	}
 }

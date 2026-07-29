@@ -11,7 +11,6 @@ const ignoredSourceFiles = new Set([
 ])
 const scriptFiles = ts.sys
 	.readDirectory(join(projectRootPath, 'scripts'), ['.ts'], undefined, ['**/*'])
-	.concat(ts.sys.readDirectory(join(projectRootPath, '.agents/skills'), ['.ts'], undefined, ['**/scripts/**/*']))
 	.map((fileName) => ts.sys.resolvePath(fileName))
 	.filter((fileName) => !isTestFilePath(fileName))
 const scriptContentsByFile = new Map(

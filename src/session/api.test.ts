@@ -9,6 +9,7 @@ const context = {
 		features: ['journal_basic'],
 	},
 	plan: null,
+	subscription: null,
 	products: [],
 } as const
 
@@ -36,7 +37,11 @@ describe('mapCheckResponse', () => {
 			status: 'active',
 			...context,
 			entitlements: { features: [] },
-		})).toEqual({ kind: 'signed_out', reason: 'entitlement_required' })
+		})).toEqual({
+			kind: 'signed_out',
+			reason: 'entitlement_required',
+			context: { ...context, entitlements: { features: [] } },
+		})
 	})
 	it('filters unknown products', () => {
 		expect(mapCheckResponse(200, {
@@ -78,7 +83,28 @@ describe('mapCheckResponse', () => {
 		expect(mapCheckResponse(403, {
 			status: 'entitlement_required',
 			code: 'lucrjournal_entitlement_required',
-		})).toEqual({ kind: 'signed_out', reason: 'entitlement_required' })
+		})).toEqual({ kind: 'signed_out', reason: 'entitlement_required', context: null })
+	})
+	it('lucrjournal_entitlement_required keeps account context', () => {
+		const deniedContext = {
+			...context,
+			entitlements: { features: [] },
+			plan: { key: 'lucrjournal', status: 'active' },
+			subscription: {
+				interval: 'month',
+				currentPeriodEnd: '2026-08-31T00:00:00.000Z',
+				cancelAtPeriodEnd: false,
+			},
+		} as const
+		expect(mapCheckResponse(403, {
+			status: 'entitlement_required',
+			code: 'lucrjournal_entitlement_required',
+			...deniedContext,
+		})).toEqual({
+			kind: 'signed_out',
+			reason: 'entitlement_required',
+			context: deniedContext,
+		})
 	})
 	it('5xx -> keep', () => {
 		expect(mapCheckResponse(500, null)).toEqual({ kind: 'keep' })
@@ -117,6 +143,7 @@ describe('claimSession', () => {
 		} as Awaited<ReturnType<typeof Obsidian.requestUrl>>)
 
 		expect(await claimSession('code', 'verifier', {
+			deviceId: '5bbbb19dfa9f730f',
 			pluginId: 'lucrjournal',
 			pluginVersion: '0.1.5',
 			obsidianVersion: '1.13.1',
@@ -150,6 +177,7 @@ describe('claimSession', () => {
 		} as Awaited<ReturnType<typeof Obsidian.requestUrl>>)
 
 		expect(await claimSession('secret_code', 'secret_verifier', {
+			deviceId: '5bbbb19dfa9f730f',
 			pluginId: 'lucrjournal',
 			pluginVersion: '0.1.7',
 			obsidianVersion: '1.13.1',
@@ -173,6 +201,7 @@ describe('claimSession', () => {
 		vi.spyOn(Obsidian, 'requestUrl').mockRejectedValue(requestError)
 
 		expect(await claimSession('code', 'verifier', {
+			deviceId: '5bbbb19dfa9f730f',
 			pluginId: 'lucrjournal',
 			pluginVersion: '0.1.7',
 			obsidianVersion: '1.13.1',

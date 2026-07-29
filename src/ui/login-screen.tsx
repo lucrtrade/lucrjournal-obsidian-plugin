@@ -104,10 +104,10 @@ function UpgradeScreen({ app, onRecheck }: SessionGateScreenProps) {
 
 	return (
 		<div
-			className="lj-login-screen"
+			className="lj-login-screen lj-upgrade-screen"
 			data-lj-screen="upgrade"
 		>
-			<div className="lj-login-card lj-upgrade-card">
+			<div className="lj-upgrade-gate">
 				<div className="lj-upgrade-account">
 					<span
 						className="lj-upgrade-avatar"
@@ -128,7 +128,7 @@ function UpgradeScreen({ app, onRecheck }: SessionGateScreenProps) {
 						)
 						: null}
 				</div>
-				<h2 className="lj-login-title">
+				<h2 className="lj-upgrade-title">
 					{t('SESSION_UPGRADE_TITLE')}
 				</h2>
 				<p className="lj-upgrade-description">

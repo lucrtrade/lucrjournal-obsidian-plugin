@@ -216,7 +216,6 @@ export default tseslint.config(
 	},
 	globalIgnores([
 		'node_modules',
-		'.agents',
 		'assets/ocr',
 		'build-assets',
 		'demo',

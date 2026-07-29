@@ -20,7 +20,8 @@ const LOGOUT_ENDPOINT = `${APP_URL}/api/obsidian/logout/`
 
 export type CheckResult =
 	| { kind: 'active'; context: AccountContext }
-	| { kind: 'signed_out'; reason: 'entitlement_required' | 'invalid_session' }
+	| { kind: 'signed_out'; reason: 'entitlement_required'; context: AccountContext | null }
+	| { kind: 'signed_out'; reason: 'invalid_session' }
 	| { kind: 'keep' }
 
 export type ClaimResult =
@@ -29,6 +30,7 @@ export type ClaimResult =
 	| { kind: 'failed' }
 
 export type ClientInfo = {
+	deviceId: string
 	pluginId: string
 	pluginVersion: string
 	obsidianVersion: string
@@ -62,6 +64,36 @@ function coerceProducts(value: unknown): AccountContext['products'] {
 	)
 }
 
+function coercePeriodEnd(value: unknown): string | null | undefined {
+	if (value === null) {
+		return null
+	}
+	if (typeof value !== 'string' || Number.isNaN(Date.parse(value))) {
+		return undefined
+	}
+	return value
+}
+
+function coerceSubscription(value: unknown): AccountContext['subscription'] | undefined {
+	if (value === null) {
+		return null
+	}
+	if (typeof value !== 'object' || Array.isArray(value)) {
+		return undefined
+	}
+	const interval = (value as { interval?: unknown }).interval
+	const currentPeriodEnd = coercePeriodEnd((value as { currentPeriodEnd?: unknown }).currentPeriodEnd)
+	const cancelAtPeriodEnd = (value as { cancelAtPeriodEnd?: unknown }).cancelAtPeriodEnd
+	if (
+		(interval !== 'month' && interval !== 'year')
+		|| currentPeriodEnd === undefined
+		|| typeof cancelAtPeriodEnd !== 'boolean'
+	) {
+		return undefined
+	}
+	return { interval, currentPeriodEnd, cancelAtPeriodEnd }
+}
+
 function coerceContext(body: Record<string, unknown>): AccountContext | null {
 	const profile = body.profile
 	const entitlements = body.entitlements
@@ -79,13 +111,15 @@ function coerceContext(body: Record<string, unknown>): AccountContext | null {
 		typeof feature === 'string' && isFeatureKey(feature),
 	)
 	const plan = coercePlan(body.plan)
-	if (plan === undefined) {
+	const subscription = coerceSubscription(body.subscription)
+	if (plan === undefined || subscription === undefined || (plan === null) !== (subscription === null)) {
 		return null 
 	}
 	return {
 		profile: profile as AccountContext['profile'],
 		entitlements: { features },
 		plan,
+		subscription,
 		products: coerceProducts(body.products),
 	}
 }
@@ -101,11 +135,15 @@ export function mapCheckResponse(
 		}
 		return hasFeature(context.entitlements, 'journal_basic')
 			? { kind: 'active', context }
-			: { kind: 'signed_out', reason: 'entitlement_required' }
+			: { kind: 'signed_out', reason: 'entitlement_required', context }
 	}
 	const code = body?.code
 	if (code === 'lucrjournal_entitlement_required') {
-		return { kind: 'signed_out', reason: 'entitlement_required' }
+		return {
+			kind: 'signed_out',
+			reason: 'entitlement_required',
+			context: body === null ? null : coerceContext(body),
+		}
 	}
 	if (code === 'revoked' || code === 'account_disabled' || code === 'invalid_token') {
 		return { kind: 'signed_out', reason: 'invalid_session' }

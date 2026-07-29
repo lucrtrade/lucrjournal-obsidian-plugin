@@ -1,8 +1,8 @@
 import { ButtonComponent, PluginSettingTab, SettingGroup } from 'obsidian'
 
-import { t } from '../lang/helpers'
-import { getJournalUpgradeUrl, isSessionClaimPending, startLogin } from '../session/login'
-import { getProfile, getToken, requiresJournalUpgrade } from '../session/storage'
+import { getCurrentLocale, t } from '../lang/helpers'
+import { isSessionClaimPending, startLogin } from '../session/login'
+import { getAccountContext, getToken } from '../session/storage'
 
 import {
 	DOMAIN_MODIFIED_UPDATE_MODES,
@@ -12,6 +12,7 @@ import {
 } from './plugin-settings'
 
 import type LucrJournalPlugin from '../main'
+import type { AccountContext, AccountPlanKey } from '../session/account.generated'
 import type { SettingDefinitionItem } from 'obsidian'
 
 type PluginSettingsControlKey =
@@ -34,6 +35,7 @@ export class PluginSettingsTab extends PluginSettingTab {
 			{
 				type: 'group',
 				heading: t('SETTINGS_ACCOUNT'),
+				cls: 'lj-settings-account-group',
 				items: [
 					{
 						name: t('SETTINGS_ACCOUNT'),
@@ -184,6 +186,7 @@ export class PluginSettingsTab extends PluginSettingTab {
 		containerEl.empty()
 
 		new SettingGroup(containerEl)
+			.addClass('lj-settings-account-group')
 			.setHeading(t('SETTINGS_ACCOUNT'))
 			.addSetting((setting) => {
 				this.renderAccountSection(setting.settingEl)
@@ -320,8 +323,17 @@ export class PluginSettingsTab extends PluginSettingTab {
 		}
 
 		if (getToken(app) === null) {
-			new ButtonComponent(el)
-				.setButtonText(t('SESSION_LOGIN_BUTTON'))
+			const header = el.createDiv({ cls: 'lj-settings-account-header' })
+			const info = header.createDiv({ cls: 'lj-settings-account-info' })
+			const details = info.createDiv({ cls: 'lj-settings-account-details' })
+			details.createDiv({ cls: 'setting-item-name', text: 'LucrTrade' })
+			details.createDiv({
+				cls: 'setting-item-description',
+				text: t('SESSION_LOGIN_DESCRIPTION'),
+			})
+			new ButtonComponent(header)
+				.setButtonText(t('SESSION_LOGIN_TITLE'))
+				.setCta()
 				.setClass('lj-settings-account-signin')
 				.onClick(() => {
 					void startLogin(app)
@@ -330,8 +342,8 @@ export class PluginSettingsTab extends PluginSettingTab {
 			return
 		}
 
-		const profile = getProfile(app)
-		const upgradeRequired = requiresJournalUpgrade(app)
+		const context = getAccountContext(app)
+		const profile = context?.profile
 		const header = el.createDiv({ cls: 'lj-settings-account-header' })
 		const info = header.createDiv({ cls: 'lj-settings-account-info' })
 		const avatar = info.createDiv({
@@ -351,6 +363,21 @@ export class PluginSettingsTab extends PluginSettingTab {
 				attr: { 'data-lj-account': 'email' },
 			})
 		}
+		if (context) {
+			const planRow = details.createDiv({ cls: 'lj-settings-account-plan-row' })
+			planRow.createDiv({
+				cls: 'lj-settings-account-plan',
+				text: accountPlanText(context),
+				attr: { 'data-lj-account': 'plan' },
+			})
+			if (context.plan !== null) {
+				planRow.createDiv({
+					cls: 'lj-settings-account-plan-badge',
+					text: t('SETTINGS_ACCOUNT_PLAN_BADGE_PREMIUM'),
+					attr: { 'data-lj-account': 'plan-badge' },
+				})
+			}
+		}
 
 		new ButtonComponent(header)
 			.setButtonText(t('SETTINGS_LOGOUT'))
@@ -359,36 +386,46 @@ export class PluginSettingsTab extends PluginSettingTab {
 				this.plugin.logout()
 			})
 			.buttonEl.setAttribute('data-lj-action', 'logout')
-
-		if (upgradeRequired) {
-			const access = el.createDiv({ cls: 'lj-settings-account-access' })
-			access.createDiv({
-				cls: 'lj-settings-account-status',
-				text: t('SESSION_UPGRADE_DESCRIPTION'),
-			})
-			const actions = access.createDiv({ cls: 'lj-settings-account-actions' })
-			new ButtonComponent(actions)
-				.setButtonText(t('SESSION_UPGRADE_BUTTON'))
-				.setClass('lj-settings-account-upgrade')
-				.onClick(() => {
-					window.open(getJournalUpgradeUrl(), '_blank')
-				})
-				.buttonEl.setAttribute('data-lj-action', 'upgrade')
-
-			const recheck = new ButtonComponent(actions)
-				.setButtonText(t('SESSION_UPGRADE_RECHECK'))
-				.setClass('lj-settings-account-recheck')
-				.onClick(() => {
-					recheck.buttonEl.disabled = true
-					recheck.setButtonText(t('SESSION_UPGRADE_RECHECKING'))
-					void this.plugin.recheckJournalAccess()
-				})
-			recheck.buttonEl.setAttribute('data-lj-action', 'recheck')
-		}
 	}
 }
 
 function accountInitial(email: string | null | undefined): string {
 	const ch = email?.trim().charAt(0)
 	return ch ? ch.toUpperCase() : '?'
+}
+
+const accountPlanNames = {
+	lucrtrade: 'LucrTrade',
+	lucrjournal: 'LucrJournal',
+} as const satisfies Record<AccountPlanKey, string>
+
+function accountPlanText(context: AccountContext): string {
+	if (context.plan === null) {
+		return t('SETTINGS_ACCOUNT_PLAN_FREE')
+	}
+	const planName = accountPlanNames[context.plan.key]
+	if (context.subscription === null) {
+		return planName
+	}
+	const interval = context.subscription.interval === 'month'
+		? t('SETTINGS_ACCOUNT_PLAN_INTERVAL_MONTH')
+		: t('SETTINGS_ACCOUNT_PLAN_INTERVAL_YEAR')
+	const plan = t('SETTINGS_ACCOUNT_PLAN_INTERVAL', {
+		plan: planName,
+		interval,
+	})
+	if (context.subscription.currentPeriodEnd === null) {
+		return plan
+	}
+	const date = new Intl.DateTimeFormat(getCurrentLocale() === 'zh' ? 'zh-CN' : 'en-US', {
+		day: 'numeric',
+		month: 'short',
+		year: 'numeric',
+	}).format(new Date(context.subscription.currentPeriodEnd))
+	return t(
+		context.subscription.cancelAtPeriodEnd
+			? 'SETTINGS_ACCOUNT_PLAN_VALID_UNTIL'
+			: 'SETTINGS_ACCOUNT_PLAN_RENEWS_ON',
+		{ plan, date },
+	)
 }

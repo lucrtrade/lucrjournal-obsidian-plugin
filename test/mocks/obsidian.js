@@ -83,6 +83,10 @@ export class ButtonComponent {
 		return this
 	}
 
+	setCta() {
+		return this
+	}
+
 	setClass(cls) {
 		this.buttonEl.cls = cls
 		return this
@@ -177,6 +181,10 @@ export class PluginSettingTab {
 
 export class SettingGroup {
 	constructor(_containerEl) {}
+
+	addClass() {
+		return this
+	}
 
 	setHeading() {
 		return this
