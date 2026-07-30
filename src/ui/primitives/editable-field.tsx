@@ -45,6 +45,7 @@ export function EditableField({
 		}
 	}, [isEditing, value])
 
+	// @story [[lucrjournal/primitives#^editable-field-save]] Trims and saves changed drafts on Enter or blur
 	const commit = useCallback(() => {
 		setIsEditing(false)
 		const trimmed = draft.trim()
@@ -59,6 +60,7 @@ export function EditableField({
 				commit()
 				break
 			case 'Escape':
+				// @story [[lucrjournal/primitives#^editable-field-cancel]] Discards the draft without saving on Escape
 				setIsEditing(false)
 				break
 			default:

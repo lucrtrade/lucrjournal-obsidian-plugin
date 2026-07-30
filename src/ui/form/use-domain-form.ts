@@ -82,6 +82,7 @@ export function useDomainForm<TDefinition extends AnyFormDefinition, TResult = u
 	const [asyncPlaceholders, setAsyncPlaceholders] = useState<Partial<Record<keyof TDefinition, FormCopyTemplate | undefined>>>({})
 	const asyncPlaceholderSeqRef = useRef(0)
 
+	// @story [[lucrjournal/form#^open-form-reset]] Rebuilds clean form state whenever an open form changes runtime context
 	useEffect(() => {
 		if (!isOpen) {
 			return
@@ -95,6 +96,7 @@ export function useDomainForm<TDefinition extends AnyFormDefinition, TResult = u
 
 	const values = synchronizeState(formState)
 	const entries = useMemo(() => typedFormEntries(formDefinition), [formDefinition])
+	// @story [[lucrjournal/form#^visible-field-validation]] Excludes hidden fields from submit validation
 	const hasValidationErrors = entries.some(([fieldName, field]) => {
 		const typedField = field as unknown as FieldDescriptor<FieldType, FormValues<TDefinition>>
 		if (!isFormFieldVisible(typedField, values)) {
@@ -110,6 +112,7 @@ export function useDomainForm<TDefinition extends AnyFormDefinition, TResult = u
 	})
 	const canSubmit = !isSubmitting && !hasValidationErrors && (canSubmitFormValueRef.current?.(values) ?? true)
 
+	// @story [[lucrjournal/form#^async-placeholder-resolution]] Applies only the latest visible async placeholder result
 	useEffect(() => {
 		if (!isOpen) {
 			return
@@ -144,6 +147,7 @@ export function useDomainForm<TDefinition extends AnyFormDefinition, TResult = u
 		void run()
 	}, [app, entries, isOpen, values])
 
+	// @story [[lucrjournal/form#^field-change-sync]] Clears stale errors and synchronizes each changed draft with its previous values
 	const updateField = <TKey extends keyof TDefinition>(
 		fieldName: TKey,
 		value: FormValues<TDefinition>[TKey],
@@ -159,6 +163,7 @@ export function useDomainForm<TDefinition extends AnyFormDefinition, TResult = u
 	}
 
 	const handleSubmit = async () => {
+		// @story [[lucrjournal/form#^blocked-submit-noop]] Leaves blocked or already-running submissions untouched
 		if (!canSubmit || isSubmitting) {
 			return
 		}
@@ -166,10 +171,12 @@ export function useDomainForm<TDefinition extends AnyFormDefinition, TResult = u
 		const submitValues = applyAsyncPlaceholderDefaults(values, entries, asyncPlaceholders)
 		setIsSubmitting(true)
 
+		// @story [[lucrjournal/form#^submit-success-lifecycle]] Runs creation and its success callback under the submitting lifecycle
 		try {
 			const result = await createEntryRef.current(app, submitValues)
 			setSubmitErrorKey(null)
 			await onSubmitSuccessRef.current?.(result)
+		// @story [[lucrjournal/form#^submit-failure-lifecycle]] Maps handled failures while logging and rethrowing unhandled ones
 		} catch (error) {
 			const nextErrorKey = toSubmitErrorMessageRef.current?.(error) ?? null
 			if (nextErrorKey !== null) {
@@ -196,6 +203,7 @@ export function useDomainForm<TDefinition extends AnyFormDefinition, TResult = u
 	}
 }
 
+// @story [[lucrjournal/form#^async-placeholder-submit]] Applies sanitized nonempty async defaults only to blank string drafts
 function applyAsyncPlaceholderDefaults<TDefinition extends AnyFormDefinition>(
 	values: FormValues<TDefinition>,
 	entries: TypedFormEntry<TDefinition>[],

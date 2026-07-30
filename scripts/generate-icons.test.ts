@@ -19,6 +19,7 @@ const collectSvgFiles = (directory) =>
 	})
 
 describe('generated icons', () => {
+	// @story [[lucrjournal/tooling#^generated-icon-set]] Rejects legacy cache metadata in every committed SVG
 	it('do not embed LucrJournal cache metadata comments in SVG files', () => {
 		const files = collectSvgFiles(generatedIconsPath)
 		const offenders = files.filter((file) => readFileSync(file, 'utf8').includes('<!-- lucrjournal-icon:'))

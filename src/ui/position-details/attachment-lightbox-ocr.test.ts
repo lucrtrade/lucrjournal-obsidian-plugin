@@ -5,6 +5,7 @@ import { closeAttachmentLightboxOcrReview, runAttachmentLightboxOcr } from './at
 import type { PositionAttachment } from './use-position-details-media'
 
 describe('runAttachmentLightboxOcr', () => {
+	// @story [[lucrjournal/ocr#^vault-attachment-ocr]] Covers waiting for recognition before opening review
 	it('keeps the lightbox open while OCR is running and opens review after a result', async () => {
 		const attachment = buildAttachment()
 		let resolveImport!: (value: boolean) => void
@@ -29,6 +30,7 @@ describe('runAttachmentLightboxOcr', () => {
 		expect(calls).toEqual(['import', 'review'])
 	})
 
+	// @story [[lucrjournal/ocr#^vault-attachment-ocr]] Covers retaining the lightbox after an empty OCR outcome
 	it('keeps the lightbox open when OCR does not produce a review modal', async () => {
 		const calls: string[] = []
 
@@ -45,6 +47,7 @@ describe('runAttachmentLightboxOcr', () => {
 		expect(calls).toEqual(['import'])
 	})
 
+	// @story [[lucrjournal/ocr#^vault-attachment-ocr]] Covers restoring the source attachment index
 	it('restores the source lightbox when closing a fullscreen OCR review', () => {
 		const calls: string[] = []
 

@@ -12,11 +12,13 @@ import {
 
 describe('link activation', () => {
 	it('uses a new Obsidian tab pane for command-click', () => {
+		// @story [[lucrjournal/runtime#^command-link-new-tab]] Covers resolving command-click link activation to a new tab.
 		expect(isCommandClick({ metaKey: true })).toBe(true)
 		expect(resolveLinkPane(false, { metaKey: true })).toBe('tab')
 	})
 
 	it('keeps the default pane for normal clicks', () => {
+		// @story [[lucrjournal/runtime#^normal-link-pane]] Covers preserving the caller pane without command-click.
 		expect(isCommandClick({ metaKey: false })).toBe(false)
 		expect(resolveLinkPane('tab', { metaKey: false })).toBe('tab')
 		expect(resolveLinkPane(false, undefined)).toBe(false)
@@ -51,6 +53,7 @@ describe('link activation', () => {
 	})
 
 	it('switches opened markdown files into source mode when requested', async () => {
+		// @story [[lucrjournal/runtime#^source-link-state]] Covers direct source-mode Markdown state without openFile.
 		const file = createTestTFile('LucrJournal/news/CPI.md')
 		const leaf = {
 			openFile: vi.fn(async () => {}),

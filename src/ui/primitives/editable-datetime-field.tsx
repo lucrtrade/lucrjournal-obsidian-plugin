@@ -89,6 +89,7 @@ export function EditableDatetimeField({
 
 		updatePosition()
 
+		// @story [[lucrjournal/primitives#^editable-datetime-cancel]] Discards the popover draft on outside click scroll or Escape
 		const handlePointerDown = (event: MouseEvent) => {
 			const target = event.target as Node
 			if (
@@ -132,6 +133,7 @@ export function EditableDatetimeField({
 		setIsEditing(true)
 	}, [value])
 
+	// @story [[lucrjournal/primitives#^editable-datetime-save]] Commits a formatted draft or empty clear value then restores trigger focus
 	const commit = useCallback((nextDraft: DateParts | null) => {
 		onSave(nextDraft === null ? '' : formatDraftAsIso(nextDraft))
 		setIsEditing(false)
@@ -156,6 +158,7 @@ export function EditableDatetimeField({
 				onClick={(event) => {
 					event.stopPropagation()
 					if (isEditing) {
+						// @story [[lucrjournal/primitives#^editable-datetime-cancel]] Closes an open popover without saving from its trigger
 						setIsEditing(false)
 						return
 					}
@@ -424,6 +427,7 @@ function handlePopoverKeyDown(
 			setDraft((prev) => prev === null ? prev : shiftDraftDay(prev, 7))
 			return
 		case 'Enter':
+			// @story [[lucrjournal/primitives#^editable-datetime-save]] Commits the current datetime draft with Enter
 			event.preventDefault()
 			commit(draft)
 			return

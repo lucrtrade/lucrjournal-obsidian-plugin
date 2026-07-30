@@ -43,6 +43,7 @@ export abstract class DomainFileView<Value> extends FileView {
 		this.workspaceLeafEl = this.getWorkspaceLeafEl()
 		this.workspaceLeafEl.addClass('lucrjournal-leaf')
 		this.contentEl.empty()
+		// @story [[lucrjournal/runtime#^managed-runtime-resources]] Registers domain metadata listeners with the file view lifecycle.
 		this.registerEvent(this.app.metadataCache.on('changed', (file) => {
 			if (file.path === this.file?.path) {
 				this.render()
@@ -57,6 +58,7 @@ export abstract class DomainFileView<Value> extends FileView {
 			void openDomainFileAsMarkdown(this.leaf, this.file.path, undefined, undefined, this.app)
 		})
 
+		// @story [[lucrjournal/runtime#^domain-react-root]] Mounts each domain React root from its descriptor and stable selectors.
 		this.root = createRoot(this.contentEl.createDiv({
 			cls: `lucrjournal-view ${this.config.descriptor.className}`,
 			attr: {
@@ -68,6 +70,7 @@ export abstract class DomainFileView<Value> extends FileView {
 	}
 
 	override async onClose(): Promise<void> {
+		// @story [[lucrjournal/runtime#^view-react-cleanup]] Unmounts and clears a domain React runtime when its view closes.
 		this.root?.unmount()
 		this.root = null
 		this.workspaceLeafEl?.removeClass('lucrjournal-leaf')
@@ -92,6 +95,7 @@ export abstract class DomainFileView<Value> extends FileView {
 			return
 		}
 
+		// @story [[lucrjournal/entitlement#^views-share-access-gate]] Gates every domain file view with the shared session predicate.
 		if (getToken(this.app) === null || requiresJournalUpgrade(this.app)) {
 			this.root.render(<SessionGateScreen
 				app={this.app}
@@ -113,6 +117,7 @@ export abstract class DomainFileView<Value> extends FileView {
 
 		const value = this.config.descriptor.refine(cache.frontmatter)
 		if (value === null) {
+			// @story [[lucrjournal/runtime#^invalid-domain-falls-back-source]] Falls back to Markdown source when current domain data no longer refines.
 			void openDomainFileAsMarkdown(this.leaf, file.path, 'source', undefined, this.app)
 			return
 		}

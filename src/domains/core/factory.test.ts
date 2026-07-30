@@ -74,6 +74,7 @@ class DemoDomainDefinition extends DomainBase<'demo', typeof DemoEntryType, type
 const DemoDomain = new DemoDomainDefinition()
 
 describe('DomainBase', () => {
+	// @story [[lucrjournal/domain-model#^read-domain-entries]] Covers type routing and schema-refined reads
 	it('collects matching cached frontmatter entries and validates them', () => {
 		const runtime = createRuntime([
 			{ path: 'demo-1.md', frontmatter: { lucr_type: 'demo', name: 'Alpha' } },
@@ -89,6 +90,7 @@ describe('DomainBase', () => {
 		])
 	})
 
+	// @story [[lucrjournal/domain-model#^read-domain-entries]] Covers lenient discriminator matching before refinement
 	it('matches lucr_type leniently and keeps casted values', () => {
 		const runtime = createRuntime([
 			{ path: 'demo-1.md', frontmatter: { lucr_type: 'Demo', name: 123 } },
@@ -102,6 +104,7 @@ describe('DomainBase', () => {
 		])
 	})
 
+	// @story [[lucrjournal/domain-model#^read-domain-entries]] Covers rejection of invalid matching frontmatter
 	it('skips matching cached frontmatter entries that fail schema validation', () => {
 		const runtime = createRuntime([
 			{ path: 'broken.md', frontmatter: { lucr_type: 'demo', name: { bad: true } } },
@@ -110,6 +113,7 @@ describe('DomainBase', () => {
 		expect(DemoDomain.totalEntries(runtime)).toEqual([])
 	})
 
+	// @story [[lucrjournal/domain-model#^update-domain-entry]] Covers normalized patching, hooks, validation failure, and persisted deletion
 	it('runs beforeSave during frontmatter patch updates and persists deletions', async () => {
 		const file = Object.assign(new TFile(), { path: 'demo-1.md', basename: 'demo-1' })
 		let frontmatter: Record<string, unknown> = {

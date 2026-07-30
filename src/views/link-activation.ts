@@ -32,6 +32,8 @@ export function consumeLinkActivationEvent(event: LinkActivationEvent | null | u
 }
 
 export function resolveLinkPane(defaultPane: PaneType | boolean, event: LinkActivationEvent | null | undefined): PaneType | boolean {
+	// @story [[lucrjournal/runtime#^command-link-new-tab]] Resolves command-click link activation to an Obsidian tab.
+	// @story [[lucrjournal/runtime#^normal-link-pane]] Preserves the caller pane for ordinary link activation.
 	return isCommandClick(event) ? 'tab' : defaultPane
 }
 
@@ -43,6 +45,7 @@ export async function openMarkdownFile(
 ): Promise<WorkspaceLeaf> {
 	const leaf = app.workspace.getLeaf(resolveLinkPane(options.defaultPane ?? 'tab', event))
 	if (options.sourceMode === true) {
+		// @story [[lucrjournal/runtime#^source-link-state]] Writes source-mode Markdown view state directly without opening the file first.
 		await openDomainFileAsMarkdown(leaf, file.path, 'source', options.stateResult ?? DEFAULT_STATE_RESULT, app)
 		return leaf
 	}

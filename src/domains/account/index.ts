@@ -116,6 +116,7 @@ type LinkedSymbolRenamePlan = {
 	nextPath: string
 }
 
+// @story [[lucrjournal/account-platform#^account-rename-collision]] Rejects linked symbol target collisions before cascade writes
 function buildLinkedSymbolRenamePlan(
 	app: App,
 	accountFile: TFile,
@@ -153,6 +154,7 @@ function buildLinkedSymbolRenamePlan(
 	return plans
 }
 
+// @story [[lucrjournal/account-platform#^account-rename-cascade]] Rewrites linked symbol identities and position references
 async function applyLinkedSymbolRenamePlan(
 	app: App,
 	plans: LinkedSymbolRenamePlan[],
@@ -203,9 +205,11 @@ class AccountDomainDefinition extends DomainBase<'account', typeof AccountType, 
 		buildPayload(formValue: AccountFormValue, ctx: { suggestedName?: string }) {
 			return buildAccountPayloadWithSuggestion(formValue, ctx.suggestedName)
 		},
+		// @story [[lucrjournal/domain-model#^account-file-identity]] Leaves account documents without a duplicate title
 		buildBody() {
 			return ''
 		},
+		// @story [[lucrjournal/domain-model#^account-file-identity]] Derives the account basename from its canonical display name
 		buildFileName(entry: Account) {
 			const displayName = getAccountDisplayName(entry)
 			return sanitizeObsidianFileName(`ACC-${displayName}`)
@@ -221,6 +225,7 @@ class AccountDomainDefinition extends DomainBase<'account', typeof AccountType, 
 			}
 			assertUniqueAccountDisplayName(app, displayName)
 		},
+		// @story [[lucrjournal/account-platform#^account-creates-platform]] Persists a missing linked platform before the account
 		async dependencies(formValue: AccountFormValue, app: App, ctx: CreateEntryContext) {
 			const platformName = sanitizeObsidianFileName(formValue.platform).trim()
 			if (platformName.length === 0) {
@@ -245,12 +250,14 @@ class AccountDomainDefinition extends DomainBase<'account', typeof AccountType, 
 		return `${this.name}:${account.name ?? '-'}` 
 	}
 
+	// @story [[lucrjournal/account-platform#^account-platform-display-name]] Derives the linked platform name from account frontmatter
 	toPlatformName(account: Account): string | null {
 		return account.platform == null
 			? null
 			: PlatformDomain.unwrapPlatformWikilink(account.platform)
 	}
 
+	// @story [[lucrjournal/account-platform#^account-platform-display-name]] Applies the canonical account display name fallback chain
 	toDisplayName(account: Account): string {
 		const accountName = account.name?.trim()
 		if (accountName != null && accountName !== '') {
@@ -261,6 +268,7 @@ class AccountDomainDefinition extends DomainBase<'account', typeof AccountType, 
 		return platformName != null && platformName !== '' ? platformName : 'Account'
 	}
 
+	// @story [[lucrjournal/account-platform#^account-display-lookup]] Matches accounts through the canonical display name normalization
 	findByDisplayName(app: DomainRuntimeApp, value: string) {
 		const normalizedValue = normalizeAccountDisplayName(value)
 		if (normalizedValue === '') {
@@ -305,10 +313,12 @@ class AccountDomainDefinition extends DomainBase<'account', typeof AccountType, 
 		return entry === undefined ? this.resolveIcon() : this.resolveDisplayIcon(app, entry.fm)
 	}
 
+	// @story [[lucrjournal/account-platform#^account-display-icon]] Defines the generic account icon
 	resolveIcon(_account?: Account): IconDescriptor {
 		return ACCOUNT_DEFAULT_ICON
 	}
 
+	// @story [[lucrjournal/account-platform#^account-display-icon]] Resolves linked platform icons with the account fallback
 	resolveDisplayIcon(app: DomainRuntimeApp, account: Account): IconDescriptor {
 		const platformName = this.toPlatformName(account)
 		if (platformName == null) {
@@ -333,6 +343,7 @@ class AccountDomainDefinition extends DomainBase<'account', typeof AccountType, 
 		return formValue.platform.trim() !== '' || formValue.name.trim() !== ''
 	}
 
+	// @story [[lucrjournal/account-platform#^account-rename-cascade]] Coordinates the account rename cascade
 	async updateAccountSettings(
 		app: App,
 		entry: DomainPersistedEntry<Account>,
@@ -397,6 +408,7 @@ class AccountDomainDefinition extends DomainBase<'account', typeof AccountType, 
 
 export const AccountDomain = new AccountDomainDefinition()
 
+// @story [[lucrjournal/domain-model#^account-file-identity]] Resolves the frontmatter source used by the account filename
 function getAccountDisplayName(account: { name?: string | null; platform?: string | null }) {
 	const accountName = account.name?.trim()
 	if (accountName != null && accountName !== '') {
@@ -416,6 +428,7 @@ function assertUniqueAccountDisplayName(app: App, displayName: string) {
 	}
 }
 
+// @story [[lucrjournal/account-platform#^account-display-lookup]] Normalizes both lookup inputs and persisted display names
 function normalizeAccountDisplayName(value: string) {
 	return sanitizeObsidianFileName(value).trim().toLocaleLowerCase()
 }
@@ -447,6 +460,7 @@ function resolveSuggestedAccountNameForForm(
 	return platformName.length === 0 ? undefined : suggestAccountDisplayName(app, platformName)
 }
 
+// @story [[lucrjournal/account-platform#^account-creates-platform]] Treats only persisted platforms as existing account dependencies
 function platformExists(app: App, platformName: string): boolean {
 	return PlatformDomain.hasPersistedPlatform(app, platformName)
 }
@@ -478,6 +492,8 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('AccountDomain display helpers', () => {
+		// @story [[lucrjournal/domain-model#^account-file-identity]] Covers explicit-name and platform-name identity sources
+		// @story [[lucrjournal/account-platform#^account-platform-display-name]] Covers explicit and platform-derived display names
 		it('derives platform name and display name from account entry', () => {
 			const researchSpot = AccountType.assert({
 				lucr_type: 'account',
@@ -496,6 +512,7 @@ if (import.meta.vitest) {
 			expect(AccountDomain.toDisplayName(fallbackAccount)).toBe('Binance')
 		})
 
+		// @story [[lucrjournal/account-platform#^account-platform-display-name]] Covers the generic display name fallback
 		it('allows accounts without platform and falls back to generic display name', () => {
 			const customAccount = AccountType.assert({
 				lucr_type: 'account',
@@ -507,6 +524,7 @@ if (import.meta.vitest) {
 			expect(AccountDomain.toDisplayName(customAccount)).toBe('Account')
 		})
 
+		// @story [[lucrjournal/account-platform#^account-display-icon]] Covers the generic wallet icon
 		it('uses wallet as the default account icon even when platform exists', () => {
 			const platformBackedAccount = AccountType.assert({
 				lucr_type: 'account',
@@ -520,6 +538,7 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/account-platform#^account-display-icon]] Covers a linked platform asset
 		it('prefers real platform icons for account display when available', () => {
 			const app = {
 				vault: {
@@ -542,6 +561,7 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/account-platform#^account-display-icon]] Covers the missing platform asset fallback
 		it('falls back to wallet when the linked platform has no real icon', () => {
 			const app = {
 				vault: {
@@ -564,6 +584,7 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/account-platform#^account-display-lookup]] Covers normalized display name lookup
 		it('centralizes account lookup and picker options', () => {
 			const file = Object.assign(new TFile(), {
 				path: `${LUCR_TRADE_ROOT_DIR}/accounts/ACC-Research.md`,
@@ -681,6 +702,8 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/domain-model#^account-file-identity]] Covers the account path and empty document body
+		// @story [[lucrjournal/account-platform#^account-creates-platform]] Covers creation of a persisted preset platform dependency
 		it('returns all created files when account creation cascades to a new platform', async () => {
 			const created: Array<{ path: string; content: string }> = []
 			const app = {

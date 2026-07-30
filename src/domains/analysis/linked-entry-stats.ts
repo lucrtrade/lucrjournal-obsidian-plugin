@@ -56,6 +56,8 @@ export type LinkedPositionSectionDefinition<Entry extends { icon?: string | null
 	createLinkedEntry: (app: App, name: string) => Promise<DomainPersistedEntry<Entry>>
 }
 
+// @story [[lucrjournal/fields#^by-date-filter]] Routes the analysis date picker into the shared date column filter
+// @story [[lucrjournal/fields#^tag-filter]] Builds normalized analysis tag filters from current table entries
 export const linkedEntryTableFilters = defineTableFilters<LinkedEntryStatsRow>([
 	{
 		id: 'byDate',
@@ -89,6 +91,7 @@ export const linkedEntryTableFilters = defineTableFilters<LinkedEntryStatsRow>([
 	},
 ])
 
+// @story [[lucrjournal/analysis#^linked-position-resolution]] Resolves context backlinks from position metadata paths
 export function listEntriesWithPositionStats<Entry>(
 	app: App,
 	entries: DomainPersistedEntry<Entry>[],
@@ -123,6 +126,7 @@ export function listEntriesWithPositionStats<Entry>(
 	})
 }
 
+// @story [[lucrjournal/analysis#^linked-entry-table-projection]] Projects one backlink aggregate into the table row
 function toLinkedEntryStatsRow(
 	row: LinkedEntryBacklinkStats<LinkedEntryTableFrontmatter>,
 ): LinkedEntryStatsRow {
@@ -152,6 +156,7 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('listEntriesWithPositionStats', () => {
+		// @story [[lucrjournal/analysis#^linked-position-resolution]] Covers position-only resolved-link grouping by target path
 		it('builds news backlink stats from position resolved links only once per position source set', () => {
 			const newsFile = createMockTFile('LucrTrade/news/cpi.md', 'cpi')
 			const otherNewsFile = createMockTFile('LucrTrade/news/fed.md', 'fed')

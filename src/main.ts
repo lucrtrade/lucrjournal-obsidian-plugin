@@ -11,6 +11,7 @@ import {
 	LUCR_POSITION_VIEW_TYPE,
 	OPEN_JOURNAL_COMMAND_ID,
 } from './constant'
+import { installDevelopmentIpcRequestLogger } from './debug/install-development-ipc-request-logger'
 import { registerDomainModifiedTracker } from './domains/core/domain-modified-tracker'
 import { registerLucrJournalAttachmentCapture } from './editor/attachment-paste-drop'
 import { IconsSvg } from './icons'
@@ -42,11 +43,13 @@ import type { WorkspaceLeaf } from 'obsidian'
 
 const logger = createLogger('plugin')
 
+// @story [[lucrjournal/entitlement#^startup-session-check]] Defines the background entitlement revalidation cadence.
 const SESSION_CHECK_INTERVAL_MS = 60 * 60 * 1000
 
 export default class LucrJournalPlugin extends Plugin {
 	public override settings = new PluginSettings()
 	public settingsManager = new PluginSettingsManager(this)
+	private debugRuntimeCleanup: () => void = () => {}
 	private settingsTab: PluginSettingsTab | null = null
 
 	public override async onload(): Promise<void> {
@@ -67,15 +70,23 @@ export default class LucrJournalPlugin extends Plugin {
 	}
 
 	public override onunload(): void {
+		// @story [[lucrjournal/runtime#^plugin-unload-cleanup]] Detaches custom leaves and removes the active debug runtime on plugin unload.
 		logger.debug('detaching journal leaves', {
 			viewType: LUCR_JOURNAL_VIEW_TYPE,
 		})
 		void this.app.workspace.detachLeavesOfType(LUCR_JOURNAL_VIEW_TYPE)
 		void this.app.workspace.detachLeavesOfType(LUCR_PLAYBOOK_VIEW_TYPE)
 		void this.app.workspace.detachLeavesOfType(LUCR_POSITION_VIEW_TYPE)
+		this.debugRuntimeCleanup()
+		this.debugRuntimeCleanup = () => {}
 	}
 
 	private async onloadImpl(): Promise<void> {
+		this.register(() => {
+			// @story [[lucrjournal/runtime#^debug-ipc-cleanup]] Binds debug IPC cleanup to the plugin lifecycle.
+			this.debugRuntimeCleanup()
+			this.debugRuntimeCleanup = () => {}
+		})
 		this.register(registerPositionAttachmentOcrRuntime(this))
 		bindCacheRuntime(this.app, CacheRegistry)
 		const domainModifiedTracker = registerDomainModifiedTracker(this)
@@ -132,6 +143,7 @@ export default class LucrJournalPlugin extends Plugin {
 
 		this.registerObsidianProtocolHandler('lucrjournal-auth', async ({ code, state }) => {
 			const callback = handleAuthCallback(this.app, this.manifest.version, { code, state })
+			// @story [[lucrjournal/session#^claim-loading]] Refreshes session surfaces before and after the asynchronous claim.
 			this.refreshSessionUi()
 			await callback
 			this.refreshSessionUi()
@@ -185,9 +197,11 @@ export default class LucrJournalPlugin extends Plugin {
 
 		await this.ensureFolders()
 		await maybeShowReleaseNotes(this)
+		// @story [[lucrjournal/entitlement#^startup-session-check]] Checks access once before scheduling recurring validation.
 		await runSessionCheck(this.app)
 		this.requestJournalViewsRender()
 
+		// @story [[lucrjournal/runtime#^managed-runtime-resources]] Registers the session timer with the Obsidian plugin lifecycle.
 		this.registerInterval(window.setInterval(() => {
 			void this.checkSessionPeriodically()
 		}, SESSION_CHECK_INTERVAL_MS))
@@ -195,6 +209,7 @@ export default class LucrJournalPlugin extends Plugin {
 
 	private async checkSessionPeriodically(): Promise<void> {
 		const outcome = await runSessionCheck(this.app)
+		// @story [[lucrjournal/entitlement#^periodic-session-refresh]] Avoids UI churn only when the check preserves current state.
 		if (outcome !== 'kept') {
 			this.refreshSessionUi()
 		}
@@ -245,7 +260,12 @@ export default class LucrJournalPlugin extends Plugin {
 	}
 
 	public applyDebugMode(): void {
+		// @story [[lucrjournal/runtime#^debug-ipc-gate]] Cleans the previous runtime before applying the current debug setting.
 		setDebugLoggingEnabled(this.settings.debugMode)
+		this.debugRuntimeCleanup()
+		this.debugRuntimeCleanup = this.settings.debugMode
+			? installDevelopmentIpcRequestLogger()
+			: () => {}
 	}
 
 	public requestJournalViewsRender(): void {
@@ -258,6 +278,7 @@ export default class LucrJournalPlugin extends Plugin {
 	}
 
 	public async recheckJournalAccess(): Promise<void> {
+		// @story [[lucrjournal/entitlement#^upgrade-recheck]] Reuses the stored token and refreshes every session surface after checking.
 		await runSessionCheck(this.app)
 		this.refreshSessionUi()
 	}
@@ -273,6 +294,7 @@ export default class LucrJournalPlugin extends Plugin {
 
 	public logout(): void {
 		const token = getToken(this.app)
+		// @story [[lucrjournal/session#^local-first-logout]] Clears local state and UI before attempting remote revocation.
 		clearSession(this.app)
 		this.requestJournalViewsRender()
 		this.refreshSettings()

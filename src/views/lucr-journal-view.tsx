@@ -52,10 +52,12 @@ export class LucrJournalView extends ItemView {
 
 	async openRoute(route: LucrJournalRouteState, event?: LinkActivationEvent): Promise<void> {
 		if (!isCommandClick(event)) {
+			// @story [[lucrjournal/runtime#^same-leaf-route]] Updates normal route activation in the current journal view.
 			this.showRoute(route)
 			return
 		}
 
+		// @story [[lucrjournal/runtime#^command-route-new-tab]] Opens command-click routes as complete journal view state in a new tab.
 		const leaf = this.app.workspace.getLeaf('tab')
 		await leaf.setViewState(createLucrJournalRouteViewState(route))
 		await this.app.workspace.revealLeaf(leaf)
@@ -79,6 +81,7 @@ export class LucrJournalView extends ItemView {
 		this.workspaceLeafEl.addClass('lucrjournal-dashboard-leaf')
 		this.contentEl.empty()
 
+		// @story [[lucrjournal/runtime#^dashboard-react-root]] Mounts the dashboard React root with stable runtime selectors.
 		const container = this.contentEl.createDiv({
 			cls: 'lucrjournal-view lucrjournal-dashboard-view',
 			attr: {
@@ -99,6 +102,7 @@ export class LucrJournalView extends ItemView {
 			hasRoot: this.root !== null,
 			viewType: LUCR_JOURNAL_VIEW_TYPE,
 		})
+		// @story [[lucrjournal/runtime#^view-react-cleanup]] Unmounts and clears the dashboard React runtime when its view closes.
 		this.root?.unmount()
 		this.root = null
 		this.workspaceLeafEl?.removeClass('lucrjournal-dashboard-leaf')
@@ -116,6 +120,7 @@ export class LucrJournalView extends ItemView {
 			return
 		}
 
+		// @story [[lucrjournal/entitlement#^views-share-access-gate]] Gates the main journal view with the shared session predicate.
 		if (getToken(this.app) === null || requiresJournalUpgrade(this.app)) {
 			this.root.render(<SessionGateScreen
 				app={this.app}

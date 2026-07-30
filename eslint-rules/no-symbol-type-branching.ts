@@ -47,6 +47,7 @@ type VariableDeclaratorNode = Rule.Node & {
 	init: Rule.Node | null
 }
 
+// @story [[lucrjournal/tooling#^no-symbol-type-branching]] Defines forbidden symbol type branch literals outside the model
 const SYMBOL_TYPE_VALUES = new Set(['Crypto_Perp', 'Crypto_Spot', 'Future', 'CFD', 'crypto_perp', 'crypto_spot', 'future', 'cfd'])
 const SYMBOL_TYPE_MODEL_PATH = 'src/domains/symbol/position-model.ts'
 

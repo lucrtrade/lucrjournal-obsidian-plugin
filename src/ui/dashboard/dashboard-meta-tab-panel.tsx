@@ -142,10 +142,12 @@ export function DashboardMetaTabPanel({
 		state.setColumnFilters((current) => areColumnFiltersEqual(current, filterResult.columnFilters) ? current : filterResult.columnFilters)
 	}, [filterResult.columnFilters, state.setColumnFilters])
 
+	// @story [[lucrjournal/fields#^filter-apply-reset]] Resets analysis pagination after search filter sorting or tab changes
 	useEffect(() => {
 		state.setPagination((current) => current.pageIndex === 0 ? current : { ...current, pageIndex: 0 })
 	}, [state.globalFilter, state.columnFilters, state.sorting, tabId, tableFilterState])
 
+	// @story [[lucrjournal/fields#^column-visibility-persistence]] Synchronizes the active analysis tab hidden columns into table state
 	useEffect(() => {
 		const nextVisibility = createColumnVisibilityState(tabId, hiddenColumnIds)
 		state.setColumnVisibility((current) => areVisibilityStatesEqual(current, nextVisibility) ? current : nextVisibility)

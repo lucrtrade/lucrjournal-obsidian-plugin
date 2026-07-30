@@ -30,6 +30,8 @@ export function EditableAccountNameCell({
 		return () => window.clearTimeout(timer)
 	}, [isEditing, value])
 
+	// @story [[lucrjournal/fields#^account-name-writeback]] Commits trimmed account names through the account settings writer
+	// @story [[lucrjournal/fields#^writeback-failure-state]] Closes account editing after a handled lookup or update failure
 	const save = async () => {
 		const nextValue = draft.trim()
 		if (nextValue === value.trim()) {

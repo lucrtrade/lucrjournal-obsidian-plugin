@@ -92,6 +92,7 @@ export function ConfirmDeleteModal({
 	maxWidthClassName,
 	'data-lj-control': dataLjControl,
 }: ConfirmDeleteModalProps) {
+	// @story [[lucrjournal/primitives#^confirm-delete-lock]] Blocks every modal close path and action while deletion is active
 	return (
 		<Modal
 			isOpen={isOpen}

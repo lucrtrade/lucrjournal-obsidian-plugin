@@ -1,5 +1,6 @@
 {
 	"$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+	// @story [[lucrjournal/tooling#^knip-project-scope]] Defines Knip entry roots project scope and reviewed exceptions
 	"entry": [
 		"src/main.ts",
 		"src/styles/main.pcss",

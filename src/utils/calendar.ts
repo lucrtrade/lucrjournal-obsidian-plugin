@@ -7,8 +7,10 @@ export type CalendarCell = {
 	isToday: boolean
 }
 
+// @story [[lucrjournal/content#^calendar-week-grid]] Builds only the complete weeks needed around the requested month.
 export function buildCalendarGrid(year: number, month: number, startOfWeek: 0 | 1 = 1): CalendarCell[][] {
 	const today = new Date()
+	// @story [[lucrjournal/content#^calendar-cell-state]] Compares today and cell membership from local calendar fields.
 	const todayStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`
 
 	const firstDay = new Date(year, month, 1)
@@ -37,6 +39,7 @@ export function buildCalendarGrid(year: number, month: number, startOfWeek: 0 | 
 	return weeks
 }
 
+// @story [[lucrjournal/content#^calendar-date-keys]] Formats zero-padded date keys from local date fields.
 export function toDateKey(date: Date): string {
 	const year = date.getFullYear()
 	const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -44,6 +47,7 @@ export function toDateKey(date: Date): string {
 	return `${year}-${month}-${day}`
 }
 
+// @story [[lucrjournal/content#^calendar-date-keys]] Formats zero-padded date keys from explicit timezone parts.
 export function toDateKeyInTimeZone(date: Date, timeZone: string): string {
 	const parts = new Intl.DateTimeFormat('en-CA', {
 		timeZone,
@@ -67,6 +71,7 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('buildCalendarGrid', () => {
+		// @story [[lucrjournal/content#^calendar-week-grid]] Covers the minimal complete-week grid for a five-week month.
 		it('produces only the weeks needed for the visible month', () => {
 			const grid = buildCalendarGrid(2026, 4)
 			expect(grid).toHaveLength(5)
@@ -75,10 +80,12 @@ if (import.meta.vitest) {
 			}
 		})
 
+		// @story [[lucrjournal/content#^calendar-week-grid]] Covers retaining a sixth week when the month needs it.
 		it('keeps six rows when the visible month spans six weeks', () => {
 			expect(buildCalendarGrid(2026, 2)).toHaveLength(6)
 		})
 
+		// @story [[lucrjournal/content#^calendar-week-grid]] Covers Monday-first week alignment.
 		it('aligns the first column to Monday when startOfWeek is 1', () => {
 			const grid = buildCalendarGrid(2026, 0, 1)
 			for (const week of grid) {
@@ -87,6 +94,7 @@ if (import.meta.vitest) {
 			}
 		})
 
+		// @story [[lucrjournal/content#^calendar-week-grid]] Covers Sunday-first week alignment.
 		it('aligns the first column to Sunday when startOfWeek is 0', () => {
 			const grid = buildCalendarGrid(2026, 0, 0)
 			for (const week of grid) {
@@ -95,6 +103,7 @@ if (import.meta.vitest) {
 			}
 		})
 
+		// @story [[lucrjournal/content#^calendar-cell-state]] Covers year-and-month cell membership flags.
 		it('flags only in-month cells as current month', () => {
 			const grid = buildCalendarGrid(2026, 4)
 			for (const week of grid) {
@@ -106,6 +115,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('toDateKey', () => {
+		// @story [[lucrjournal/content#^calendar-date-keys]] Covers local zero-padded date keys.
 		it('zero-pads month and day to YYYY-MM-DD', () => {
 			expect(toDateKey(new Date(2026, 0, 3))).toBe('2026-01-03')
 			expect(toDateKey(new Date(2026, 10, 30))).toBe('2026-11-30')
@@ -113,6 +123,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('toDateKeyInTimeZone', () => {
+		// @story [[lucrjournal/content#^calendar-date-keys]] Covers date keys changing across explicit timezones.
 		it('formats date keys in an explicit timezone', () => {
 			const date = new Date('2026-05-01T03:00:00+08:00')
 			expect(toDateKeyInTimeZone(date, 'Asia/Shanghai')).toBe('2026-05-01')

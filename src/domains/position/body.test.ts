@@ -16,10 +16,14 @@ import {
 } from './body'
 
 describe('position body contract', () => {
+	// @story [[lucrjournal/position-body#^default-position-body]] Covers the exact Notes-only body skeleton
 	it('builds the default skeleton with Notes only', () => {
 		expect(buildDefaultPositionBody()).toBe('\n# Notes\n')
 	})
 
+	// @story [[lucrjournal/position-body#^position-section-contract]] Covers canonical insertion between surrounding H1 sections
+	// @story [[lucrjournal/position-body#^append-position-context]] Covers a missing H1 and canonical linked H2 append
+	// @story [[lucrjournal/position-body#^position-body-reserialization]] Covers preservation of frontmatter Notes body and sibling H1 sections
 	it('appends a linked entry into a missing top-level section and inserts it in order', async () => {
 		const positionFile = createMockTFile(`${LUCR_TRADE_ROOT_DIR}/positions/POS-00001.md`)
 		const newsFile = createMockTFile(`${LUCR_TRADE_ROOT_DIR}/news/news1.md`)
@@ -61,6 +65,7 @@ describe('position body contract', () => {
 		].join('\n'))
 	})
 
+	// @story [[lucrjournal/position-body#^append-position-context]] Covers duplicate linkpath rejection without a file write
 	it('does not duplicate an existing linked entry inside the same section', async () => {
 		const positionFile = createMockTFile(`${LUCR_TRADE_ROOT_DIR}/positions/POS-00001.md`)
 		const newsFile = createMockTFile(`${LUCR_TRADE_ROOT_DIR}/news/news1.md`)
@@ -81,6 +86,7 @@ describe('position body contract', () => {
 		expect(runtime.writeCount).toBe(0)
 	})
 
+	// @story [[lucrjournal/position-body#^position-playbook-writeback]] Covers canonical playbook basename writeback
 	it('writes the linked playbook into frontmatter', async () => {
 		const positionFile = createMockTFile(`${LUCR_TRADE_ROOT_DIR}/positions/POS-00001.md`)
 		const playbookFile = createMockTFile(`${LUCR_TRADE_ROOT_DIR}/playbooks/PBK-00002.md`)
@@ -103,6 +109,7 @@ describe('position body contract', () => {
 		expect(runtime.frontmatter.playbook).toBe('[[PBK-00002]]')
 	})
 
+	// @story [[lucrjournal/position-body#^position-playbook-writeback]] Covers clearing an existing playbook reference
 	it('clears the linked playbook from frontmatter', async () => {
 		const positionFile = createMockTFile(`${LUCR_TRADE_ROOT_DIR}/positions/POS-00001.md`)
 		const runtime = createPositionBodyRuntime('# Notes\n', { playbook: '[[PBK-00001]]' })
@@ -116,6 +123,7 @@ describe('position body contract', () => {
 		expect(runtime.frontmatter.playbook).toBeNull()
 	})
 
+	// @story [[lucrjournal/position-body#^position-playbook-writeback]] Covers exact-linkpath cleanup and mismatch preservation
 	it('clears playbook frontmatter only when linkpath matches', async () => {
 		const positionFile = createMockTFile(`${LUCR_TRADE_ROOT_DIR}/positions/POS-00001.md`)
 		const runtime = createPositionBodyRuntime('# Notes\n', { playbook: '[[PBK-00001]]' })
@@ -135,6 +143,7 @@ describe('position body contract', () => {
 		expect(runtime.frontmatter.playbook).toBeNull()
 	})
 
+	// @story [[lucrjournal/position-body#^remove-position-context]] Covers linked block deletion while retaining the empty H1
 	it('keeps the optional H1 when its last linked block is deleted', async () => {
 		const positionFile = createMockTFile(`${LUCR_TRADE_ROOT_DIR}/positions/POS-00001.md`)
 		const runtime = createPositionBodyRuntime([
@@ -165,6 +174,7 @@ describe('position body contract', () => {
 		].join('\n'))
 	})
 
+	// @story [[lucrjournal/position-body#^ensure-position-section]] Covers explicit creation of one empty optional H1
 	it('creates an empty optional section without opening a picker path', async () => {
 		const positionFile = createMockTFile(`${LUCR_TRADE_ROOT_DIR}/positions/POS-00001.md`)
 		const runtime = createPositionBodyRuntime([
@@ -183,6 +193,7 @@ describe('position body contract', () => {
 		].join('\n'))
 	})
 
+	// @story [[lucrjournal/position-body#^remove-position-section]] Covers exact H1 removal with sibling preservation
 	it('deletes a whole top-level analysis section on demand', async () => {
 		const positionFile = createMockTFile(`${LUCR_TRADE_ROOT_DIR}/positions/POS-00001.md`)
 		const runtime = createPositionBodyRuntime([
@@ -213,6 +224,7 @@ describe('position body contract', () => {
 		].join('\n'))
 	})
 
+	// @story [[lucrjournal/position-body#^remove-all-position-context]] Covers four-section cleanup Notes preservation and playbook isolation
 	it('removes the same linkpath from every analysis section but keeps playbook frontmatter intact', async () => {
 		const positionFile = createMockTFile(`${LUCR_TRADE_ROOT_DIR}/positions/POS-00001.md`)
 		const runtime = createPositionBodyRuntime([

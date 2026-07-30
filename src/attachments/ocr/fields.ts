@@ -25,6 +25,7 @@ type PositionAttachmentOcrFieldDefinition = {
 	toFrontmatterValue: (draft: string) => number | string | null
 }
 
+// @story [[lucrjournal/ocr#^manual-ocr-review]] Defines the only editable and writable OCR fields
 export const POSITION_ATTACHMENT_OCR_FIELDS = [
 	{
 		key: 'notional_value',

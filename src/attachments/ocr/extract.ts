@@ -23,6 +23,7 @@ export async function extractPositionAttachmentOcrResultFromImageRecognition(
 	return mergePositionAttachmentOcrResultWithVisualPriceMatch(textResult, visualPriceMatch)
 }
 
+// @story [[lucrjournal/ocr#^platform-ocr-extraction]] Prefers MetaTrader blocks before TradingView extraction
 export function extractPositionAttachmentOcrResultFromRecognition(
 	recognition: PositionAttachmentOcrRecognition,
 ): PositionAttachmentOcrResult {

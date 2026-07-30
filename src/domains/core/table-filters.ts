@@ -79,6 +79,7 @@ export function resolveTableFilterOptions<Schema>(
 		: definition.options
 }
 
+// @story [[lucrjournal/fields#^filter-conjunction]] Applies definition filters sequentially while replacing their managed column filters
 export function applyTableFilterState<Schema>(
 	params: {
 		definitions: readonly TableFilterDefinition<Schema>[]

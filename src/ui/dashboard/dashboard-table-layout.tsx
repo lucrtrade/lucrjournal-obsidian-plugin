@@ -103,6 +103,7 @@ export function DashboardTableLayout<T>({
 	const endRow = totalRows === 0 ? 0 : Math.min((pageIndex + 1) * pageSize, totalRows)
 	const paginationItems = buildPaginationItems(currentPage, pageCount)
 	const visibleColumns = table.getVisibleLeafColumns()
+	// @story [[lucrjournal/fields#^column-width-layout]] Sizes the table and visible columns from descriptor width weights
 	const tableMinWidthPx = resolveTableMinWidthPx(
 		visibleColumns.map((column) => column.columnDef.meta?.tableLayout),
 	)
@@ -214,6 +215,7 @@ export function DashboardTableLayout<T>({
 										className={`lj:align-middle lj:px-4 lj:py-3 lj:font-normal lj:whitespace-nowrap ${resolveTableHeaderClassName(meta?.tableLayout, align)} ${header.column.getCanSort() ? 'lj:cursor-pointer lj:select-none' : ''}`}
 										onClick={header.column.getToggleSortingHandler()}
 									>
+										{/* @story [[lucrjournal/fields#^sorting-comparator]] Delegates sortable header state transitions to TanStack */}
 										<span className="lj:inline-flex lj:items-center lj:gap-1 lj:leading-none lj:whitespace-nowrap">
 											<span>{flexRender(header.column.columnDef.header, header.getContext())}</span>
 											<SortIndicator direction={header.column.getIsSorted()} />

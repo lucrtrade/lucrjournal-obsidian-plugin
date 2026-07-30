@@ -45,7 +45,7 @@ export type AccountPlan = {
 } | null
 
 export type AccountSubscription = {
-	interval: 'month' | 'year'
+	interval: 'month' | 'half_year' | 'year'
 	currentPeriodEnd: string | null
 	cancelAtPeriodEnd: boolean
 } | null

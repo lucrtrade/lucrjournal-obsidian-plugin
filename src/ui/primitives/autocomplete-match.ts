@@ -9,6 +9,7 @@ export function rankAutocompleteOptions<T extends AutocompleteOptionLike>(
 	query: string,
 	normalizeValue: (value: string) => string,
 ): T[] {
+	// @story [[lucrjournal/primitives#^autocomplete-match-scope]] Normalizes and filters every searchable option field
 	const normalizedQuery = normalizeValue(query).toLowerCase()
 	if (normalizedQuery === '') {
 		return [...options]
@@ -28,6 +29,7 @@ export function rankAutocompleteOptions<T extends AutocompleteOptionLike>(
 			),
 		}))
 		.filter((candidate): candidate is { option: T; index: number; score: number } => candidate.score !== null)
+		// @story [[lucrjournal/primitives#^autocomplete-rank-order]] Orders matches by rank label and original position
 		.sort((left, right) => {
 			if (left.score !== right.score) {
 				return left.score - right.score
@@ -92,6 +94,7 @@ if (import.meta.vitest) {
 
 	describe('rankAutocompleteOptions', () => {
 		it('sorts exact matches before prefix and substring matches', () => {
+			// @story [[lucrjournal/primitives#^autocomplete-rank-order]] Covers exact prefix and substring rank order
 			expect(rankAutocompleteOptions([
 				{ value: 'Macro Setup' },
 				{ value: 'Macro' },
@@ -104,6 +107,7 @@ if (import.meta.vitest) {
 		})
 
 		it('matches against normalized labels too', () => {
+			// @story [[lucrjournal/primitives#^autocomplete-match-scope]] Covers normalized label matching
 			expect(rankAutocompleteOptions([
 				{ value: 'entry-criteria', label: 'Entry Criteria' },
 				{ value: 'exit-criteria', label: 'Exit Criteria' },

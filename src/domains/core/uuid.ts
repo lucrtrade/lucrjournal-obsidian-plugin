@@ -1,5 +1,6 @@
 /// <reference types="vitest/importMeta" />
 
+// @story [[lucrjournal/domain-model#^position-uuid-identity]] Generates the stable persisted identity used by position payloads
 export function createUuidV7() {
 	const bytes = new Uint8Array(16)
 	crypto.getRandomValues(bytes)
@@ -22,6 +23,7 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('createUuidV7', () => {
+		// @story [[lucrjournal/domain-model#^position-uuid-identity]] Covers UUID version and variant bits in the persisted string
 		it('generates uuid v7 strings', () => {
 			expect(createUuidV7()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
 		})

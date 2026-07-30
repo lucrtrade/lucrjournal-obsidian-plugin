@@ -48,6 +48,7 @@ describe('sync OCR assets', () => {
 		)
 	})
 
+	// @story [[lucrjournal/ocr#^sync-ocr-assets]] Covers package-version-bound runtime sources
 	it('uses the package onnxruntime-web version for runtime assets', () => {
 		const packageJson = {
 			dependencies: {
@@ -61,6 +62,7 @@ describe('sync OCR assets', () => {
 		expect(assets[1].source).toBe('npm:onnxruntime-web@1.25.1/dist/ort-wasm-simd-threaded.jsep.wasm')
 	})
 
+	// @story [[lucrjournal/ocr#^verify-ocr-assets]] Covers fail-closed SHA-256 verification
 	it('throws when committed asset content does not match the manifest', () =>
 		withTempRoot((rootPath) => {
 			mkdirSync(join(rootPath, 'assets/ocr/onnxruntime-web'), { recursive: true })
@@ -84,6 +86,7 @@ describe('sync OCR assets', () => {
 			).toThrow('OCR asset hash mismatch')
 		}))
 
+	// @story [[lucrjournal/ocr#^verify-ocr-assets]] Covers rejecting files outside the manifest
 	it('throws when committed assets contain files outside the manifest', () =>
 		withTempRoot((rootPath) => {
 			mkdirSync(join(rootPath, 'assets/ocr/models'), { recursive: true })
@@ -101,6 +104,7 @@ describe('sync OCR assets', () => {
 			).toThrow('Unexpected OCR asset')
 		}))
 
+	// @story [[lucrjournal/ocr#^verify-ocr-assets]] Covers a complete local check without network access
 	it('checks committed OCR assets without network access', async () =>
 		await withTempRootAsync(async (rootPath) => {
 			writeFileSync(join(rootPath, 'package.json'), JSON.stringify({

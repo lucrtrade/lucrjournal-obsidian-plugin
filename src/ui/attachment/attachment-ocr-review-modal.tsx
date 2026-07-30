@@ -17,6 +17,7 @@ type AttachmentOcrReviewModalProps = {
 	onSubmit: (draft: PositionAttachmentOcrDraft) => void
 }
 
+// @story [[lucrjournal/ocr#^manual-ocr-review]] Renders the editable draft from the canonical OCR field list
 const OCR_REVIEW_FIELDS = getPositionAttachmentOcrFields()
 const MODAL_MAX_WIDTH_CLASS_NAME = 'lj:max-w-6xl'
 const MODAL_CONTENT_CLASS_NAME = 'lj:p-0'
@@ -97,6 +98,7 @@ export function AttachmentOcrReviewModal({
 					className="lj:flex lj:w-full lj:flex-col lj:justify-center lj:border-t lj:border-lj-alpha-5 lj:bg-lj-surf-inset lj:p-6 sm:lj:w-[320px] sm:lj:border-l sm:lj:border-t-0"
 					onSubmit={(event) => {
 						event.preventDefault()
+						// @story [[lucrjournal/ocr#^manual-ocr-review]] Requires explicit review submission before applying the draft
 						onSubmit(draft)
 					}}
 				>

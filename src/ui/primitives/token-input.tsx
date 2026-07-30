@@ -44,6 +44,7 @@ export function TokenInput({
 	const [activeIndex, setActiveIndex] = useState(0)
 	const inputRef = useRef<HTMLInputElement>(null)
 	const listboxId = useRef(`lj-token-input-${Math.random().toString(36).slice(2)}`)
+	// @story [[lucrjournal/primitives#^token-normalization]] Normalizes deduplicates and bounds rendered token values
 	const normalizedTokens = useMemo(
 		() => dedupeNormalizedValues(value, normalizeValue, maxTokens),
 		[value, normalizeValue, maxTokens],
@@ -53,6 +54,7 @@ export function TokenInput({
 		[normalizedTokens, normalizeValue],
 	)
 	const normalizedSuggestions = useMemo(() => normalizeOptions(suggestions), [suggestions, normalizeOptions])
+	// @story [[lucrjournal/primitives#^token-suggestions]] Excludes selected tokens then ranks and caps suggestions
 	const visibleSuggestions = useMemo(() => {
 		return rankAutocompleteOptions(
 			normalizedSuggestions.filter((option) => !normalizedTokenKeys.has(normalizeValue(option.value).toLowerCase())),
@@ -60,6 +62,7 @@ export function TokenInput({
 			normalizeValue,
 		).slice(0, 8)
 	}, [normalizedSuggestions, normalizedTokenKeys, normalizeValue, query])
+	// @story [[lucrjournal/primitives#^token-invalid-query]] Reports nonempty queries rejected by normalization
 	const hasInvalidQuery = query.trim() !== '' && normalizeValue(query) === ''
 
 	useEffect(() => {
@@ -94,6 +97,8 @@ export function TokenInput({
 		onQueryChange?.(nextQuery)
 	}
 
+	// @story [[lucrjournal/primitives#^token-enter-commit]] Applies normalization replacement and duplicate semantics to committed queries
+	// @story [[lucrjournal/primitives#^token-suggestion-commit]] Applies the same commit boundary to suggestion values
 	const appendToken = (rawValue: string) => {
 		const normalizedToken = normalizeValue(rawValue)
 		if (normalizedToken === '') {
@@ -174,6 +179,7 @@ export function TokenInput({
 						}, 100)
 					}}
 					onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
+						// @story [[lucrjournal/primitives#^token-escape]] Closes visible suggestions before delegating Escape
 						if (event.key === 'Escape') {
 							if (isOpen && visibleSuggestions.length > 0) {
 								event.preventDefault()
@@ -186,6 +192,7 @@ export function TokenInput({
 							return
 						}
 
+						// @story [[lucrjournal/primitives#^token-backspace-edit]] Restores the final token to the empty query
 						if (event.key === 'Backspace' && query === '' && normalizedTokens.length > 0) {
 							event.preventDefault()
 							const previousToken = normalizedTokens[normalizedTokens.length - 1]!
@@ -215,6 +222,7 @@ export function TokenInput({
 							return
 						}
 
+						// @story [[lucrjournal/primitives#^token-enter-commit]] Chooses the active suggestion or raw query on commit keys
 						if (event.key === ',' || event.key === 'Enter') {
 							if (query.trim() === '') {
 								return
@@ -230,6 +238,7 @@ export function TokenInput({
 							return
 						}
 
+						// @story [[lucrjournal/primitives#^token-suggestion-commit]] Commits an active suggestion with Tab
 						if (event.key === 'Tab') {
 							if (!isOpen || visibleSuggestions[activeIndex] === undefined) {
 								return
@@ -267,6 +276,7 @@ export function TokenInput({
 							aria-selected={index === activeIndex}
 							type="button"
 							onMouseDown={(event) => {
+								// @story [[lucrjournal/primitives#^token-suggestion-commit]] Commits an active suggestion with pointer input
 								event.preventDefault()
 								event.stopPropagation()
 								const didAppend = appendToken(suggestion.value)

@@ -47,6 +47,7 @@ const BuiltinSymbolData = [
 	{ symbol_name: 'ATOMUSDT' },
 	{ symbol_name: 'XLMUSDT' },
 	{ symbol_name: 'USDCUSDT' },
+	// @story [[lucrjournal/symbol#^future-contract-units]] Defines every builtin future contract multiplier
 	{ symbol_name: 'ES', contract_unit: 50 },
 	{ symbol_name: 'MES', contract_unit: 5 },
 	{ symbol_name: 'NQ', contract_unit: 20 },
@@ -98,6 +99,7 @@ const BuiltinSymbolData = [
 	{ symbol_name: 'TN', contract_unit: 100000 },
 	{ symbol_name: 'ZB', contract_unit: 100000 },
 	{ symbol_name: 'UB', contract_unit: 100000 },
+	// @story [[lucrjournal/symbol#^cfd-contract-units]] Defines every builtin CFD contract multiplier
 	{ symbol_name: 'XAUUSD', contract_unit: 100 },
 	{ symbol_name: 'XAGUSD', contract_unit: 500 },
 	{ symbol_name: 'EURUSD', contract_unit: 100000 },

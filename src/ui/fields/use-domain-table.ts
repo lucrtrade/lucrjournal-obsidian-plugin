@@ -69,6 +69,7 @@ function resolveDateFilterKey(value: unknown): string | null {
 	return null
 }
 
+// @story [[lucrjournal/fields#^by-date-filter]] Matches valid date filters in the configured timezone and ignores invalid filters
 const BY_DATE_FILTER_FN: FilterFn<DomainPersistedEntry<unknown>> = (row, columnId, filterValue) => {
 	const normalizedFilterValue = normalizeByDateFilterValue(filterValue)
 	if (normalizedFilterValue === null) {
@@ -116,10 +117,12 @@ export function useDomainTable<Schema, TField extends FieldDescriptor<Schema>>(
 	)
 
 	const columns = useMemo(() => {
+		// @story [[lucrjournal/fields#^column-order]] Preserves descriptor order while selecting table fields
 		return fields
 			.filter((f) => f.usages.includes('Table'))
 			.map((field) => {
 				const renderer = renderers[field.type as TField['type']]
+				// @story [[lucrjournal/fields#^renderer-dispatch]] Fails closed when a table field type lacks a registered renderer
 				if (renderer === undefined) {
 					throw new Error(`useDomainTable: no renderer registered for field type "${field.type}" (key: "${field.key}")`)
 				}
@@ -150,6 +153,7 @@ export function useDomainTable<Schema, TField extends FieldDescriptor<Schema>>(
 				}
 
 				// Resolve sortingFn
+				// @story [[lucrjournal/fields#^sorting-comparator]] Uses descriptor entry comparators before TanStack value inference
 				let sortingFn: SortingFn<DomainPersistedEntry<Schema>> | undefined
 				if (field.compareFn !== undefined) {
 					const compareFn = field.compareFn
@@ -202,6 +206,7 @@ export function useDomainTable<Schema, TField extends FieldDescriptor<Schema>>(
 		filterFns: {
 			by_date: BY_DATE_FILTER_FN,
 		},
+		// @story [[lucrjournal/fields#^filter-conjunction]] Adds global search to TanStack column filtering
 		globalFilterFn: (row, _columnId, filterValue) => {
 			if (typeof filterValue !== 'string') {
 				return true
@@ -221,6 +226,7 @@ export function useDomainTable<Schema, TField extends FieldDescriptor<Schema>>(
 		getCoreRowModel: getCoreRowModel(),
 		getFilteredRowModel: getFilteredRowModel(), // handles both column filters AND globalFilter in v8
 		getPaginationRowModel: getPaginationRowModel(),
+		// @story [[lucrjournal/fields#^sorting-comparator]] Delegates stable multi-column sorting to TanStack
 		getSortedRowModel: getSortedRowModel(),
 	})
 
@@ -250,6 +256,7 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('BY_DATE_FILTER_FN', () => {
+		// @story [[lucrjournal/fields#^by-date-filter]] Covers configured-timezone calendar date matching
 		it('matches datetime strings by calendar date in the configured timezone', () => {
 			setCurrentTimeZoneSetting('Asia/Shanghai')
 			expect(BY_DATE_FILTER_FN({
@@ -257,6 +264,7 @@ if (import.meta.vitest) {
 			} as never, 'created', '2026-04-14', undefined as never)).toBe(true)
 		})
 
+		// @story [[lucrjournal/fields#^by-date-filter]] Covers fail-open removal of empty and invalid date filters
 		it('ignores empty or invalid date filter values', () => {
 			setCurrentTimeZoneSetting('Asia/Shanghai')
 			expect(BY_DATE_FILTER_FN({

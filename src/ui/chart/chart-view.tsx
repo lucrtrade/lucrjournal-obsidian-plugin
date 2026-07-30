@@ -13,6 +13,7 @@ export function ChartView({
 	heightClassName = 'lj:h-64',
 	isReady,
 }: ChartViewProps) {
+	// @story [[lucrjournal/chart#^host-owns-iframe-src]] Leaves navigation to the host while exposing accessible readiness state.
 	return (
 		<div data-lj-panel="chart-view" className={`lj:flex lj:flex-col lj:bg-lj-surf lj:border lj:border-lj-alpha-10 lj:rounded-md lj:overflow-hidden lj:shadow-sm ${heightClassName}`}>
 			<div className="lj:w-full lj:min-h-0 lj:flex-1">

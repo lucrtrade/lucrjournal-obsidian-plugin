@@ -36,6 +36,7 @@ function toBar(row: unknown): OhlcvBar {
 }
 
 // Verified live 2026-06-01: spot BTCUSDT (BTC/USDT), perp BTCUSDT.P (BTC/USDT:USDT)
+// @story [[lucrjournal/market-data#^binance-ohlcv-contract]] Defines Binance spot and perpetual request and response normalization.
 const ohlcv = {
 	maxLimit: 1000,
 	pageUrl({ pair, timeframe, cursorMs, limit }) {
@@ -52,6 +53,7 @@ const ohlcv = {
 		return `${endpoint(pair)}?${query.toString()}`
 	},
 	parsePage(body, _pair) {
+		// @story [[lucrjournal/market-data#^invalid-market-data-fails]] Rejects malformed Binance payloads.
 		if (!Array.isArray(body)) {
 			throw new Error('binance: unexpected klines body')
 		}

@@ -7,6 +7,7 @@ import { listPlaybookCriteriaNamesFromMarkdown } from '../playbook/markdown'
 
 import { CriteriaDomain, normalizeCriteria, parseCriteriaNames } from './index'
 
+// @story [[lucrjournal/playbook#^ensure-criteria-files]] Creates only missing normalized criteria files
 export async function ensureCriteriaFilesExist(
 	app: App,
 	criteriaNames: readonly string[],
@@ -27,6 +28,7 @@ export async function ensureCriteriaFilesExist(
 	}
 }
 
+// @story [[lucrjournal/playbook#^cleanup-orphan-criteria]] Trashes candidates absent from every playbook and confluence reference
 export async function cleanupOrphanCriteriaFiles(
 	app: App,
 	playbookMarkdowns: readonly string[],

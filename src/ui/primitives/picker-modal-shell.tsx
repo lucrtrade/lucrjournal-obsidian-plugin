@@ -27,6 +27,7 @@ export function PickerModalShell({
 	maxWidthClassName,
 	maxHeightClassName,
 }: PickerModalShellProps) {
+	// @story [[lucrjournal/primitives#^modal-lifecycle]] Pairs picker Escape and body state with open lifecycle cleanup
 	useEffect(() => {
 		if (!isOpen) {
 			return

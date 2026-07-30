@@ -97,6 +97,7 @@ export const SymbolComboboxFormFieldRenderer: FormTypeRenderer<'symbol_combobox'
 				return
 			}
 
+			// @story [[lucrjournal/form#^combobox-close-keeps-draft]] Closes symbol suggestions without reverting the emitted draft
 			setIsOpen(false)
 			setIsEditing(false)
 			setQuery('')
@@ -133,6 +134,7 @@ export const SymbolComboboxFormFieldRenderer: FormTypeRenderer<'symbol_combobox'
 		}
 	}
 
+	// @story [[lucrjournal/form#^combobox-option-commit]] Commits keyboard and pointer symbol selections through one path
 	const chooseRow = (row: SuggestionRow) => {
 		onChange(row.value)
 		setIsOpen(false)
@@ -141,6 +143,7 @@ export const SymbolComboboxFormFieldRenderer: FormTypeRenderer<'symbol_combobox'
 	}
 
 	const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+		// @story [[lucrjournal/form#^combobox-open-key]] Opens symbol editing before any suggestion can be committed
 		if (!isOpen && (event.key === 'ArrowDown' || event.key === 'Enter')) {
 			setIsOpen(true)
 			setIsEditing(true)
@@ -160,12 +163,14 @@ export const SymbolComboboxFormFieldRenderer: FormTypeRenderer<'symbol_combobox'
 				break
 			case 'Enter':
 				if (isOpen && activeRow !== undefined) {
+					// @story [[lucrjournal/form#^combobox-option-commit]] Commits the active symbol row through the shared form value
 					event.preventDefault()
 					chooseRow(activeRow)
 				}
 				break
 			case 'Escape':
 				if (isOpen) {
+					// @story [[lucrjournal/form#^combobox-close-keeps-draft]] Closes symbol editing without reverting the emitted draft
 					event.preventDefault()
 					setIsOpen(false)
 					setIsEditing(false)
@@ -212,6 +217,7 @@ export const SymbolComboboxFormFieldRenderer: FormTypeRenderer<'symbol_combobox'
 						triggerSearch(displayValue)
 					}}
 					onBlur={() => {
+						// @story [[lucrjournal/form#^combobox-close-keeps-draft]] Clears local symbol editing state without reverting the emitted draft
 						window.setTimeout(() => {
 							if (containerRef.current?.contains(activeDocument.activeElement)) {
 								return

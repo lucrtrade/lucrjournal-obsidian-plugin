@@ -24,17 +24,20 @@ describe('lucr journal route view state', () => {
 	})
 
 	it('uses the default dashboard route when view state is empty', () => {
+		// @story [[lucrjournal/runtime#^empty-route-default]] Covers the default route for empty persisted view state.
 		expect(resolveLucrJournalRouteStateFromViewState(null)).toBe(DEFAULT_JOURNAL_ROUTE_STATE)
 		expect(resolveLucrJournalRouteStateFromViewState({})).toBe(DEFAULT_JOURNAL_ROUTE_STATE)
 	})
 
 	it('rejects invalid view state shapes', () => {
+		// @story [[lucrjournal/runtime#^reject-invalid-route]] Covers rejecting invalid persisted state and route kinds.
 		expect(() => resolveLucrJournalRouteStateFromViewState('bad')).toThrow('Invalid LucrJournal view state')
 		expect(() => resolveLucrJournalRouteStateFromViewState({ route: { kind: 'bad' } }))
 			.toThrow('Invalid LucrJournal route state')
 	})
 
 	it('keeps valid dashboard routes from persisted view state', () => {
+		// @story [[lucrjournal/runtime#^persist-dashboard-route]] Covers preserving a persisted dashboard route object.
 		const route = {
 			activeTab: 'Playbook',
 			kind: 'dashboard',
@@ -45,6 +48,7 @@ describe('lucr journal route view state', () => {
 	})
 
 	it('rejects persisted document routes', () => {
+		// @story [[lucrjournal/runtime#^reject-invalid-route]] Covers rejecting the removed document route kind.
 		expect(() => resolveLucrJournalRouteStateFromViewState({
 			route: {
 				documentKey: 'index',

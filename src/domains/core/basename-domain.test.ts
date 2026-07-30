@@ -36,6 +36,7 @@ class CustomNameDomain extends DemoNameDomain {
 const CustomDomain = new CustomNameDomain()
 
 describe('BasenameDomainBase', () => {
+	// @story [[lucrjournal/domain-model#^basename-domain-identity]] Covers sanitized basename identity and an empty document body
 	it('builds basename-driven entries and maps create errors', async () => {
 		const created: Array<{ path: string; content: string }> = []
 		const app = {

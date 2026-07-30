@@ -14,16 +14,20 @@ if you want to view the source, please visit the github repository of this plugi
 const environment = process.argv[2] ?? 'development';
 const shouldWatch = process.argv[3] === 'watch';
 const prod = environment === 'production';
+// @story [[lucrjournal/build#^production-service-urls]] Pins service URLs in production and permits only the development app override.
 const defaultLucrchartUrl = 'https://lucrchart.lucrtrade.com/';
 const lucrchartUrl = prod ? defaultLucrchartUrl : process.env.LUCRCHART_URL ?? defaultLucrchartUrl;
 const defaultAppUrl = 'https://app.lucrtrade.com';
 const appUrl = prod ? defaultAppUrl : process.env.LUCRJOURNAL_APP_URL ?? defaultAppUrl;
 const buildTimestamp = Date.now().toString();
 const packageJson = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
+// @story [[lucrjournal/chart#^chart-version-source]] Reads the chart runtime version independently from the plugin version.
 const chartVersion = packageJson.chart_version;
+// @story [[lucrjournal/chart#^chart-version-source]] Fails builds with an invalid chart runtime version.
 if (typeof chartVersion !== 'string' || !/^\d+\.\d+$/.test(chartVersion)) {
 	throw new Error('package.json chart_version must be a major.minor string');
 }
+// @story [[lucrjournal/chart#^versioned-iframe-url]] Builds the versioned LucrChart route injected into the bundle.
 const lucrchartIframeUrl = `${lucrchartUrl.replace(/\/$/, '')}/lc/${chartVersion}`;
 const packageRepository = typeof packageJson.repository === 'string'
 	? packageJson.repository
@@ -34,6 +38,7 @@ const gitCommitSha = (process.env.GITHUB_SHA ?? (existsSync(new URL('./.git', im
 	}).trim()
 	: 'unknown'));
 
+// @story [[lucrjournal/build#^strip-script-resources]] Removes the exact React DOM script resource branches and fails on dependency drift.
 const reactDomClientScriptResourcePlugin = {
 	name: 'react-dom-client-script-resource',
 	setup(build) {
@@ -63,6 +68,7 @@ function stripReactDomClientScriptResources(source, label) {
 	return nextSource;
 }
 
+// @story [[lucrjournal/build#^chart-url-override-fails]] Requires an exact exported chart URL declaration for a development override.
 const plugins = [reactDomClientScriptResourcePlugin, ...(lucrchartUrl === defaultLucrchartUrl ? [] : [{
 	name: 'lucrchart-url',
 	setup(build) {
@@ -83,6 +89,7 @@ const plugins = [reactDomClientScriptResourcePlugin, ...(lucrchartUrl === defaul
 	},
 }])];
 
+// @story [[lucrjournal/build#^bundle-output]] Defines the single entry output format target and runtime externals.
 const context = await esbuild.context({
 	alias: {
 		"onnxruntime-web": "onnxruntime-web/all",
@@ -128,6 +135,7 @@ const context = await esbuild.context({
 		'.svg': 'text',
 	},
 	plugins,
+	// @story [[lucrjournal/build#^environment-bundle-shape]] Keeps production minified without source maps and development debuggable.
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,
 	outfile: "main.js",

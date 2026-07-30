@@ -6,6 +6,7 @@ import { SpecialSuffixes } from './pair'
 const PAIR_SUFFIXES = SpecialSuffixes.flatMap((s) => [`${s}`, `${s}.P`])
 const BUILTIN_SYMBOL_NAMES = new Set(BuiltinSymbolList.map((entry) => entry.symbol_name.toUpperCase()))
 
+// @story [[lucrjournal/symbol-search#^search-candidate-expansion]] Expands bare inputs into stable spot and perpetual query candidates
 function expandSymbolSearchCandidates(input: string): string[] {
 	const normalized = input.trim().toUpperCase()
 	if (normalized.length < 2) {
@@ -23,6 +24,8 @@ function expandSymbolSearchCandidates(input: string): string[] {
 	return Array.from(new Set(candidates))
 }
 
+// @story [[lucrjournal/symbol-search#^remote-query-exclusions]] Removes local and persisted identities from remote queries
+// @story [[lucrjournal/symbol-search#^exact-builtin-skips-remote]] Stops exact builtin inputs before remote search
 export function buildTradingViewSymbolSearchQueries(
 	input: string,
 	excludedSymbols: ReadonlySet<string> = new Set(),
@@ -48,6 +51,7 @@ if (import.meta.vitest) {
 	const builtins = new Set(['BTCUSDT.P', 'XAUUSD'])
 
 	describe('expandSymbolSearchCandidates', () => {
+		// @story [[lucrjournal/symbol-search#^search-candidate-expansion]] Covers stable bare-input expansion order
 		it('expands a bare base to base + USDT/USDC spot and perp candidates in stable order', () => {
 			expect(expandSymbolSearchCandidates('BTC')).toEqual([
 				'BTC', 'BTCUSDT', 'BTCUSDT.P', 'BTCUSDC', 'BTCUSDC.P',
@@ -63,6 +67,7 @@ if (import.meta.vitest) {
 			])
 		})
 
+		// @story [[lucrjournal/symbol-search#^search-candidate-expansion]] Covers generated-suffix inputs without re-expansion
 		it('does not double-expand inputs that already carry a supported generated suffix', () => {
 			expect(expandSymbolSearchCandidates('BTCUSDT')).toEqual(['BTCUSDT'])
 			expect(expandSymbolSearchCandidates('BTCUSDT.P')).toEqual(['BTCUSDT.P'])
@@ -76,6 +81,7 @@ if (import.meta.vitest) {
 			])
 		})
 
+		// @story [[lucrjournal/symbol-search#^search-candidate-expansion]] Covers the minimum normalized input length
 		it('returns [] below the two-character threshold', () => {
 			expect(expandSymbolSearchCandidates('B')).toEqual([])
 			expect(expandSymbolSearchCandidates('')).toEqual([])
@@ -84,18 +90,21 @@ if (import.meta.vitest) {
 	})
 
 	describe('buildTradingViewSymbolSearchQueries', () => {
+		// @story [[lucrjournal/symbol-search#^remote-query-exclusions]] Covers builtin candidate removal from remote queries
 		it('removes builtin candidates because builtin rows are resolved locally', () => {
 			expect(buildTradingViewSymbolSearchQueries('BTC', new Set(), builtins)).toEqual([
 				'BTC', 'BTCUSDT', 'BTCUSDC', 'BTCUSDC.P',
 			])
 		})
 
+		// @story [[lucrjournal/symbol-search#^remote-query-exclusions]] Covers journal candidate removal from remote queries
 		it('removes journal symbols because they belong in the journal section', () => {
 			expect(buildTradingViewSymbolSearchQueries('BTC', new Set(['BTCUSDT']), builtins)).toEqual([
 				'BTC', 'BTCUSDC', 'BTCUSDC.P',
 			])
 		})
 
+		// @story [[lucrjournal/symbol-search#^exact-builtin-skips-remote]] Covers the exact-builtin remote guard
 		it('returns no TV query for exact builtin inputs', () => {
 			expect(buildTradingViewSymbolSearchQueries('XAUUSD', new Set(), builtins)).toEqual([])
 			expect(buildTradingViewSymbolSearchQueries('BTCUSDT.P', new Set(), builtins)).toEqual([])

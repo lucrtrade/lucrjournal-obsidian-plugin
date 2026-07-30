@@ -23,6 +23,9 @@ export function resolveFeeModel(record: Partial<FeeModelValue>): FeeModelValue {
 	}
 }
 
+// @story [[lucrjournal/symbol#^crypto-fee-model]] Validates crypto percentage fee bounds before persistence
+// @story [[lucrjournal/symbol#^future-fee-model]] Validates future per-contract fee bounds before persistence
+// @story [[lucrjournal/symbol#^cfd-fee-model]] Validates CFD per-lot fee bounds before persistence
 export function validateFeeModel(record: Partial<FeeModelValue> & { type?: unknown }) {
 	const feeValue = typeof record.fee_value === 'number' ? record.fee_value : null
 
@@ -98,6 +101,7 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('fee value model', () => {
+		// @story [[lucrjournal/symbol#^crypto-fee-model]] Covers percentage-based crypto fee derivation
 		it('derives crypto fee_value as a percent of notional_value', () => {
 			expect(deriveAbsoluteFee({
 				type: 'Crypto_Perp',
@@ -111,6 +115,7 @@ if (import.meta.vitest) {
 			})).toBe(300)
 		})
 
+		// @story [[lucrjournal/symbol#^future-fee-model]] Covers per-contract future fee derivation
 		it('derives future fee_value per contract', () => {
 			expect(deriveAbsoluteFee({
 				type: 'Future',
@@ -119,6 +124,7 @@ if (import.meta.vitest) {
 			})).toBe(7.5)
 		})
 
+		// @story [[lucrjournal/symbol#^cfd-fee-model]] Covers per-lot CFD fee derivation
 		it('derives cfd fee_value per lot', () => {
 			expect(deriveAbsoluteFee({
 				type: 'CFD',
@@ -135,6 +141,9 @@ if (import.meta.vitest) {
 			})).toBe(8)
 		})
 
+		// @story [[lucrjournal/symbol#^crypto-fee-model]] Covers rejected crypto fee boundaries
+		// @story [[lucrjournal/symbol#^future-fee-model]] Covers rejected future fee boundaries
+		// @story [[lucrjournal/symbol#^cfd-fee-model]] Covers rejected CFD fee boundaries
 		it('rejects invalid fee_value by symbol type', () => {
 			for (const record of [
 				{ type: 'Crypto_Perp', fee_value: 0 },

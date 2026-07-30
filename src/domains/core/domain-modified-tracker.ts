@@ -24,6 +24,7 @@ export function registerDomainModifiedTracker(plugin: LucrJournalPlugin): Domain
 	const timers = new Map<string, number>()
 	const lastAutoWriteAt = new Map<string, number>()
 
+	// @story [[lucrjournal/domain-model#^file-driven-modified]] Filters vault modify events before scheduling tracked domain writes
 	const vaultModifyEventRef = app.vault.on('modify', (file) => {
 		if (!plugin.settings.enableAutoModifiedUpdate || plugin.settings.modifiedUpdateMode !== 'file-driven') {
 			return
@@ -71,6 +72,7 @@ function createUserDrivenModifiedExtension(
 		const file = fileInfo?.file
 
 		return {
+			// @story [[lucrjournal/domain-model#^user-driven-modified]] Accepts only user editing events for tracked domain files
 			update(update: ViewUpdate) {
 				if (!plugin.settings.enableAutoModifiedUpdate || plugin.settings.modifiedUpdateMode !== 'user-driven') {
 					return
@@ -105,6 +107,7 @@ function isUserChange(update: {
 	)
 }
 
+// @story [[lucrjournal/domain-model#^write-modified-timestamp]] Debounces each file before writing its timestamp
 function scheduleFileUpdate(
 	app: App,
 	file: TFile,
@@ -137,6 +140,7 @@ function isTrackedDomainFile(app: App, file: TFile): boolean {
 	return Domains.some((domain) => domain.refine(frontmatter) !== null)
 }
 
+// @story [[lucrjournal/domain-model#^write-modified-timestamp]] Writes modified and backfills a missing created value while suppressing feedback
 async function updateModifiedFrontmatter(
 	app: App,
 	file: TFile,

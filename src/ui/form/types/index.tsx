@@ -73,6 +73,7 @@ type FormTypeRendererRegistry = {
 	[K in FieldType]: FormTypeRenderer<K>
 }
 
+// @story [[lucrjournal/form#^shared-symbol-combobox]] Routes both symbol form descriptors through one symbol combobox renderer
 const formTypeRenderers = {
 	text: TextFormFieldRenderer,
 	url: UrlFormFieldRenderer,

@@ -70,6 +70,7 @@ export function mergePositionAttachmentOcrResults(results: PositionAttachmentOcr
 	return merged
 }
 
+// @story [[lucrjournal/ocr#^empty-ocr-result]] Requires at least one recognized trade field
 export function hasRecognizedPositionAttachmentOcrResult(result: PositionAttachmentOcrResult): boolean {
 	return POSITION_ATTACHMENT_OCR_FIELDS.some((field) => {
 		const value = result[field.key]
@@ -90,6 +91,7 @@ export function buildPositionAttachmentOcrDraft(result: PositionAttachmentOcrRes
 	})
 }
 
+// @story [[lucrjournal/ocr#^reviewed-ocr-patch]] Includes only recognized or user-entered reviewed fields
 export function buildPositionAttachmentOcrFieldPatch(
 	result: PositionAttachmentOcrResult,
 	draft: PositionAttachmentOcrDraft,
@@ -113,6 +115,7 @@ export function buildPositionAttachmentOcrFieldPatch(
 	return patch
 }
 
+// @story [[lucrjournal/ocr#^native-ocr-amount]] Routes native amounts to the native frontmatter field
 function normalizePositionAttachmentOcrNotionalValuePatch(
 	patch: PositionUpdatePatch,
 	context: PositionAttachmentOcrPatchContext,
@@ -223,6 +226,7 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/ocr#^manual-ocr-review]] Covers drafts for the canonical review fields
 		it('builds and reapplies OCR drafts for position frontmatter fields', () => {
 			const draft = buildPositionAttachmentOcrDraft({
 				notional_value: 0.35,
@@ -244,6 +248,7 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/ocr#^reviewed-ocr-patch]] Covers preserving unrecognized empty fields
 		it('does not overwrite untouched fields that OCR failed to detect', () => {
 			const frontmatter: Record<string, unknown> = {
 				notional_value: 1,
@@ -275,6 +280,7 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/ocr#^native-ocr-amount]] Covers native amount routing
 		it('routes native OCR amount to notional_amount', () => {
 			const patch = buildPositionAttachmentOcrFieldPatch({
 				entry_price: 100,
@@ -309,6 +315,7 @@ if (import.meta.vitest) {
 			expect(patch).toEqual({ notional_amount: 0.35 })
 		})
 
+		// @story [[lucrjournal/ocr#^ocr-does-not-infer-side]] Covers leaving side outside the reviewed patch
 		it('does not infer side from reviewed stop and target prices', () => {
 			expect(buildPositionAttachmentOcrFieldPatch({}, {
 				notional_value: '',
@@ -333,6 +340,7 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/ocr#^empty-ocr-result]] Covers rejecting preview-only and field-empty results
 		it('reports empty OCR payloads correctly', () => {
 			expect(hasRecognizedPositionAttachmentOcrResult({})).toBe(false)
 			expect(hasRecognizedPositionAttachmentOcrResult({ notional_value: 0 })).toBe(true)

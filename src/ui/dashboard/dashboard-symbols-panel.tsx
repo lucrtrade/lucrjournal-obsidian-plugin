@@ -92,6 +92,7 @@ export function DashboardSymbolsPanel({
 		},
 	)
 
+	// @story [[lucrjournal/fields#^filter-apply-reset]] Resets symbol pagination after search filter or sorting changes
 	useEffect(() => {
 		state.setPagination((current) => current.pageIndex === 0 ? current : { ...current, pageIndex: 0 })
 	}, [state.globalFilter, state.columnFilters, state.sorting, tableFilterState])

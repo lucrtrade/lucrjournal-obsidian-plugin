@@ -11,6 +11,7 @@ type PlaybookHeadingReference = {
 	name: string
 }
 
+// @story [[lucrjournal/playbook#^playbook-heading-hierarchy]] Defines the criteria and confluence heading hierarchy
 const PLAYBOOK_CRITERIA_HEADING_LEVEL = 1
 const PLAYBOOK_CONFLUENCE_HEADING_LEVEL = 2
 
@@ -18,6 +19,7 @@ export function normalizePlaybookConfluenceName(value: string): string {
 	return sanitizeObsidianFileName(value).trim()
 }
 
+// @story [[lucrjournal/playbook#^playbook-parse-normalization]] Accepts only normalized linked headings and globally unique confluences
 export function parsePlaybookCriteriaSectionsMarkdown(markdown: string): CriteriaFormValue {
 	const body = stripMarkdownFrontmatter(markdown)
 	const sections = extractSections(body, PLAYBOOK_CRITERIA_HEADING_LEVEL)
@@ -59,6 +61,7 @@ export function parsePlaybookCriteriaSectionsMarkdown(markdown: string): Criteri
 	return normalizedSections
 }
 
+// @story [[lucrjournal/playbook#^playbook-serialized-shape]] Emits the stable criteria and confluence heading shape
 export function serializePlaybookCriteriaSectionsMarkdown(
 	sections: readonly CriteriaFormSection[],
 ): string {
@@ -79,6 +82,7 @@ export function listPlaybookCriteriaNamesFromMarkdown(markdown: string): string[
 		.map((section) => section.criteriaName)
 }
 
+// @story [[lucrjournal/playbook#^playbook-serialize-normalization]] Deduplicates and drops empty structured markdown sections
 function normalizePlaybookCriteriaSectionsForMarkdown(
 	sections: readonly CriteriaFormSection[],
 ): CriteriaFormValue {
@@ -160,6 +164,7 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('parsePlaybookCriteriaSectionsMarkdown', () => {
+		// @story [[lucrjournal/playbook#^playbook-heading-hierarchy]] Covers frontmatter removal heading hierarchy and source order
 		it('parses criteria H1 and confluence H2 hierarchy', () => {
 			expect(parsePlaybookCriteriaSectionsMarkdown([
 				'---',
@@ -189,6 +194,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('serializePlaybookCriteriaSectionsMarkdown', () => {
+		// @story [[lucrjournal/playbook#^playbook-serialized-shape]] Covers exact headings blank lines and trailing newline
 		it('serializes the stable criteria-first markdown structure', () => {
 			expect(serializePlaybookCriteriaSectionsMarkdown([
 				{

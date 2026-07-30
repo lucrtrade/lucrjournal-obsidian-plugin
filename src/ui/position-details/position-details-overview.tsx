@@ -56,6 +56,7 @@ export function PositionDetailsOverview({
 	position,
 	positionFile,
 }: PositionDetailsOverviewProps) {
+	// @story [[lucrjournal/chart#^unavailable-chart-keeps-local-content]] Hides only the chart while retaining local position sections.
 	const overviewRef = useRef<HTMLDivElement | null>(null)
 	const width = useObservedWidth(overviewRef)
 	const density = getPositionDetailsOverviewDensity(width)

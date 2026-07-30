@@ -13,6 +13,7 @@ type AttachmentCapturePlugin = {
 	registerEvent: (eventRef: EventRef) => void
 }
 
+// @story [[lucrjournal/attachment#^editor-attachment-capture]] Registers guarded paste and drop capture
 export function registerLucrJournalAttachmentCapture(plugin: AttachmentCapturePlugin) {
 	plugin.registerEvent(plugin.app.workspace.on('editor-paste', (event, editor, info) => {
 		if (event.defaultPrevented) {
@@ -48,6 +49,7 @@ export async function captureLucrJournalEditorAttachmentFiles(
 	sourceFile: TFile | null,
 	files: File[],
 ) {
+	// @story [[lucrjournal/attachment#^editor-attachment-capture]] Rejects files outside the managed Markdown boundary
 	if (!isLucrJournalMarkdownFile(sourceFile) || files.length === 0) {
 		return false
 	}
@@ -64,8 +66,10 @@ export async function captureLucrJournalEditorAttachmentFiles(
 		attachmentTokens.push(buildAttachmentToken(path))
 	}
 
+	// @story [[lucrjournal/attachment#^editor-attachment-links]] Inserts ordered embedded or plain basename links
 	editor.replaceSelection(editorLinks.join('\n'))
 	if (isPositionFile(app, sourceFile)) {
+		// @story [[lucrjournal/attachment#^position-capture-reference]] Mirrors position body links into frontmatter
 		await app.fileManager.processFrontMatter(sourceFile, (frontmatter) => {
 			applyAttachmentTokensToFrontmatter(frontmatter as Record<string, unknown>, attachmentTokens)
 		})
@@ -103,6 +107,7 @@ function isPositionFile(app: App, file: TFile) {
 	return app.metadataCache.getFileCache(file)?.frontmatter?.lucr_type === 'position'
 }
 
+// @story [[lucrjournal/attachment#^attachment-path-collision]] Advances timestamps until the attachment path is free
 async function resolveAvailableAttachmentPath(app: App, file: File, firstTimestamp: number) {
 	let timestamp = firstTimestamp
 	let path = buildAttachmentPath(file, timestamp)

@@ -116,6 +116,7 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/ocr#^platform-ocr-extraction]] Covers MetaTrader mobile field extraction
 		it('extracts MetaTrader mobile position fields', () => {
 			expect(extractPositionAttachmentOcrResultFromRecognition({
 				confidence: 0.98,
@@ -180,6 +181,7 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/ocr#^platform-ocr-extraction]] Covers TradingView text and axis extraction
 		it('extracts OCR fields from fused tradingview text without spaces before labels', () => {
 			expect(extractPositionAttachmentOcrResultFromRecognition({
 				confidence: 0.82,

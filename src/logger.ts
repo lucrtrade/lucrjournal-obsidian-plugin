@@ -126,10 +126,13 @@ function writeLog(
 	message: string,
 	context?: unknown,
 ): void {
+	// @story [[lucrjournal/runtime#^logger-level-gate]] Gates debug groups while leaving warning and error output visible.
+	// @story [[lucrjournal/session#^auth-errors-always-visible]] Suppresses debug output without suppressing error output.
 	if (!debugLoggingEnabled && (method === 'debug' || method === 'group' || method === 'groupCollapsed')) {
 		return
 	}
 
+	// @story [[lucrjournal/runtime#^structured-log-context]] Formats every shared log with its module, timestamp, message, and optional context.
 	const timestamp = new Date().toISOString()
 	const [template, styles] = formatHeader(module, timestamp, message)
 
@@ -205,6 +208,7 @@ if (import.meta.vitest) {
 		})
 
 		it('does not write debug logs by default', () => {
+			// @story [[lucrjournal/runtime#^logger-level-gate]] Covers suppressed debug output while logging is disabled.
 			const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
 
 			createLogger('test').debug('hidden')
@@ -213,6 +217,7 @@ if (import.meta.vitest) {
 		})
 
 		it('writes debug logs when debug logging is enabled', () => {
+			// @story [[lucrjournal/runtime#^logger-level-gate]] Covers visible debug output while logging is enabled.
 			const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
 			setDebugLoggingEnabled(true)
 

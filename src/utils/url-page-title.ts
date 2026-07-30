@@ -31,6 +31,8 @@ export async function resolveHttpPageTitle(url: string | null | undefined): Prom
 		},
 		throw: false,
 	}).then(async (response) => {
+		// @story [[lucrjournal/content#^html-page-title]] Resolves a usable HTML title before applying the shared filename sanitizer.
+		// @story [[lucrjournal/content#^defuddle-title-fallback]] Falls back to Defuddle when the primary response has no usable title.
 		const rawTitle = readHtmlResponseTitle(response.text, response.status, response.headers)
 			?? await resolveDefuddleFrontmatterTitle(normalizedUrl)
 		const normalizedTitle = rawTitle == null ? null : sanitizeObsidianFileName(rawTitle)
@@ -56,6 +58,7 @@ export async function resolveHttpPageTitle(url: string | null | undefined): Prom
 	return await nextRequest
 }
 
+// @story [[lucrjournal/content#^defuddle-title-fallback]] Accepts only a quoted title from successful Defuddle frontmatter.
 export async function resolveDefuddleFrontmatterTitle(url: string | null | undefined): Promise<string | null> {
 	const normalizedUrl = normalizeHomepageUrl(url)
 	if (normalizedUrl === null) {
@@ -138,6 +141,7 @@ if (import.meta.vitest) {
 	}
 
 	describe('extractDefuddleFrontmatterTitle', () => {
+		// @story [[lucrjournal/content#^defuddle-title-fallback]] Covers extracting a quoted title from leading Defuddle frontmatter.
 		it('reads title from defuddle frontmatter', () => {
 			expect(extractDefuddleFrontmatterTitle(
 				'---\n'
@@ -147,6 +151,7 @@ if (import.meta.vitest) {
 			)).toBe(TEST_DEFUDDLE_TITLE)
 		})
 
+		// @story [[lucrjournal/content#^defuddle-title-fallback]] Covers rejecting Defuddle frontmatter without a title.
 		it('returns null when frontmatter title is missing', () => {
 			expect(extractDefuddleFrontmatterTitle('---\nauthor: "Techub News"\n---\n')).toBeNull()
 		})
@@ -158,6 +163,7 @@ if (import.meta.vitest) {
 			clearResolvedHttpPageTitleCache()
 		})
 
+		// @story [[lucrjournal/content#^defuddle-title-fallback]] Covers the Defuddle fallback after a missing HTML title.
 		it('falls back to defuddle frontmatter title when html title is unavailable', async () => {
 			const requestUrlSpy = vi.spyOn(await import('obsidian'), 'requestUrl')
 			requestUrlSpy
@@ -179,6 +185,7 @@ if (import.meta.vitest) {
 				.resolves.toBe(TEST_DEFUDDLE_TITLE)
 		})
 
+		// @story [[lucrjournal/content#^defuddle-title-fallback]] Covers a null result after both title sources fail.
 		it('returns null only when html title and defuddle title both fail', async () => {
 			const requestUrlSpy = vi.spyOn(await import('obsidian'), 'requestUrl')
 			requestUrlSpy

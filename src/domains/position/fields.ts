@@ -31,6 +31,8 @@ type SymbolFilterOption = TableFilterOption & {
 	accountLabel: string
 }
 
+// @story [[lucrjournal/fields#^position-status-filter]] Defines exact open win and loss column-filter ranges
+// @story [[lucrjournal/fields#^position-scope-filters]] Defines side confidence account symbol and resolved-link filter semantics
 export const positionTableFilters = defineTableFilters<Position>([
 	{
 		id: 'status',
@@ -148,16 +150,19 @@ function positionFmField(
 	return { key, getValue: (entry) => entry.fm[key] ?? null, ...field }
 }
 
+// @story [[lucrjournal/fields#^position-cell-writeback]] Binds editable position descriptors to their persisted field names
 function writeback(field: PositionFieldKey, type: PositionFieldWritebackType) {
 	return { field, type, editable: true }
 }
 
+// @story [[lucrjournal/fields#^searchable-field-projections]] Defines the position account platform and symbol search projections
 export const positionFields = defineFields<Position>([
 	{
 		key: 'status',
 		usages: ['Table'],
 		type: 'text',
 		label: () => t('DASHBOARD_TABLE_STATUS_ABBR'),
+		// @story [[lucrjournal/position#^position-closed-projection]] Projects either lifecycle close marker into the canonical table value
 		getValue: (entry) =>
 			entry.fm.closed_at != null || entry.fm.status === 'close' ? 'close' : 'open',
 		columnFilter: 'equals',
@@ -169,6 +174,7 @@ export const positionFields = defineFields<Position>([
 		usages: ['Table', 'Single'],
 		type: 'text',
 		label: () => t('DASHBOARD_TABLE_ACCOUNT'),
+		// @story [[lucrjournal/position#^position-derived-account-platform]] Projects account and platform search values only through the linked symbol
 		getValue: (entry, app) => app == null ? null : derivePositionAccountWikilink(app, entry.fm),
 		searchable: true,
 		searchValue: (entry, app) => app == null
@@ -187,6 +193,7 @@ export const positionFields = defineFields<Position>([
 		sortable: true,
 		table: { width: 'xl', cellOverflow: 'clip', display: TABLE_FIELD_DISPLAYS.positionSymbol },
 	}),
+	// @story [[lucrjournal/position-formulas#^derived-field-units]] Exposes profit through an editable currency renderer
 	positionFmField('profit', {
 		usages: ['Table', 'Single'],
 		type: 'number',
@@ -234,6 +241,7 @@ export const positionFields = defineFields<Position>([
 		table: { width: 'sm', display: TABLE_FIELD_DISPLAYS.confidenceRing },
 		writeback: writeback('confidence', 'enum'),
 	}),
+	// @story [[lucrjournal/position-formulas#^derived-field-units]] Exposes notional value through an editable plain-number renderer
 	positionFmField('notional_value', {
 		usages: ['Single'],
 		type: 'number',
@@ -243,6 +251,7 @@ export const positionFields = defineFields<Position>([
 		table: { width: 'sm', display: TABLE_FIELD_DISPLAYS.editableValue },
 		writeback: writeback('notional_value', 'number'),
 	}),
+	// @story [[lucrjournal/position-formulas#^derived-field-units]] Exposes risk through a read-only currency renderer
 	positionFmField('risk', {
 		usages: ['Table', 'Single'],
 		type: 'number',
@@ -560,6 +569,7 @@ if (import.meta.vitest) {
 			}
 		})
 
+		// @story [[lucrjournal/position#^position-closed-projection]] Covers table projection from status and close time
 		it('status getValue returns open or close', () => {
 			const field = positionFields.find((f) => f.key === 'status')!
 			const openEntry = { file: { path: 'x.md' }, fm: { status: 'open' as const, closed_at: null } }

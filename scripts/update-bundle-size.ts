@@ -2,8 +2,10 @@ import { statSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import process from 'node:process'
 
+// @story [[lucrjournal/build#^bundle-size-record]] Limits the production size record to installable bundle payload files.
 const artifacts = ['main.js', 'styles.css']
 
+// @story [[lucrjournal/build#^bundle-size-record]] Refuses to record sizes when the production bundle fails.
 const build = spawnSync('bun', ['--silent', 'run', 'build:bundle:prod'], { stdio: 'inherit' })
 if (build.error != null) {
 	throw build.error

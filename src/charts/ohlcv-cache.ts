@@ -21,6 +21,7 @@ const OhlcvCacheEntryType = type({
 	coveredTo: 'number',
 })
 
+// @story [[lucrjournal/market-data#^ohlcv-cache-expiry]] Expires market bars after the strict cache window.
 export const CacheRegistry = buildCacheRegistry('market')(({ table }) => ({
 	ohlcv: table({
 		key: type('string'),
@@ -30,15 +31,18 @@ export const CacheRegistry = buildCacheRegistry('market')(({ table }) => ({
 }))
 
 export function makeCacheKey(exchangeId: string, symbol: string, resolution: string): string {
+	// @story [[lucrjournal/market-data#^ohlcv-cache-key]] Isolates entries by provider, symbol, and resolution.
 	return `${exchangeId}:${symbol}:${resolution}`
 }
 
 export async function getOhlcvCache(key: string) {
+	// @story [[lucrjournal/market-data#^ohlcv-cache-expiry]] Rejects expired market entries.
 	const result = await CacheRegistry.tables.ohlcv.get(key, { policy: 'strict' })
 	return result.hit ? result.value : null
 }
 
 export async function mergeOhlcvCache(key: string, newBars: OhlcvBar[], from: number, to: number): Promise<void> {
+	// @story [[lucrjournal/market-data#^ohlcv-cache-merge]] Unions coverage while deduplicating and sorting bars.
 	const existingResult = await CacheRegistry.tables.ohlcv.get(key, { policy: 'strict' })
 	const existing = existingResult.hit ? existingResult.value : null
 	const allBars = [...(existing?.bars ?? []), ...newBars]
@@ -59,6 +63,7 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('ohlcv cache helpers', () => {
+		// @story [[lucrjournal/market-data#^ohlcv-cache-key]] Covers the stable market cache key shape.
 		it('builds stable cache keys', () => {
 			expect(makeCacheKey('binance', 'ETH/USDT', '60')).toBe('binance:ETH/USDT:60')
 		})

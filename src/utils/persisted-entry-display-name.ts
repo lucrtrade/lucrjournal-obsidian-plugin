@@ -18,5 +18,6 @@ export function getPersistedEntryDisplayName(entry: {
 	file: { path: string; basename?: string }
 	fm: unknown
 }) {
+	// @story [[lucrjournal/content#^persisted-entry-display-name]] Prefers a non-empty persisted name and falls back to the file basename.
 	return readOptionalPersistedEntryName(entry.fm) ?? getFileBasename(entry.file)
 }

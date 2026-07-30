@@ -68,6 +68,7 @@ export function typedFormEntries<F extends AnyFormDefinition>(definition: F): Ty
 	return Object.entries(definition) as TypedFormEntry<F>[]
 }
 
+// @story [[lucrjournal/domain-model#^domain-descriptor-contract]] Defines the required contract shared by every domain descriptor
 export abstract class DomainBase<
 	const Name extends string,
 	const Schema extends type.Any,
@@ -84,6 +85,7 @@ export abstract class DomainBase<
 		return null
 	}
 
+	// @story [[lucrjournal/domain-model#^register-domain-property-types]] Supplies the common persisted datetime property types
 	builtinProperties(): BuiltinPropertiesForSchema<Schema> {
 		if (this.options.persisted === null) {
 			return {}
@@ -133,6 +135,7 @@ export abstract class DomainBase<
 		return await executeCreateEntry(this, this.createEntryDescriptor, app, formValue, ctx)
 	}
 
+	// @story [[lucrjournal/domain-model#^read-domain-entries]] Routes cached frontmatter through type matching, coercion, and schema refinement
 	totalEntries(app: DomainRuntimeApp): DomainPersistedEntry<Schema['infer']>[] {
 		return app.vault
 			.getMarkdownFiles()
@@ -161,6 +164,7 @@ export abstract class DomainBase<
 		return await this.updateFrontmatterWithPatch(app, file, this.normalizePatch(patch))
 	}
 
+	// @story [[lucrjournal/domain-model#^update-domain-entry]] Applies patches atomically against the latest frontmatter and validates before replacement
 	protected async updateFrontmatterWithPatch<Patch extends Record<string, unknown>>(
 		app: App,
 		file: TFile,

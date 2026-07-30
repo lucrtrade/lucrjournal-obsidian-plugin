@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path'
 
 const projectRootUrl = new URL('..', import.meta.url)
 const projectRootPath = ts.sys.resolvePath(projectRootUrl.pathname)
+// @story [[lucrjournal/tooling#^unused-declarations]] Defines the only source files excluded from declaration analysis
 const ignoredSourceFiles = new Set([
 	ts.sys.resolvePath(new URL('../src/charts/lucrchart-host.ts', import.meta.url).pathname),
 	ts.sys.resolvePath(new URL('../src/generated-icons/icon-assets.generated.ts', import.meta.url).pathname),
@@ -46,6 +47,7 @@ let hasErrors = false
 
 // --- Check 1: unused declarations (functions, variables, types, interfaces, enums, classes) ---
 const declarations = collectDeclarations(program)
+// @story [[lucrjournal/tooling#^unused-declarations]] Fails on unreferenced declarations and locally consumed exports
 const unusedEntries = declarations
 	.filter((entry) => countExternalReferences(entry) === 0 && !hasScriptReference(entry))
 	.sort(compareEntries)
@@ -77,6 +79,7 @@ if (unnecessaryExports.length > 0) {
 }
 
 // --- Check 3: unused locale keys ---
+// @story [[lucrjournal/tooling#^unused-locale-and-css]] Fails on orphan locale keys and source-unreferenced CSS classes
 const unusedLocaleKeys = findUnusedLocaleKeys()
 if (unusedLocaleKeys.length > 0) {
 	if (hasErrors) console.error('')

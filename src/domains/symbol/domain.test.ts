@@ -146,6 +146,7 @@ function createMockApp(initialFiles: Array<{
 }
 
 describe('buildSymbolFileBaseName', () => {
+	// @story [[lucrjournal/symbol#^unknown-quote-preserves-shape]] Covers preservation of an unknown explicit quote shape
 	it('uses the account display name plus normalized symbol name before sanitizing the basename', () => {
 		expect(buildSymbolFileBaseName('Main Desk', 'btc/usdt:usdt')).toBe('SBL-Main Desk-BTCUSDT.P')
 		expect(buildSymbolFileBaseName('Main Desk', 'btc/usdt')).toBe('SBL-Main Desk-BTCUSDT')
@@ -194,6 +195,7 @@ describe('SymbolDomain', () => {
 		expect(SymbolDomain.formDefinition.name.type).toBe('symbol_combobox')
 	})
 
+	// @story [[lucrjournal/form#^existing-account-boundary]] Covers symbol form validation against persisted accounts
 	it('requires the create form account to match an existing account', () => {
 		const { app } = createMockApp([])
 
@@ -201,6 +203,7 @@ describe('SymbolDomain', () => {
 			.toBe('SYMBOL_ACCOUNT_NOT_FOUND')
 	})
 
+	// @story [[lucrjournal/symbol-search#^local-journal-symbols]] Covers local account-scoped symbol metadata
 	it('lists existing symbols for the selected account with logo and type metadata', () => {
 		const { app } = createMockApp([
 			{
@@ -233,6 +236,7 @@ describe('SymbolDomain', () => {
 		])
 	})
 
+	// @story [[lucrjournal/symbol-search#^local-journal-symbols]] Covers exclusion of symbols from other accounts
 	it('keeps symbol picker options scoped to the selected account', () => {
 		const { app } = createMockApp([
 			{
@@ -332,6 +336,7 @@ describe('SymbolDomain', () => {
 		})?.name).toBe('XAU')
 	})
 
+	// @story [[lucrjournal/symbol#^ensure-existing-symbol]] Covers reuse of a legacy account-scoped symbol file
 	it('reuses an existing legacy slash symbol entry when user input keeps slash form', async () => {
 		const { app } = createMockApp([
 			{
@@ -353,6 +358,7 @@ describe('SymbolDomain', () => {
 		})
 	})
 
+	// @story [[lucrjournal/symbol#^cfd-contract-override]] Covers rounded CFD overrides and removal from non-CFD symbols
 	it('keeps cfd contract_unit overrides and drops non-cfd overrides', () => {
 		expect(SymbolDomain.refine({
 			lucr_type: 'symbol',
@@ -625,6 +631,7 @@ describe('SymbolDomain', () => {
 		expect(result.entry).toMatchObject({ name: 'TSLA', type: null, logo: null })
 	})
 
+	// @story [[lucrjournal/symbol-search#^metadata-failure-isolated]] Covers successful symbol creation after metadata failure
 	it('keeps an unknown symbol untyped when TradingView fails', async () => {
 		setTradingViewRequesterForTests(async () => {
 			throw new Error('offline')
@@ -667,6 +674,7 @@ describe('SymbolDomain', () => {
 		expect(requester).not.toHaveBeenCalled()
 	})
 
+	// @story [[lucrjournal/form#^existing-account-boundary]] Covers symbol rejection without implicit account or dependency creation
 	it('rejects missing account instead of creating it before creating a symbol', async () => {
 		const { app, state } = createMockApp([])
 
@@ -748,6 +756,7 @@ describe('SymbolDomain', () => {
 		expect(updated.fee_value).toBe(1)
 	})
 
+	// @story [[lucrjournal/symbol#^duplicate-symbol-scope]] Covers account-scoped duplicate rejection
 	it('rejects duplicate symbols within the same account but allows the same symbol name in another account', async () => {
 		const { app } = createMockApp([
 			{
@@ -793,6 +802,7 @@ describe('SymbolDomain', () => {
 })
 
 describe('listSymbolTableEntries', () => {
+	// @story [[lucrjournal/symbol#^crypto-contract-unit]] Covers fixed read-only crypto contract units
 	it('counts persisted positions by exact symbol wikilink and keeps same-name symbols isolated by account', () => {
 		const { app } = createMockApp([
 			{
@@ -928,6 +938,7 @@ describe('listSymbolTableEntries', () => {
 })
 
 describe('listAccountTableEntries', () => {
+	// @story [[lucrjournal/account-platform#^account-relation-counts]] Covers exact account association counts and display projection
 	it('aggregates platform, symbol count, and position count by exact account wikilink while preserving display name fallback', () => {
 		const { app } = createMockApp([
 			{
@@ -1053,6 +1064,7 @@ describe('listAccountTableEntries', () => {
 })
 
 describe('symbol deletion', () => {
+	// @story [[lucrjournal/position#^position-symbol-delete]] Covers exact symbol link scope and malformed link exclusion
 	it('gathers the symbol file and only exact linked positions for deletion', () => {
 		const { app } = createMockApp([
 			{
@@ -1097,6 +1109,7 @@ describe('symbol deletion', () => {
 		])
 	})
 
+	// @story [[lucrjournal/position#^position-symbol-delete]] Covers descendant-first symbol deletion order
 	it('trashes linked positions before the symbol file', async () => {
 		const { app, state } = createMockApp([
 			{
@@ -1140,6 +1153,7 @@ describe('symbol deletion', () => {
 })
 
 describe('account deletion cascade scope', () => {
+	// @story [[lucrjournal/account-platform#^account-deletion-platform]] Covers preservation of a shared platform
 	it('skips the platform file when other accounts still share the same platform', async () => {
 		const { app, state } = createMockApp([
 			{
@@ -1244,6 +1258,9 @@ describe('symbol deletion cascade scope', () => {
 })
 
 describe('AccountDomain.updateAccountSettings', () => {
+	// @story [[lucrjournal/account-platform#^account-deletion-links]] Covers linked symbol and position collection
+	// @story [[lucrjournal/account-platform#^account-deletion-platform]] Covers deletion of an exclusively linked platform
+	// @story [[lucrjournal/account-platform#^account-deletion-order]] Covers descendant-first account deletion order
 	it('gathers and deletes linked symbol files when deleting an account', async () => {
 		const { app, state } = createMockApp([
 			{
@@ -1306,6 +1323,7 @@ describe('AccountDomain.updateAccountSettings', () => {
 		])
 	})
 
+	// @story [[lucrjournal/account-platform#^account-rename-cascade]] Covers linked symbol and position rewrites after an account rename
 	it('renames linked symbol files and rewrites linked positions when the account display name changes', async () => {
 		const { app, state } = createMockApp([
 			{

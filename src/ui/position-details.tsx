@@ -155,6 +155,8 @@ export function PositionDetails({
 		setIsAttachmentLightboxOpen(false)
 	}, [attachments.length])
 
+	// @story [[lucrjournal/position#^position-direct-delete]] Trashes only the current position file
+	// @story [[lucrjournal/attachment#^position-delete-leaves-attachments]] Leaves attachment files untouched during direct position deletion
 	const handleConfirmDeletePosition = async () => {
 		if (positionFile === null) {
 			return

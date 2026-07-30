@@ -48,6 +48,7 @@ export function FormRenderer<TDefinition extends AnyFormDefinition>({
 	return (
 		<>
 			{entries
+				// @story [[lucrjournal/form#^visible-field-validation]] Renders only fields visible under the submitted synchronized values
 				.filter(([, field]) => isFormFieldVisible(field as unknown as FieldDescriptor<FieldType, FormValues<TDefinition>>, values))
 				.map(([fieldName, field]) => {
 					const typedField = field as unknown as FieldDescriptor<FieldType, FormValues<TDefinition>>

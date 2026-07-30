@@ -17,6 +17,7 @@ function isStringLiteralNode(node: Rule.Node): node is Rule.Node & { type: 'Lite
 	return node.type === 'Literal' && typeof ('value' in node ? node.value : undefined) === 'string'
 }
 
+// @story [[lucrjournal/tooling#^no-dynamic-property-access]] Rejects string-literal runtime property checks and computed access
 const rule: Rule.RuleModule = {
 	meta: {
 		type: 'problem',

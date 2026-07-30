@@ -7,6 +7,7 @@ import { ImageLightbox } from './image-lightbox'
 import type { ReactElement, ReactNode } from 'react'
 
 describe('AttachmentLightbox', () => {
+	// @story [[lucrjournal/ocr#^vault-attachment-ocr]] Covers the vault-only OCR action
 	it('passes an OCR action for vault attachments', () => {
 		const tree = AttachmentLightbox({
 			attachment: {
@@ -27,6 +28,7 @@ describe('AttachmentLightbox', () => {
 		expect(lightbox?.props.topRightAction).not.toBeUndefined()
 	})
 
+	// @story [[lucrjournal/ocr#^vault-attachment-ocr]] Covers running OCR without closing the current lightbox
 	it('wires the OCR action without closing the lightbox', () => {
 		const onRunOcr = vi.fn()
 		const tree = AttachmentLightbox({
@@ -59,6 +61,7 @@ describe('AttachmentLightbox', () => {
 		expect(onRunOcr).toHaveBeenCalledOnce()
 	})
 
+	// @story [[lucrjournal/ocr#^vault-attachment-ocr]] Covers excluding external attachments from OCR
 	it('does not pass an OCR action for external attachments', () => {
 		const tree = AttachmentLightbox({
 			attachment: {

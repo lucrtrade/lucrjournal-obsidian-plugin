@@ -12,6 +12,7 @@ type SwitchStatementNode = Rule.Node & {
 	cases: SwitchCaseNode[]
 }
 
+// @story [[lucrjournal/tooling#^switch-default-contract]] Defines discriminants requiring a never and throwing default contract
 const EXHAUSTIVE_IDENTIFIER_NAMES = new Set([
 	'kind',
 	'linkStatus',

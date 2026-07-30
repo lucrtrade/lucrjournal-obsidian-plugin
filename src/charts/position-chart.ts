@@ -74,10 +74,14 @@ type PositionChartSourceResolverParams = {
 }
 
 const DERIVATIVE_SUFFIX_PATTERN = /[.\-_](PERP|NEXT|PS|NW|P|F|S)$/u
+// @story [[lucrjournal/chart#^chart-config-defaults]] Pins the initial resolution and maximum history batch size.
 const DEFAULT_CHART_RESOLUTION = '60'
 const DEFAULT_MAX_BARS_PER_REQUEST = 1000
 const CHART_SUPPORTED_RESOLUTIONS = ['1', '5', '15', '30', '60', '120', '240', 'D', 'W', 'M'] as const
+// @story [[lucrjournal/market-data#^yahoo-resolutions]] Limits future charts to Yahoo-native intervals.
 const YAHOO_SUPPORTED_RESOLUTIONS = ['1', '5', '15', '30', '60', 'D', 'W', 'M'] as const
+// @story [[lucrjournal/market-data#^future-uses-yahoo]] Routes futures independently of their account platform.
+// @story [[lucrjournal/market-data#^crypto-uses-account-exchange]] Routes crypto through the linked account platform adapter.
 const POSITION_CHART_SOURCE_RESOLVERS = new Map<string, (params: PositionChartSourceResolverParams) => PositionChartSource | null>([
 	['Future', ({ symbolName }) => ({ provider: 'yahoo', symbol: symbolName.trim().toUpperCase() })],
 	['Crypto_Perp', (params) => resolveCryptoChartSource(params, true)],
@@ -130,6 +134,7 @@ const DARK_DEFAULTS: ThemeColors = {
 
 export function resolvePositionChartSource(plugin: ChartPlugin, position: PositionRecord): PositionChartSource | null {
 	const symbol = readLinkedFrontmatter(plugin.app, readStringField(position, 'symbol'), 'symbol')
+	// @story [[lucrjournal/market-data#^unsupported-source-rejected]] Rejects incomplete or unsupported chart source metadata.
 	if (symbol === null) {
 		return null
 	}
@@ -182,11 +187,13 @@ export function buildPositionChartConfig(
 	plugin: ChartPlugin,
 	position: PositionRecord,
 ): ChartConfig | null {
+	// @story [[lucrjournal/chart#^config-excludes-runtime-state]] Keeps settings and persisted state outside ChartConfig.
 	const context = buildPositionChartContext(plugin, position)
 	if (context === null) {
 		return null
 	}
 
+	// @story [[lucrjournal/chart#^chart-config-defaults]] Builds provider-specific chart defaults from the current source.
 	return {
 		symbol: context.source.symbol,
 		// exchange ⇒ crypto, yahoo ⇒ futures (CFD has no chart source yet).
@@ -202,6 +209,7 @@ export function buildPositionChartConfig(
 }
 
 export function resolveCurrentChartThemeColors(): ThemeColors {
+	// @story [[lucrjournal/chart#^chart-theme-settings]] Selects theme defaults from the active document.
 	const isDark = activeDocument.body.classList.contains('theme-dark')
 	return resolveThemeColors(isDark ? DARK_DEFAULTS : LIGHT_DEFAULTS)
 }
@@ -265,6 +273,7 @@ function resolveCryptoChartSymbolName(symbolName: string, sourceIsPerp: boolean)
 }
 
 function buildPositionChartFills(position: PositionRecord): Pick<PositionChartContext, 'entry' | 'exit'> {
+	// @story [[lucrjournal/chart#^position-fills]] Derives entry and exit sides from the current position side.
 	switch (readStringField(position, 'side')) {
 		case 'LONG':
 			return {
@@ -307,6 +316,7 @@ function getLjVar(name: string): string {
 }
 
 function resolveThemeColors(defaults: ThemeColors): ThemeColors {
+	// @story [[lucrjournal/chart#^chart-theme-settings]] Overrides defaults only with non-empty LucrJournal CSS variables.
 	const surf = getLjVar('surf')
 	const profitText = getLjVar('profit-text')
 	const lossText = getLjVar('loss-text')
@@ -393,6 +403,7 @@ if (import.meta.vitest) {
 	}
 
 	describe('resolvePositionChartSource', () => {
+		// @story [[lucrjournal/market-data#^future-uses-yahoo]] Covers future routing through Yahoo.
 		it('routes future symbols to yahoo from linked symbol frontmatter', () => {
 			const plugin = createPlugin([
 				{ basename: 'SBL-Main-E7', frontmatter: { lucr_type: 'symbol', name: 'E7', type: 'Future', account: '[[ACC-Main]]' } },
@@ -405,6 +416,7 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/market-data#^crypto-uses-account-exchange]] Covers crypto routing through the account exchange.
 		it('routes crypto symbols to exchange when the linked account platform has OHLCV support', () => {
 			const plugin = createPlugin([
 				{ basename: 'SBL-Main-BTCUSDT', frontmatter: { lucr_type: 'symbol', name: 'BTC/USDT', type: 'Crypto_Spot', account: '[[ACC-Main]]' } },
@@ -418,6 +430,7 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/market-data#^unsupported-source-rejected]] Covers unsupported source rejection.
 		it('returns null for unsupported symbol and platform combinations', () => {
 			expect(resolvePositionChartSource(createPlugin([
 				{ basename: 'SBL-Main-CFD', frontmatter: { lucr_type: 'symbol', name: 'EURUSD', type: 'CFD', account: '[[ACC-Main]]' } },
@@ -436,6 +449,9 @@ if (import.meta.vitest) {
 			vi.unstubAllGlobals()
 		})
 
+		// @story [[lucrjournal/chart#^chart-config-defaults]] Covers default resolution, batch size, and supported resolutions.
+		// @story [[lucrjournal/chart#^position-fills]] Covers long fill sides, epoch seconds, and prices.
+		// @story [[lucrjournal/chart#^config-excludes-runtime-state]] Covers fields kept outside ChartConfig.
 		it('uses position fills and explicit v3 supported resolutions', () => {
 			vi.stubGlobal('activeDocument', {
 				body: {
@@ -482,6 +498,7 @@ if (import.meta.vitest) {
 			expect(config).not.toHaveProperty('colors')
 		})
 
+		// @story [[lucrjournal/market-data#^yahoo-resolutions]] Covers the future resolution allowlist.
 		it('marks Yahoo futures with explicit Yahoo exchange', () => {
 			vi.stubGlobal('activeDocument', {
 				body: {
@@ -510,6 +527,7 @@ if (import.meta.vitest) {
 			expect(config).not.toHaveProperty('timeframe')
 		})
 
+		// @story [[lucrjournal/chart#^position-fills]] Covers short entry and exit sides.
 		it('maps short fills to sell then buy executions', () => {
 			vi.stubGlobal('activeDocument', {
 				body: {

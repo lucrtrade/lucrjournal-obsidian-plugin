@@ -14,11 +14,13 @@ type SessionGateScreenProps = LoginScreenProps & {
 }
 
 export function SessionGateScreen({ app, onRecheck }: SessionGateScreenProps) {
+	// @story [[lucrjournal/session#^claim-loading]] Shows a dedicated gate while the callback claim is pending.
 	if (isSessionClaimPending()) {
 		return <ClaimLoadingScreen />
 	}
 
 	if (requiresJournalUpgrade(app)) {
+		// @story [[lucrjournal/entitlement#^upgrade-gate-actions]] Selects the upgrade surface for an authenticated but denied account.
 		return <UpgradeScreen app={app} onRecheck={onRecheck} />
 	}
 
@@ -90,6 +92,7 @@ function LoginScreen({ app }: LoginScreenProps) {
 }
 
 function UpgradeScreen({ app, onRecheck }: SessionGateScreenProps) {
+	// @story [[lucrjournal/entitlement#^upgrade-gate-actions]] Renders account identity, billing handoff, and a same-session recheck.
 	const profile = getProfile(app)
 	const initial = profile?.email?.trim().charAt(0)
 	const [checking, setChecking] = useState(false)

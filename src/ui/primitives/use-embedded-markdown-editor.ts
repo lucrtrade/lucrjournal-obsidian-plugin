@@ -108,6 +108,7 @@ export function useEmbeddedMarkdownEditor({
 		[applyMode],
 	)
 
+	// @story [[lucrjournal/primitives#^embedded-editor-mount]] Creates and mounts one live editor after setup completes
 	useEffect(() => {
 		const container = containerRef.current
 		if (container === null) {
@@ -140,6 +141,7 @@ export function useEmbeddedMarkdownEditor({
 
 			if (disposed) {
 				logger?.debug('embedded editor disposed before mount completed')
+				// @story [[lucrjournal/primitives#^embedded-editor-cleanup]] Cleans up an editor that finishes setup after disposal
 				cleanupEmbeddedMarkdownEditor(state, { app, onCleanup, logger })
 				return
 			}
@@ -151,6 +153,7 @@ export function useEmbeddedMarkdownEditor({
 
 		void setup()
 
+		// @story [[lucrjournal/primitives#^embedded-editor-cleanup]] Removes hook listeners and releases the mounted editor
 		return () => {
 			disposed = true
 			const state = editorRef.current

@@ -39,6 +39,7 @@ describe('runSessionCheck', () => {
 		vi.unstubAllGlobals()
 	})
 
+	// @story [[lucrjournal/session#^obsidian-device-id]] Covers forwarding the Obsidian app id to authorization.
 	it('opens authorize directly so an existing web session can be reused', async () => {
 		const open = vi.fn()
 		vi.stubGlobal('window', { open })
@@ -60,6 +61,8 @@ describe('runSessionCheck', () => {
 		)
 	})
 
+	// @story [[lucrjournal/session#^callback-validation]] Covers refusing a callback with the wrong state.
+	// @story [[lucrjournal/session#^auth-logs-redact-credentials]] Covers redaction of callback credentials.
 	it('logs a mismatched auth callback through console.error without logging its values', async () => {
 		const error = vi.spyOn(console, 'error').mockImplementation(() => {})
 		vi.mocked(storage.getPendingLogin).mockReturnValue({
@@ -84,6 +87,7 @@ describe('runSessionCheck', () => {
 		expect(JSON.stringify(error.mock.calls)).not.toContain('wrong_state')
 	})
 
+	// @story [[lucrjournal/entitlement#^claim-entitlement-gate]] Covers retaining the claimed token behind the upgrade gate.
 	it('renders the upgrade gate when the claimed account lacks journal_basic', async () => {
 		const deniedContext: AccountContext = {
 			...context,
@@ -107,6 +111,7 @@ describe('runSessionCheck', () => {
 		expect(storage.denyJournalAccess).toHaveBeenCalledWith(app, deniedContext)
 	})
 
+	// @story [[lucrjournal/session#^active-claim-stored]] Covers storing an active claimed session.
 	it('stores an active claimed session', async () => {
 		vi.mocked(storage.getPendingLogin).mockReturnValue({
 			state: 'expected_state',
@@ -126,6 +131,8 @@ describe('runSessionCheck', () => {
 		expect(storage.setAccountContext).toHaveBeenCalledWith(app, context)
 	})
 
+	// @story [[lucrjournal/session#^claim-with-verifier]] Covers starting a claim from a validated callback.
+	// @story [[lucrjournal/session#^pending-cleared-after-claim]] Covers leaving pending state after the claim settles.
 	it('exposes loading only while claim is pending', async () => {
 		let resolveClaim!: (result: api.ClaimResult) => void
 		vi.mocked(storage.getPendingLogin).mockReturnValue({
@@ -147,12 +154,15 @@ describe('runSessionCheck', () => {
 		expect(isSessionClaimPending()).toBe(false)
 	})
 
+	// @story [[lucrjournal/session#^empty-token-signed-out]] Covers the no-token fast path.
 	it('signs out when the token is absent', async () => {
 		vi.mocked(storage.getToken).mockReturnValue(null)
 		expect(await runSessionCheck(app)).toBe('signed_out')
 		expect(api.checkSession).not.toHaveBeenCalled()
 	})
 
+	// @story [[lucrjournal/session#^invalid-session-cleared]] Covers clearing a revoked session.
+	// @story [[lucrjournal/entitlement#^invalid-check-signs-out]] Covers signing out an explicitly revoked session.
 	it('signs out when the session is revoked', async () => {
 		vi.mocked(storage.getToken).mockReturnValue('lj_token')
 		vi.mocked(api.checkSession).mockResolvedValue({ kind: 'signed_out', reason: 'invalid_session' })
@@ -160,6 +170,7 @@ describe('runSessionCheck', () => {
 		expect(storage.clearSession).toHaveBeenCalledTimes(1)
 	})
 
+	// @story [[lucrjournal/entitlement#^entitlement-check-denies]] Covers retaining the token when journal access is removed.
 	it('switches to the upgrade gate when journal_basic is removed', async () => {
 		vi.mocked(storage.getToken).mockReturnValue('lj_token')
 		vi.mocked(api.checkSession).mockResolvedValue({
@@ -172,6 +183,7 @@ describe('runSessionCheck', () => {
 		expect(storage.clearSession).not.toHaveBeenCalled()
 	})
 
+	// @story [[lucrjournal/entitlement#^ambiguous-check-keeps-state]] Covers preserving credentials for an ambiguous check.
 	it('keeps the session silently on a network/ambiguous result', async () => {
 		vi.mocked(storage.getToken).mockReturnValue('lj_token')
 		vi.mocked(api.checkSession).mockResolvedValue({ kind: 'keep' })
@@ -179,6 +191,7 @@ describe('runSessionCheck', () => {
 		expect(storage.clearSession).not.toHaveBeenCalled()
 	})
 
+	// @story [[lucrjournal/entitlement#^active-check-unlocks]] Covers refreshing cached account context for active access.
 	it('refreshes the cached account context while active', async () => {
 		vi.mocked(storage.getToken).mockReturnValue('lj_token')
 		vi.mocked(api.checkSession).mockResolvedValue({ kind: 'active', context })

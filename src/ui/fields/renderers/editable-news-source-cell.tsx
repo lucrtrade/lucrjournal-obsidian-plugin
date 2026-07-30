@@ -46,6 +46,7 @@ export function EditableNewsSourceCell({
 		return () => window.clearTimeout(timer)
 	}, [isEditing, value])
 
+	// @story [[lucrjournal/fields#^news-source-writeback]] Normalizes source frontmatter before offering body import
 	const save = async () => {
 		const trimmed = draft.trim()
 		const normalized = trimmed === '' ? null : normalizeHomepageUrl(trimmed)

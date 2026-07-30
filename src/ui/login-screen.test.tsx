@@ -32,6 +32,7 @@ describe('SessionGateScreen', () => {
 		expect(markup).toContain('data-lj-action="login"')
 	})
 
+	// @story [[lucrjournal/entitlement#^upgrade-gate-actions]] Covers account identity, billing handoff, and recheck on the upgrade gate.
 	it('renders upgrade and subtle recheck actions when journal_basic is missing', () => {
 		vi.mocked(login.isSessionClaimPending).mockReturnValue(false)
 		vi.mocked(storage.requiresJournalUpgrade).mockReturnValue(true)
@@ -57,6 +58,7 @@ describe('SessionGateScreen', () => {
 		expect(markup).toContain('upgraded — check again')
 	})
 
+	// @story [[lucrjournal/session#^claim-loading]] Covers the visible busy state during callback claim.
 	it('renders loading while the callback claim is pending', () => {
 		vi.mocked(login.isSessionClaimPending).mockReturnValue(true)
 

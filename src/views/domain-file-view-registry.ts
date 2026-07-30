@@ -30,6 +30,7 @@ export const playbookDomainFileViewDescriptor: DomainFileViewDescriptor<Playbook
 	viewType: LUCR_PLAYBOOK_VIEW_TYPE,
 }
 
+// @story [[lucrjournal/runtime#^domain-default-view]] Maps valid position and playbook domain data to their structured view descriptors.
 export const domainFileViewDescriptors: readonly DomainFileViewDescriptor[] = [
 	positionDomainFileViewDescriptor,
 	playbookDomainFileViewDescriptor,

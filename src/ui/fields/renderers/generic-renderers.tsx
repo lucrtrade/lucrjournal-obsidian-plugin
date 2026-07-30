@@ -206,6 +206,7 @@ function EditableDescriptionCell({
 	)
 }
 
+// @story [[lucrjournal/fields#^position-cell-writeback]] Routes editable position numbers through descriptor writeback field names
 function renderEditablePositionNumberCell(
 	entry: { file: unknown; fm: unknown },
 	field: FieldDescriptor<unknown>,
@@ -240,6 +241,9 @@ function formatProfitCellDisplay(currentValue: number | null) {
 	}
 }
 
+// @story [[lucrjournal/fields#^position-cell-writeback]] Routes position enum values through the position domain writer
+// @story [[lucrjournal/fields#^symbol-cell-writeback]] Routes symbol enum values through the symbol domain writer
+// @story [[lucrjournal/fields#^writeback-failure-state]] Starts enum writeback without an optimistic persisted value or rejection handler
 function updateEnumField(
 	entry: { fm: unknown },
 	field: FieldDescriptor<unknown>,
@@ -308,6 +312,7 @@ const textRenderer: TableRendererEntry = {
 				)
 			}
 			case 'editable-account-name':
+				// @story [[lucrjournal/fields#^account-name-writeback]] Dispatches persisted account rows to the account rename cell
 				if (!(file instanceof TFile)) {
 					return <div className="lj:px-1 lj:truncate lj:text-lj-c-tertiary">{typeof value === 'string' && value !== '' ? value : '-'}</div>
 				}
@@ -318,11 +323,13 @@ const textRenderer: TableRendererEntry = {
 				}
 				return <EditableDescriptionCell app={context.app} file={file} value={typeof value === 'string' ? value : ''} />
 			case 'source-preview':
+				// @story [[lucrjournal/fields#^news-source-writeback]] Dispatches persisted news rows to the source writeback cell
 				if (!(file instanceof TFile)) {
 					return <NewsSourcePreview url={typeof value === 'string' ? value : null} compact />
 				}
 				return <EditableNewsSourceCell app={context.app} file={file} value={typeof value === 'string' ? value : null} />
 			case 'tag-list': {
+				// @story [[lucrjournal/fields#^tag-cell-writeback]] Dispatches persisted tag lists to normalized frontmatter writeback
 				const tags = Array.isArray(value) ? value.map((tag) => String(tag)) : []
 				if (!(file instanceof TFile)) {
 					return (
@@ -355,6 +362,7 @@ const textRenderer: TableRendererEntry = {
 					valueClassName: 'lj:text-lj-c-tertiary',
 				}))
 			case 'editable-fee-model':
+				// @story [[lucrjournal/fields#^symbol-cell-writeback]] Writes fee edits only for persisted symbol rows
 				if (
 					file instanceof TFile
 					&& (entry as DomainPersistedEntry<{ lucr_type?: string | null; fee_value?: number | null }>).fm.lucr_type === 'symbol'
@@ -383,6 +391,7 @@ const textRenderer: TableRendererEntry = {
 					</div>
 				)
 			case 'editable-contract-unit':
+				// @story [[lucrjournal/fields#^symbol-cell-writeback]] Writes contract-unit edits only for persisted symbol rows
 				if (
 					file instanceof TFile
 					&& (entry as DomainPersistedEntry<{ lucr_type?: string | null; contract_unit?: SymbolContractUnitTableValue }>).fm.lucr_type === 'symbol'
@@ -430,6 +439,7 @@ const textRenderer: TableRendererEntry = {
 	},
 }
 
+// @story [[lucrjournal/fields#^entry-title-writeback]] Dispatches persisted title cells to filename and heading writeback
 const titleRenderer: TableRendererEntry = {
 	align: 'left',
 	renderCell: (value, entry, _field, context) => {
@@ -658,6 +668,7 @@ const numberRenderer: TableRendererEntry = {
 	},
 }
 
+// @story [[lucrjournal/fields#^writable-renderer-gates]] Enables enum editing only for writable persisted descriptors
 const enumRenderer: TableRendererEntry = {
 	align: 'left',
 	renderCell: (value, entry, field, context) => {
@@ -761,6 +772,8 @@ function renderEnumBadgeTriggerContent(
 	return <EnumBadge option={selectedOption} fallbackValue={normalizedValue} variant={badgeVariant} />
 }
 
+// @story [[lucrjournal/fields#^writable-renderer-gates]] Enables datetime editing only for writable persisted descriptors
+// @story [[lucrjournal/fields#^position-cell-writeback]] Routes the current editable datetime descriptor to its frontmatter field
 const datetimeRenderer: TableRendererEntry = {
 	align: 'left',
 	renderCell: (value, entry, field, context) => {
@@ -827,6 +840,7 @@ const wikilinkRenderer: TableRendererEntry = {
 	},
 }
 
+// @story [[lucrjournal/fields#^criteria-readonly-gate]] Requires writable criteria options before dispatching the editable criteria cell
 const wikilinkArrayRenderer: TableRendererEntry = {
 	align: 'left',
 	renderCell: (value, entry, field, context) => {
@@ -860,6 +874,7 @@ const wikilinkArrayRenderer: TableRendererEntry = {
 	},
 }
 
+// @story [[lucrjournal/fields#^renderer-dispatch]] Registers exactly one renderer for every base field type
 export const genericTableRenderers = {
 	title: titleRenderer,
 	text: textRenderer,

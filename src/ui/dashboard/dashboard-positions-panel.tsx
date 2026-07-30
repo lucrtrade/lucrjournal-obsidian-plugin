@@ -113,6 +113,7 @@ export function DashboardPositionsPanel({
 		[paginatedPositionEntrySignature],
 	)
 
+	// @story [[lucrjournal/fields#^filter-apply-reset]] Resets positions pagination after search filter or sorting changes
 	useEffect(() => {
 		state.setPagination((current) => current.pageIndex === 0 ? current : { ...current, pageIndex: 0 })
 	}, [state.globalFilter, state.columnFilters, state.sorting, tableFilterState])
@@ -175,6 +176,7 @@ export function DashboardPositionsPanel({
 		}
 	}, [app, filterResult.entries, paginatedPositionEntriesForEffect])
 
+	// @story [[lucrjournal/fields#^column-visibility-persistence]] Synchronizes persisted positions hidden columns into table state
 	useEffect(() => {
 		const nextVisibility = createColumnVisibilityState(hiddenColumnIds)
 		state.setColumnVisibility((current) => areVisibilityStatesEqual(current, nextVisibility) ? current : nextVisibility)
@@ -296,6 +298,7 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('createPositionTableFilterState', () => {
+		// @story [[lucrjournal/fields#^position-scope-filters]] Covers clearing a symbol outside the selected account scope
 		it('clears symbol filter when it does not belong to the selected account', () => {
 			const createState = createPositionTableFilterState
 

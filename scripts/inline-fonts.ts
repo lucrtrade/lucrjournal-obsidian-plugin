@@ -7,6 +7,7 @@ const cssPath = resolve(root, "styles.css");
 
 let css = readFileSync(cssPath, "utf8");
 
+// @story [[lucrjournal/build#^inline-font-assets]] Replaces every local WOFF2 reference with its base64 data URL.
 css = css.replace(/url\(([^)]+\.woff2)\)/g, (_match, rawPath) => {
 	const clean = rawPath.replace(/['"]/g, "");
 	const abs = resolve(root, "node_modules", clean);

@@ -37,6 +37,8 @@ export function EditableContractUnitCell({
 		)
 	}
 
+	// @story [[lucrjournal/fields#^symbol-cell-writeback]] Restricts contract-unit writeback to null or rounded positive integers
+	// @story [[lucrjournal/fields#^writeback-failure-state]] Delegates contract-unit rejection after the number editor closes
 	return (
 		<EditableFrontmatterNumberCell
 			value={value}

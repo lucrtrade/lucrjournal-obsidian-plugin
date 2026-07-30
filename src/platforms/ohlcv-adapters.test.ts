@@ -6,12 +6,14 @@ const spot = { base: 'BTC', quote: 'USDT', type: 'spot' } as const
 const perp = { base: 'BTC', quote: 'USDT', type: 'perp' } as const
 
 describe('EXCHANGE_ID_TO_ADAPTER', () => {
+	// @story [[lucrjournal/market-data#^exchange-adapter-registry]] Covers the exact exchange adapter registry.
 	it('registers exactly the crypto exchanges', () => {
 		expect([...EXCHANGE_ID_TO_ADAPTER.keys()].sort()).toEqual(['binance', 'bybit', 'okx'])
 	})
 })
 
 describe('binance ohlcv adapter', () => {
+	// @story [[lucrjournal/market-data#^binance-ohlcv-contract]] Covers Binance endpoints, intervals, and row parsing.
 	const adapter = EXCHANGE_ID_TO_ADAPTER.get('binance')!
 
 	it('builds spot klines url', () => {
@@ -33,6 +35,7 @@ describe('binance ohlcv adapter', () => {
 })
 
 describe('bybit ohlcv adapter', () => {
+	// @story [[lucrjournal/market-data#^bybit-ohlcv-contract]] Covers Bybit category routing and ascending row parsing.
 	const adapter = EXCHANGE_ID_TO_ADAPTER.get('bybit')!
 
 	it('builds linear kline url for perp', () => {
@@ -54,6 +57,7 @@ describe('bybit ohlcv adapter', () => {
 })
 
 describe('okx ohlcv adapter', () => {
+	// @story [[lucrjournal/market-data#^okx-ohlcv-contract]] Covers OKX route selection, ids, intervals, and volume fields.
 	const adapter = EXCHANGE_ID_TO_ADAPTER.get('okx')!
 
 	it('builds recent candles url with forward window', () => {

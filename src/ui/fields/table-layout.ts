@@ -1,6 +1,7 @@
 import type { TableRendererAlign } from './types'
 import type { TableColumnWidth, TableFieldLayout } from '../../domains/core/fields'
 
+// @story [[lucrjournal/fields#^column-width-layout]] Defines fixed pixel weights for every bounded table width token
 const WIDTH_PX_BY_TOKEN: Record<Exclude<TableColumnWidth, 'fill' | 'fill-secondary'>, number> = {
 	icon: 40,
 	action: 64,
@@ -17,6 +18,7 @@ const WIDTH_PX_BY_TOKEN: Record<Exclude<TableColumnWidth, 'fill' | 'fill-seconda
 	'7xl': 448,
 }
 
+// @story [[lucrjournal/fields#^column-width-layout]] Defines the primary and secondary fill column weights
 const FILL_COLUMN_MIN_WIDTH_PX = 320
 const SECONDARY_FILL_COLUMN_WIDTH_PX = 224
 

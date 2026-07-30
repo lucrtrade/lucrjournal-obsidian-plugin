@@ -3,6 +3,7 @@ import { useLayoutEffect, useState, type RefObject } from 'react'
 export function useObservedWidth<T extends HTMLElement>(elementRef: RefObject<T | null>) {
 	const [width, setWidth] = useState(0)
 
+	// @story [[lucrjournal/primitives#^observed-container-width]] Measures the referenced element and disconnects its ResizeObserver
 	useLayoutEffect(() => {
 		const element = elementRef.current
 		if (element === null) {

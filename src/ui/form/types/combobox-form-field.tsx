@@ -33,6 +33,7 @@ export const ComboboxFormFieldRenderer: FormTypeRenderer<'combobox'> = ({
 	const selectedOption = options.find((option) => option.value === trimmedValue) ?? null
 	const displayValue = isEditing && query !== '' ? query : value
 	const normalizedQuery = query.trim().toLowerCase()
+	// @story [[lucrjournal/form#^combobox-freeform-draft]] Filters generic options by normalized label substring
 	const filteredOptions = normalizedQuery === ''
 		? options
 		: options.filter((option) => option.label.toLowerCase().includes(normalizedQuery))
@@ -80,6 +81,7 @@ export const ComboboxFormFieldRenderer: FormTypeRenderer<'combobox'> = ({
 				return
 			}
 
+			// @story [[lucrjournal/form#^combobox-close-keeps-draft]] Closes on outside click without reverting the emitted form value
 			setIsOpen(false)
 			setIsEditing(false)
 		}
@@ -89,6 +91,7 @@ export const ComboboxFormFieldRenderer: FormTypeRenderer<'combobox'> = ({
 	}, [isOpen])
 
 	const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+		// @story [[lucrjournal/form#^combobox-open-key]] Opens a closed combobox before any option can be committed
 		if (!isOpen && (event.key === 'ArrowDown' || event.key === 'Enter')) {
 			setIsOpen(true)
 			setIsEditing(true)
@@ -106,6 +109,7 @@ export const ComboboxFormFieldRenderer: FormTypeRenderer<'combobox'> = ({
 				break
 			case 'Enter':
 				if (isOpen && filteredOptions[activeIndex] !== undefined) {
+					// @story [[lucrjournal/form#^combobox-option-commit]] Commits the active option and clears local editing state
 					event.preventDefault()
 					onChange(filteredOptions[activeIndex].value)
 					setIsOpen(false)
@@ -115,6 +119,7 @@ export const ComboboxFormFieldRenderer: FormTypeRenderer<'combobox'> = ({
 				break
 			case 'Escape':
 				if (isOpen) {
+					// @story [[lucrjournal/form#^combobox-close-keeps-draft]] Closes without restoring the value already emitted while typing
 					event.preventDefault()
 					setIsOpen(false)
 					setIsEditing(false)
@@ -151,6 +156,7 @@ export const ComboboxFormFieldRenderer: FormTypeRenderer<'combobox'> = ({
 					type="text"
 					value={displayValue}
 					onChange={(event) => {
+						// @story [[lucrjournal/form#^combobox-freeform-draft]] Emits raw input while filtering labels with its normalized query
 						const nextQuery = event.target.value
 						setQuery(nextQuery)
 						setIsEditing(true)
@@ -162,6 +168,7 @@ export const ComboboxFormFieldRenderer: FormTypeRenderer<'combobox'> = ({
 						setIsEditing(true)
 					}}
 					onBlur={() => {
+						// @story [[lucrjournal/form#^combobox-close-keeps-draft]] Clears local editing state without reverting the emitted form value
 						window.setTimeout(() => {
 							if (containerRef.current?.contains(activeDocument.activeElement)) {
 								return
@@ -199,6 +206,7 @@ export const ComboboxFormFieldRenderer: FormTypeRenderer<'combobox'> = ({
 								type="button"
 								onMouseEnter={() => setActiveIndex(index)}
 								onClick={() => {
+									// @story [[lucrjournal/form#^combobox-option-commit]] Commits clicked options and clears local editing state
 									onChange(option.value)
 									setIsOpen(false)
 									setIsEditing(false)
@@ -225,6 +233,7 @@ export const ComboboxFormFieldRenderer: FormTypeRenderer<'combobox'> = ({
 	)
 }
 
+// @story [[lucrjournal/form#^combobox-empty-helper]] Keeps no-match copy visible without rendering an empty option panel
 function resolveComboboxDisplayState(
 	isOpen: boolean,
 	helperSearch: string,
@@ -246,6 +255,7 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('resolveComboboxDisplayState', () => {
+		// @story [[lucrjournal/form#^combobox-empty-helper]] Covers the open no-match helper state
 		it('shows inline helper instead of an empty panel when there are no matches', () => {
 			expect(resolveComboboxDisplayState(true, 'NNNN', 0, 0, false, 'No matching account')).toEqual({
 				showPanel: false,
@@ -253,6 +263,7 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/form#^combobox-empty-helper]] Covers helper persistence after the panel closes
 		it('keeps inline helper visible after the combobox closes', () => {
 			expect(resolveComboboxDisplayState(false, 'NNNN', 0, 0, false, 'No matching account')).toEqual({
 				showPanel: false,

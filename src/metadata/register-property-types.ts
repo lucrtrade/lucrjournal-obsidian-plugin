@@ -14,13 +14,16 @@ type AppWithMetadataTypeManager = App & {
 	metadataTypeManager?: MetadataTypeManager;
 }
 
+// @story [[lucrjournal/domain-model#^register-domain-property-types]] Flattens property types from the runtime domain registry
 const LUCR_JOURNAL_PROPERTIES = Domains.flatMap((domain) =>
 	flattenBuiltinProperties(domain.builtinProperties()),
 )
 
+// @story [[lucrjournal/domain-model#^register-domain-property-types]] Registers every flattened domain property through Obsidian
 export function registerPropertyTypes(app: App): void {
 	const metadataAwareApp = app as AppWithMetadataTypeManager
 	const metadataTypeManager = metadataAwareApp.metadataTypeManager
+	// @story [[lucrjournal/domain-model#^missing-property-type-manager]] Leaves startup recoverable when the Obsidian API is unavailable
 	if (!metadataTypeManager) {
 		logger.warn('metadataTypeManager unavailable; skipped property type registration', {
 			properties: LUCR_JOURNAL_PROPERTIES.length,

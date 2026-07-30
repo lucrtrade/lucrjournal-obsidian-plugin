@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { searchTradingViewSymbols } from './tradingview'
 
 describe('searchTradingViewSymbols', () => {
+	// @story [[lucrjournal/symbol-search#^runtime-request-contract]] Covers the Obsidian requestUrl request shape
 	it('reads symbol rows through Obsidian requestUrl', async () => {
 		async function requestUrl(options: { headers: Record<string, string>, throw: boolean, url: string }) {
 			expect(options.url).toContain('text=EURUSD')
@@ -23,6 +24,7 @@ describe('searchTradingViewSymbols', () => {
 		])
 	})
 
+	// @story [[lucrjournal/symbol-search#^vendor-type-mapping]] Covers every mapped vendor category and perpetual upgrade
 	it('normalizes rows and drops entries without a logo', async () => {
 		async function fetch(url: string) {
 			expect(url).toContain('text=BTC')
@@ -55,6 +57,7 @@ describe('searchTradingViewSymbols', () => {
 		])
 	})
 
+	// @story [[lucrjournal/symbol-search#^remote-result-ranking]] Covers exact-match ranking before non-exact rows
 	it('puts exact symbol matches first so callers can take [0]', async () => {
 		async function fetch() {
 			return {
@@ -73,6 +76,7 @@ describe('searchTradingViewSymbols', () => {
 		expect(best).toEqual({ symbol: 'BTCUSDT', type: 'Crypto_Spot', logo: 'crypto/XTVCBTC' })
 	})
 
+	// @story [[lucrjournal/symbol-search#^remote-result-ranking]] Covers preferred-type ranking among exact rows
 	it('prefers the preferred type when multiple rows share the same exact symbol', async () => {
 		async function fetch() {
 			return {

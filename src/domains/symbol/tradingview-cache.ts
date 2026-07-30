@@ -4,6 +4,7 @@ import { searchTradingViewSymbols, type TradingViewSymbolRow } from './tradingvi
 
 type TradingViewRequester = Parameters<typeof searchTradingViewSymbols>[0]
 
+// @story [[lucrjournal/symbol-search#^memory-search-cache]] Keeps successful searches in requester-scoped module memory for one hour
 const TRADINGVIEW_SEARCH_TTL_MS = 60 * 60 * 1000
 const TradingViewSearches = new WeakMap<TradingViewRequester, Map<string, {
 	expiresAt: number
@@ -15,6 +16,9 @@ function normalizeTradingViewSearchKey(query: string): string {
 	return query.trim().toUpperCase()
 }
 
+// @story [[lucrjournal/symbol-search#^empty-query-skips-network]] Rejects empty normalized queries before cache or network access
+// @story [[lucrjournal/symbol-search#^pending-search-dedupe]] Shares in-flight searches and reuses successful results
+// @story [[lucrjournal/symbol-search#^failed-search-not-cached]] Clears rejected in-flight searches without caching them
 export async function getCachedTradingViewSearch(
 	query: string,
 	requester: TradingViewRequester,
@@ -76,6 +80,7 @@ if (import.meta.vitest) {
 			expect(fetcher).toHaveBeenCalledTimes(1)
 		})
 
+		// @story [[lucrjournal/symbol-search#^pending-search-dedupe]] Covers concurrent request deduplication
 		it('dedupes concurrent requests and caches the response', async () => {
 			const fetcher = vi.fn(async () => ({
 				ok: true,
@@ -96,6 +101,7 @@ if (import.meta.vitest) {
 			expect(fetcher).toHaveBeenCalledTimes(1)
 		})
 
+		// @story [[lucrjournal/symbol-search#^empty-query-skips-network]] Covers the empty-query network guard
 		it('returns [] for empty queries without hitting the network', async () => {
 			const fetcher = vi.fn()
 			await expect(getCachedTradingViewSearch('   ', fetcher)).resolves.toEqual([])

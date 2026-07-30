@@ -13,6 +13,7 @@ type ExtractedMarkdownSection = {
 	end: number
 }
 
+// @story [[lucrjournal/position-body#^position-section-boundaries]] Recognizes exact-depth line headings without markdown syntax awareness
 function collectHeadings(content: string, depth: number): MarkdownHeading[] {
 	const headings: MarkdownHeading[] = []
 	const prefix = '#'.repeat(depth)
@@ -156,6 +157,7 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('extractSection', () => {
+		// @story [[lucrjournal/position-body#^position-section-boundaries]] Covers exact H1 body termination at the next H1
 		it('reads the requested top-level section body without pulling in the next H1', () => {
 			const content = [
 				'---',
@@ -180,6 +182,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('extractSections', () => {
+		// @story [[lucrjournal/position-body#^position-section-boundaries]] Covers ordered H2 extraction and trimmed bodies
 		it('extracts sibling H2 sections in order', () => {
 			const content = [
 				'## [[news1]]',

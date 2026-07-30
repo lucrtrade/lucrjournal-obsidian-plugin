@@ -24,6 +24,7 @@ export type PlaybookEntryWithStats = {
 	stats: PositionBacklinkStats
 }
 
+// @story [[lucrjournal/playbook#^playbook-position-stats]] Resolves positive playbook backlinks before shared aggregation
 export function listPlaybookEntriesWithStats(app: App): PlaybookEntryWithStats[] {
 	const playbookEntries = PlaybookDomain
 		.totalEntries(app)
@@ -46,6 +47,7 @@ export function listPlaybookEntriesWithStats(app: App): PlaybookEntryWithStats[]
 		})
 }
 
+// @story [[lucrjournal/analysis#^position-backlink-metrics]] Derives shared performance metrics from linked positions
 export function buildPositionBacklinkStats(positions: Position[]): PositionBacklinkStats {
 	const trades = positions.length
 	const realizedProfits: number[] = []
@@ -86,6 +88,7 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('buildPositionBacklinkStats', () => {
+		// @story [[lucrjournal/analysis#^position-backlink-metrics]] Covers trade count realized-profit filtering and extremes
 		it('computes trades, win rate and net profit from linked positions', () => {
 			expect(buildPositionBacklinkStats([
 				{ lucr_type: 'position', status: 'close', profit: 100 },
@@ -101,6 +104,7 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/analysis#^position-backlink-metrics]] Covers the canonical closed-position predicate
 		it('treats positions with closed_at as closed even when legacy status stays open', () => {
 			expect(buildPositionBacklinkStats([
 				{
@@ -118,6 +122,7 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/analysis#^position-backlink-metrics]] Covers shared amount precision for aggregates and extremes
 		it('rounds backlink amount aggregates to the shared precision', () => {
 			expect(buildPositionBacklinkStats([
 				{ lucr_type: 'position', status: 'close', profit: 0.1 },
@@ -135,6 +140,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('listPlaybookEntriesWithStats', () => {
+		// @story [[lucrjournal/playbook#^playbook-position-stats]] Covers positive position-only playbook backlinks and empty results
 		it('only counts position backlinks that resolve to each playbook file', () => {
 			const playbookFile = createMockTFile(`${LUCR_TRADE_ROOT_DIR}/playbooks/PBK-00001.md`, 'PBK-00001')
 			const otherPlaybookFile = createMockTFile(`${LUCR_TRADE_ROOT_DIR}/playbooks/PBK-00002.md`, 'PBK-00002')

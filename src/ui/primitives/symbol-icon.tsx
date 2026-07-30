@@ -14,7 +14,9 @@ type SymbolIconProps = {
 	className?: string
 }
 
+// @story [[lucrjournal/primitives#^symbol-icon-fallback]] Defines the visible fallback while a symbol logo is unavailable
 const DEFAULT_SYMBOL_ICON_NAME = 'circle-dollar-sign'
+// @story [[lucrjournal/primitives#^image-icon-shape]] Keeps loaded symbol images circular and cropped
 const IMAGE_ICON_CLASS_NAME = 'lj:rounded-full lj:object-cover'
 
 export function SymbolIcon({
@@ -26,6 +28,7 @@ export function SymbolIcon({
 	const [iconSrc, setIconSrc] = useState(() => readCachedSymbolLogoSrc(logoUrl))
 	const iconClassName = `lj:border-none lj:ring-0 lj:outline-none ${className ?? ''}`.trim()
 
+	// @story [[lucrjournal/primitives#^symbol-icon-fallback]] Loads cache misses asynchronously and ignores results after unmount
 	useEffect(() => {
 		const cachedLogoSrc = readCachedSymbolLogoSrc(logoUrl)
 		setIconSrc(cachedLogoSrc)

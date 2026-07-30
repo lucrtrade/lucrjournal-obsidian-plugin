@@ -36,6 +36,7 @@ const PlatformType = type({
 
 const presetPlatformNames = PLATFORM_NAMES
 
+// @story [[lucrjournal/domain-model#^basename-domain-identity]] Uses the shared basename-driven identity without a document title
 class PlatformDomainDefinition extends BasenameDomainBase<'platform', typeof PlatformType> {
 	override readonly name = 'platform' as const
 	override readonly schema = PlatformType
@@ -62,6 +63,7 @@ class PlatformDomainDefinition extends BasenameDomainBase<'platform', typeof Pla
 		return `${this.name}:-` 
 	}
 
+	// @story [[lucrjournal/account-platform#^platform-catalog-merge]] Merges persisted platforms before presets with normalized deduplication
 	private listAvailablePlatformPresentations(app: DomainRuntimeApp): PlatformPresentation[] {
 		const savedPlatforms = listPersistedPlatformPresentations(app)
 		const presetPlatforms = presetPlatformNames.map((platformName) => buildPresetPlatformPresentation(platformName))
@@ -81,6 +83,7 @@ class PlatformDomainDefinition extends BasenameDomainBase<'platform', typeof Pla
 		return this.listAvailablePlatformPresentations(app).map(toPlatformPickerOption)
 	}
 
+	// @story [[lucrjournal/account-platform#^platform-icon-lookup]] Resolves every platform display through one normalized catalog lookup
 	resolveIcon(app: DomainRuntimeApp, value: string): IconDescriptor | null {
 		const normalizedValue = normalizePlatformLookupKey(value)
 		if (normalizedValue.length === 0) {
@@ -93,6 +96,7 @@ class PlatformDomainDefinition extends BasenameDomainBase<'platform', typeof Pla
 		return matchedPlatform?.icon ?? { kind: 'platform', value: value.trim() }
 	}
 
+	// @story [[lucrjournal/account-platform#^account-creates-platform]] Distinguishes persisted platform dependencies from presets
 	hasPersistedPlatform(app: DomainRuntimeApp, platformName: string): boolean {
 		return listPersistedPlatformPresentations(app)
 			.some((platform) => platform.name.trim().toLocaleLowerCase() === platformName.trim().toLocaleLowerCase())
@@ -118,6 +122,7 @@ function isPlatformFrontmatter(frontmatter: unknown): frontmatter is Record<stri
 	return normalizeLucrTypeName((frontmatter as Record<string, unknown>).lucr_type) === 'platform'
 }
 
+// @story [[lucrjournal/account-platform#^persisted-platform-presentation]] Filters persisted platforms and derives their basename identity
 function listPersistedPlatformPresentations(
 	app: DomainRuntimeApp,
 ): PlatformPresentation[] {
@@ -138,6 +143,7 @@ function listPersistedPlatformPresentations(
 				return []
 			}
 
+			// @story [[lucrjournal/account-platform#^persisted-platform-icon]] Prefers a persisted icon descriptor before the platform fallback
 			return [{
 				name: platformName,
 				icon: resolveIconDescriptor(platform.icon) ?? { kind: 'platform', value: platformName },
@@ -165,6 +171,7 @@ function resolvePlatformExchangeId(value: string) {
 	return presetPlatformName === null ? null : PLATFORM_TO_EXCHANGE_ID[presetPlatformName] ?? null
 }
 
+// @story [[lucrjournal/account-platform#^platform-icon-lookup]] Normalizes bare names and platform wikilinks identically
 function normalizePlatformLookupKey(value: string) {
 	return sanitizeObsidianFileName((parsePlatformWikilink(value) ?? value).trim()).toLocaleLowerCase()
 }
@@ -188,6 +195,7 @@ function toPlatformPickerOption(platform: PlatformPresentation): PlatformPickerO
 	}
 }
 
+// @story [[lucrjournal/account-platform#^platform-create-collision]] Rejects normalized persisted platform name collisions
 function assertUniquePlatformName(app: DomainRuntimeApp, platformName: string) {
 	const normalizedName = platformName.trim().toLocaleLowerCase()
 	const existingNames = listPersistedPlatformPresentations(app)
@@ -202,6 +210,9 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('PlatformDomain.availablePlatforms', () => {
+		// @story [[lucrjournal/account-platform#^preset-platforms]] Covers the exact preset platform order
+		// @story [[lucrjournal/account-platform#^platform-catalog-merge]] Covers persisted precedence and normalized deduplication
+		// @story [[lucrjournal/account-platform#^persisted-platform-icon]] Covers persisted custom icons and platform fallbacks
 		it('lists saved platforms before preset platforms, removes duplicates, and resolves icon kinds', () => {
 			const app = {
 				vault: {
@@ -244,6 +255,7 @@ if (import.meta.vitest) {
 			])
 		})
 
+		// @story [[lucrjournal/account-platform#^persisted-platform-presentation]] Covers rejection of invalid persisted frontmatter
 		it('skips persisted platforms with uncastable frontmatter instead of throwing', () => {
 			const app = {
 				vault: {
@@ -273,6 +285,7 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/account-platform#^persisted-platform-presentation]] Covers normalized persisted platform discrimination
 		it('matches persisted platform lucr_type case-insensitively', () => {
 			const app = {
 				vault: {
@@ -294,6 +307,8 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/account-platform#^persisted-platform-icon]] Covers persisted icon precedence
+		// @story [[lucrjournal/account-platform#^platform-icon-lookup]] Covers wikilink, preset, and empty icon lookup inputs
 		it('resolves persisted icons first and falls back to platform icon descriptors', () => {
 			const app = {
 				vault: {
@@ -315,6 +330,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('PlatformDomain.createEntry', () => {
+		// @story [[lucrjournal/account-platform#^platform-create-collision]] Covers preset creation without a persisted collision
 		it('allows creating a preset platform when the vault does not have its file yet', async () => {
 			const created: Array<{ path: string; content: string }> = []
 			const app = {
@@ -365,6 +381,7 @@ if (import.meta.vitest) {
 			expect(created[0]?.content).toMatch(/\n---\n$/)
 		})
 
+		// @story [[lucrjournal/account-platform#^platform-create-collision]] Covers rejection of a persisted duplicate
 		it('rejects duplicate platform names instead of auto-incrementing files', async () => {
 			const app = {
 				vault: {

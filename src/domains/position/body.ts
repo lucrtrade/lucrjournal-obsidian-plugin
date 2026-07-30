@@ -7,6 +7,7 @@ import { extractSections } from '../../utils/markdown-sections'
 import type { PositionSectionKind } from './index'
 import type { App, TFile } from 'obsidian'
 
+// @story [[lucrjournal/position-body#^position-section-contract]] Defines the canonical position section titles
 export const POSITION_NOTES_SECTION = 'Notes'
 export const POSITION_NEWS_SECTION = 'News'
 export const POSITION_KEY_LEVEL_SECTION = 'Key Levels'
@@ -29,10 +30,12 @@ const POSITION_ORDERED_TOP_LEVEL_SECTIONS = [
 	...POSITION_OPTIONAL_TOP_LEVEL_SECTIONS,
 ] as const
 
+// @story [[lucrjournal/position-body#^default-position-body]] Builds the exact new-position body skeleton
 export function buildDefaultPositionBody() {
 	return `\n# ${POSITION_NOTES_SECTION}\n`
 }
 
+// @story [[lucrjournal/position-body#^position-section-contract]] Maps every linked context kind to its canonical H1 title
 export function getPositionSectionTitle(kind: PositionSectionKind) {
 	switch (kind) {
 		case 'news':
@@ -49,6 +52,7 @@ export function getPositionSectionTitle(kind: PositionSectionKind) {
 	}
 }
 
+// @story [[lucrjournal/position-body#^append-position-context]] Rejects an existing linkpath or appends its canonical H2 wikilink
 export async function appendSectionEntry(
 	app: App,
 	positionFile: TFile,
@@ -70,6 +74,7 @@ export async function appendSectionEntry(
 	return 'appended'
 }
 
+// @story [[lucrjournal/position-body#^ensure-position-section]] Creates only a missing exact-title top-level section
 export async function ensureTopLevelSection(
 	app: App,
 	positionFile: TFile,
@@ -86,6 +91,7 @@ export async function ensureTopLevelSection(
 	return 'created'
 }
 
+// @story [[lucrjournal/position-body#^position-playbook-writeback]] Writes one canonical playbook wikilink only when it changes
 export async function setPositionPlaybookFrontmatter({
 	app,
 	positionFile,
@@ -107,6 +113,7 @@ export async function setPositionPlaybookFrontmatter({
 	return 'appended'
 }
 
+// @story [[lucrjournal/position-body#^position-playbook-writeback]] Clears an existing playbook frontmatter value
 export async function removePositionPlaybookFrontmatter({
 	app,
 	positionFile,
@@ -125,6 +132,8 @@ export async function removePositionPlaybookFrontmatter({
 	return true
 }
 
+// @story [[lucrjournal/analysis#^dashboard-linked-entry-delete]] Clears an exact matching playbook frontmatter reference
+// @story [[lucrjournal/position-body#^position-playbook-writeback]] Clears only an exact matching playbook wikilink
 export async function removePositionPlaybookFrontmatterByLinkpath({
 	app,
 	positionFile,
@@ -145,6 +154,7 @@ export async function removePositionPlaybookFrontmatterByLinkpath({
 	return true
 }
 
+// @story [[lucrjournal/position-body#^remove-position-context]] Removes an exact linked block or one unambiguous fallback match
 export async function removeSectionEntryFromPosition({
 	app,
 	linkpath,
@@ -178,6 +188,7 @@ export async function removeSectionEntryFromPosition({
 	return true
 }
 
+// @story [[lucrjournal/position-body#^remove-position-section]] Deletes every exact-title H1 before reserializing the remainder
 export async function removeTopLevelSectionFromPosition({
 	app,
 	positionFile,
@@ -201,6 +212,8 @@ export async function removeTopLevelSectionFromPosition({
 	return true
 }
 
+// @story [[lucrjournal/analysis#^dashboard-linked-entry-delete]] Removes exact matching headings from every position context section
+// @story [[lucrjournal/position-body#^remove-all-position-context]] Cleans exact linkpaths from context H1 sections while leaving Notes untouched
 export async function removeAllSectionEntriesFromPositionByLinkpath({
 	app,
 	linkpath,
@@ -255,6 +268,7 @@ function extractSectionBody(content: string, sectionTitle: string) {
 	return extractSections(content, 1).find((section) => section.title === sectionTitle)?.body ?? ''
 }
 
+// @story [[lucrjournal/position-body#^position-body-reserialization]] Preserves preamble and sibling H1 bodies while replacing one title
 function upsertTopLevelSection(content: string, sectionTitle: string, sectionBody: string) {
 	const sections = extractSections(content, 1).map(({ title, body }) => ({ title, body }))
 	const nextSections = sections.filter((section) => section.title !== sectionTitle)
@@ -293,6 +307,7 @@ type LinkedSectionIdentity = {
 	sectionStart: number
 }
 
+// @story [[lucrjournal/position-body#^remove-position-context]] Uses stable section identity before the unique-linkpath fallback
 function removeLinkedSection(
 	sections: ReturnType<typeof extractSections>,
 	identity: LinkedSectionIdentity,
@@ -345,6 +360,7 @@ function extractPreamble(content: string) {
 	return firstHeadingStart === -1 ? content : content.slice(0, firstHeadingStart)
 }
 
+// @story [[lucrjournal/position-body#^position-body-reserialization]] Emits normalized H1 spacing and one trailing newline
 function serializeTopLevelContent(
 	preamble: string,
 	sections: Array<{ title: string; body: string }>,

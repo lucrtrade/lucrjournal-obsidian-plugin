@@ -8,6 +8,7 @@ function hasInterleavedComment(source: string): boolean {
 	return source.includes('//') || source.includes('/*')
 }
 
+// @story [[lucrjournal/tooling#^no-padded-object-literals]] Removes uncommented blank lines between object properties
 function reportPaddedProperties(context: Rule.RuleContext, properties: Rule.Node[]): void {
 	const sourceCode = context.sourceCode
 

@@ -53,6 +53,7 @@ export async function createEmbeddedMarkdownEditor({
 	onH1Blocked,
 	logger,
 }: CreateEmbeddedMarkdownEditorOptions): Promise<EmbeddedMarkdownEditorState> {
+	// @story [[lucrjournal/primitives#^embedded-editor-mount]] Opens an isolated leaf and Markdown view for the primitive
 	// @ts-expect-error WorkspaceSplit constructor accepts (workspace, direction) at runtime
 	const split: WorkspaceSplit = new WorkspaceSplit(app.workspace, 'vertical')
 	const leaf = app.workspace.createLeafInParent(split, 0)
@@ -78,6 +79,7 @@ export async function createEmbeddedMarkdownEditor({
 		await readOnSaveBody()(editedBody)
 	}
 
+	// @story [[lucrjournal/primitives#^embedded-editor-debounced-save]] Replaces the pending timer before invoking the latest save callback
 	view.requestSave = () => {
 		if (state.saveTimeout !== null) {
 			window.clearTimeout(state.saveTimeout)
@@ -144,6 +146,7 @@ export function cleanupEmbeddedMarkdownEditor(
 	state: EmbeddedMarkdownEditorState,
 	{ app, onCleanup, logger }: CleanupEmbeddedMarkdownEditorOptions,
 ) {
+	// @story [[lucrjournal/primitives#^embedded-editor-cleanup]] Removes workspace state starts a final save and detaches the leaf
 	logger?.debug('embedded editor cleanup', {
 		hasPendingTimeout: state.saveTimeout !== null,
 	})

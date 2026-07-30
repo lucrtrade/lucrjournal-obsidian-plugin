@@ -6,6 +6,7 @@ import { setCurrentLocaleSetting } from '../../lang/helpers'
 import { ChartView } from './chart-view'
 
 describe('ChartView', () => {
+	// @story [[lucrjournal/chart#^host-owns-iframe-src]] Covers host ownership of iframe navigation.
 	it('leaves iframe src to LucrChart host', () => {
 		setCurrentLocaleSetting('en')
 

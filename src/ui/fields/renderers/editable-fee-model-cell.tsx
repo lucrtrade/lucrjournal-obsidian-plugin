@@ -57,6 +57,8 @@ export function EditableFeeModelCell({
 			? `${prefix}${formatFeeValueDisplay(feeValue)}${suffix}`
 			: `${prefix}${formatFeeValueDisplay(feeValue)} ${suffix}`
 
+	// @story [[lucrjournal/fields#^symbol-cell-writeback]] Parses fee input into the symbol fee_value patch
+	// @story [[lucrjournal/fields#^writeback-failure-state]] Reports fee writeback failure without leaving edit mode
 	const save = async () => {
 		const trimmedValue = draftFee.value.trim()
 		const nextValue = { fee_value: parseFeeValueInputValue(trimmedValue) }

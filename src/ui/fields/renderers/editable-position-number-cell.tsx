@@ -61,6 +61,8 @@ export function EditablePositionNumberCell({
 		})
 	}
 
+	// @story [[lucrjournal/fields#^position-cell-writeback]] Commits finite numeric or null position patches through the domain writer
+	// @story [[lucrjournal/fields#^writeback-failure-state]] Leaves edit mode before awaiting position number writeback
 	const handleBlur = () => {
 		if (isEditing) {
 			setIsEditing(false)

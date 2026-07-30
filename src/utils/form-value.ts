@@ -1,10 +1,12 @@
 /// <reference types="vitest/importMeta" />
 
+// @story [[lucrjournal/form#^nullable-trimmed-value]] Normalizes blank and nonblank string form values at the payload boundary
 export function toNullableTrimmedValue(value: string): string | null {
 	const normalizedValue = value.trim()
 	return normalizedValue.length === 0 ? null : normalizedValue
 }
 
+// @story [[lucrjournal/form#^nullable-number-value]] Parses normalized numeric form values and rejects NaN
 export function toNullableNumberValue(value: string): number | null {
 	const normalizedValue = toNullableTrimmedValue(value)
 	if (normalizedValue === null) {

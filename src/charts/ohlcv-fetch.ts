@@ -12,6 +12,7 @@ import { fetchYahooBars } from './yahoo-ohlcv'
 import type { PositionChartSource } from './position-chart'
 import type { OhlcvAdapter, OhlcvBar, OhlcvPageRequest } from '../platforms/factory'
 
+// @story [[lucrjournal/market-data#^exchange-pagination-bounds]] Caps page size and total pagination calls.
 const MAX_PAGINATION_CALLS = 50
 const OHLCV_BATCH_LIMIT = 1000
 const RATE_LIMIT_STATUS = 429
@@ -49,6 +50,8 @@ type FetchBarsParams = PositionChartSource & {
 }
 
 export async function fetchBarsWithCache(params: FetchBarsParams): Promise<OhlcvBar[]> {
+	// @story [[lucrjournal/market-data#^future-uses-yahoo]] Dispatches Yahoo sources to the Yahoo fetcher.
+	// @story [[lucrjournal/market-data#^crypto-uses-account-exchange]] Dispatches exchange sources to registered adapters.
 	return params.provider === 'yahoo'
 		? await fetchYahooBarsWithCache(params)
 		: await fetchExchangeBarsWithCache(params)
@@ -60,6 +63,7 @@ async function fetchExchangeBarsWithCache(
 	const { exchangeId, symbol, resolution, fromSeconds, toSeconds } = params
 	const normalizedResolution = normalizeChartResolution(resolution)
 	const timeframe = RESOLUTION_TO_TIMEFRAME[normalizedResolution as keyof typeof RESOLUTION_TO_TIMEFRAME]
+	// @story [[lucrjournal/market-data#^invalid-market-data-fails]] Rejects unsupported exchange resolutions, symbols, and adapters.
 	if (timeframe === undefined) {
 		throw new Error(`Unsupported resolution: ${resolution}`)
 	}
@@ -97,11 +101,13 @@ async function withOhlcvCache(
 	const fromMs = fromSeconds * 1000
 	const toMs = toSeconds * 1000
 
+	// @story [[lucrjournal/market-data#^covered-cache-hit]] Requires non-empty complete coverage.
 	if (hasCoveredCachedBars(cached, fromMs, toMs)) {
 		return cached.bars.filter((b) => b.time >= fromMs && b.time <= toMs)
 	}
 
 	const fetched = await fetchFn(fromMs, toMs)
+	// @story [[lucrjournal/market-data#^empty-result-not-cached]] Leaves empty provider results recoverable on the next request.
 	if (fetched.length > 0) {
 		await mergeOhlcvCache(key, fetched, fromMs, toMs)
 	}
@@ -146,6 +152,7 @@ function collectPage(
 	cursor: number,
 	limit: number,
 ): number | null {
+	// @story [[lucrjournal/market-data#^exchange-pagination-progress]] Stops pagination when a page is empty, short, or cannot advance.
 	if (page.length === 0) {
 		return null
 	}
@@ -165,6 +172,7 @@ function collectPage(
 }
 
 async function requestJson(url: string): Promise<unknown> {
+	// @story [[lucrjournal/market-data#^exchange-rate-limit-retry]] Retries rate-limited exchange requests after the fixed delay.
 	while (true) {
 		const response: RequestUrlResponse = await requestUrl({ url, method: 'GET', throw: false })
 		if (response.status !== RATE_LIMIT_STATUS) {
@@ -187,6 +195,7 @@ if (import.meta.vitest) {
 	const bar = (time: number): OhlcvBar => ({ time, open: 1, high: 1, low: 1, close: 1, volume: 1 })
 
 	describe('collectPage', () => {
+		// @story [[lucrjournal/market-data#^exchange-pagination-progress]] Covers page termination, cursor progress, and range filtering.
 		it('stops on an empty page', () => {
 			expect(collectPage(new Map(), [], 0, 100, 0, 10)).toBeNull()
 		})
@@ -207,6 +216,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('hasCoveredCachedBars', () => {
+		// @story [[lucrjournal/market-data#^covered-cache-hit]] Covers non-empty full-range cache eligibility.
 		it('does not treat empty covered cache entries as hits', () => {
 			expect(hasCoveredCachedBars({ bars: [], coveredFrom: 0, coveredTo: 100 }, 0, 100)).toBe(false)
 		})

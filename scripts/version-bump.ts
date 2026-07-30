@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from "fs";
 
+// @story [[lucrjournal/build#^version-metadata-sync]] Uses the package version to update the manifest and compatibility map.
 const { version: targetVersion } = JSON.parse(readFileSync("package.json", "utf8"));
 
 // read minAppVersion from manifest.json and bump version to target version

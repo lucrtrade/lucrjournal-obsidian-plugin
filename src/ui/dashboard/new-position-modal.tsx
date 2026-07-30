@@ -70,6 +70,7 @@ export function NewPositionModal({
 		buildInitialFormValues: () => PositionDomain.buildCreateFormValues(app, preferredAccount),
 		synchronizeFormValues: (nextValues, context) =>
 			PositionDomain.synchronizeFormValues(nextValues, context),
+		// @story [[lucrjournal/position#^position-template-body-create]] Keeps selected templates inside the normal position creation entrypoint
 		createEntry: (runtimeApp, formValue) => PositionDomain.createEntry(
 			runtimeApp,
 			formValue,

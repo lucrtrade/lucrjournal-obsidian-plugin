@@ -64,6 +64,8 @@ describe('LucrJournal editor attachment capture', () => {
 		vi.restoreAllMocks()
 	})
 
+	// @story [[lucrjournal/attachment#^attachment-storage-layout]] Covers the exact plugin month path
+	// @story [[lucrjournal/attachment#^editor-attachment-links]] Covers a plain basename link for a non-image file
 	it('saves non-image pasted files to the LucrJournal attachments folder', async () => {
 		const timestamp = new Date(2026, 4, 15, 10, 20, 30).getTime()
 		vi.spyOn(Date, 'now').mockReturnValue(timestamp)
@@ -79,6 +81,7 @@ describe('LucrJournal editor attachment capture', () => {
 		expect(replacements).toEqual(['[[2026-05-15_10-20-30-000_statement.pdf]]'])
 	})
 
+	// @story [[lucrjournal/attachment#^position-capture-reference]] Covers body and frontmatter reference synchronization
 	it('appends pasted attachment tokens to position frontmatter', async () => {
 		const timestamp = new Date(2026, 4, 15, 10, 20, 30).getTime()
 		vi.spyOn(Date, 'now').mockReturnValue(timestamp)
@@ -102,6 +105,7 @@ describe('LucrJournal editor attachment capture', () => {
 		expect(Object.prototype.hasOwnProperty.call(state.frontmatter, 'chart_screenshots')).toBe(false)
 	})
 
+	// @story [[lucrjournal/attachment#^position-capture-reference]] Covers the non-position frontmatter boundary
 	it('does not append attachment tokens to non-position LucrJournal notes', async () => {
 		const timestamp = new Date(2026, 4, 15, 10, 20, 30).getTime()
 		vi.spyOn(Date, 'now').mockReturnValue(timestamp)
@@ -117,6 +121,8 @@ describe('LucrJournal editor attachment capture', () => {
 		expect(state.frontmatter.attachments).toBeUndefined()
 	})
 
+	// @story [[lucrjournal/attachment#^editor-attachment-links]] Covers an embedded basename image link
+	// @story [[lucrjournal/attachment#^attachment-path-collision]] Covers millisecond collision avoidance
 	it('embeds image files and dedupes names in the attachments folder', async () => {
 		const timestamp = new Date(2026, 4, 15, 10, 20, 30).getTime()
 		vi.spyOn(Date, 'now').mockReturnValue(timestamp)
@@ -137,6 +143,7 @@ describe('LucrJournal editor attachment capture', () => {
 		expect(replacements).toEqual(['![[2026-05-15_10-20-30-001_chart.png]]'])
 	})
 
+	// @story [[lucrjournal/attachment#^editor-attachment-capture]] Covers the managed-folder boundary
 	it('does not handle files outside the LucrJournal folder', async () => {
 		const { app, writes } = createApp(['LucrJournal', 'LucrJournal/attachments'])
 		const { editor, replacements } = createEditor()
@@ -150,6 +157,7 @@ describe('LucrJournal editor attachment capture', () => {
 		expect(replacements).toEqual([])
 	})
 
+	// @story [[lucrjournal/attachment#^editor-attachment-capture]] Covers the empty payload boundary
 	it('does not handle empty payloads', async () => {
 		const { app } = createApp(['LucrJournal', 'LucrJournal/attachments'])
 		const { editor } = createEditor()

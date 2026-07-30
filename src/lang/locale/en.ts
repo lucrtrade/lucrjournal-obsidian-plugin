@@ -1,3 +1,4 @@
+// @story [[lucrjournal/content#^translation-source-fallback]] Defines the complete English translation source catalog.
 export const en = {
 	OPEN_JOURNAL: 'Open journal',
 	SETTINGS_ACCOUNT: 'Account',

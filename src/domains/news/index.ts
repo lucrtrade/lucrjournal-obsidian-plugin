@@ -158,9 +158,11 @@ class NewsDomainDefinition extends DomainBase<'news', typeof NewsType, typeof ne
 		validate(formValue: { name: string; source: string }, app: App) {
 			assertNoPersistedEntryBasenameConflict(app, NEWS_FOLDER_NAME, formValue.name)
 		},
+		// @story [[lucrjournal/domain-model#^sourceless-news-identity]] Resolves source-less news to an empty document body
 		async buildBody(entry: News, ctx: CreateEntryContext) {
 			return await buildNewsBody(entry, ctx)
 		},
+		// @story [[lucrjournal/domain-model#^sourceless-news-identity]] Uses the sanitized form name as the file identity
 		buildFileName(_entry: News, _ctx: CreateEntryContext, formValue: { name: string; source: string }) {
 			const fileBaseName = sanitizeNewsFileBaseName(formValue.name)
 			if (fileBaseName !== '') {
@@ -199,6 +201,7 @@ class NewsDomainDefinition extends DomainBase<'news', typeof NewsType, typeof ne
 export const NewsDomain = new NewsDomainDefinition()
 
 export type News = DomainValue<typeof NewsDomain>
+// @story [[lucrjournal/analysis#^position-linked-entry-defaults]] Creates position-linked news without a source
 async function createLinkedNewsEntry(app: App, name: string) {
 	const result = await NewsDomain.createEntry(app, { name, source: '' })
 	return { file: result.file, fm: result.entry }
@@ -213,6 +216,10 @@ export const newsLinkedPositionSection = {
 	createLinkedEntry: createLinkedNewsEntry,
 } as const satisfies LinkedPositionSectionDefinition<News>
 type NewsTableFieldDescriptor = FieldDescriptor<LinkedEntryStatsRow> & { type: LinkedEntryTableFieldType }
+// @story [[lucrjournal/fields#^searchable-field-projections]] Defines news title source and tag search fields
+// @story [[lucrjournal/fields#^custom-sort-projections]] Defines locale ordering for news titles and joined tags
+// @story [[lucrjournal/fields#^tag-filter]] Defines normalized substring matching for news tags
+// @story [[lucrjournal/fields#^news-source-writeback]] Declares the source preview cell over persisted news source
 export const newsTableFields = defineFields<LinkedEntryStatsRow>([
 	{
 		key: 'created',
@@ -342,6 +349,7 @@ export function isDefuddleFetchError(error: unknown): boolean {
 	return error instanceof Error && error.message === NEWS_SOURCE_DEFUDDLE_ERROR
 }
 
+// @story [[lucrjournal/analysis#^position-linked-entry-defaults]] Keeps source-less linked news bodies empty
 async function buildNewsBody(entry: News, ctx: CreateEntryContext): Promise<string> {
 	void ctx
 	const source = entry.source?.trim()
@@ -441,6 +449,7 @@ if (import.meta.vitest) {
 			}, { fileBaseName: 'CPI' })).resolves.toBe('')
 		})
 
+		// @story [[lucrjournal/domain-model#^sourceless-news-identity]] Covers the source-less path and empty document body
 		it('creates source-less news with an empty body', async () => {
 			const created: Array<{ path: string; content: string }> = []
 			const app = {

@@ -7,6 +7,7 @@ import { LucrJournalView } from './lucr-journal-view'
 
 describe('LucrJournalView route activation', () => {
 	it('opens command-click routes in a new Obsidian tab', async () => {
+		// @story [[lucrjournal/runtime#^command-route-new-tab]] Covers new-tab route state and leaf reveal for command-click.
 		const route = {
 			activeTab: 'Playbook',
 			kind: 'dashboard',

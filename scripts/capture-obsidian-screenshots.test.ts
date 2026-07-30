@@ -10,6 +10,7 @@ import {
 } from './capture-obsidian-screenshots.ts'
 
 describe('capture Obsidian screenshots', () => {
+	// @story [[lucrjournal/tooling#^screenshot-matrix]] Covers the complete language theme and slug matrix
 	it('keeps the fixed dashboard screenshot definitions in the helper', () => {
 		const plan = buildDefaultScreenshotPlan({
 			pluginId: 'lucrjournal',
@@ -170,6 +171,7 @@ describe('capture Obsidian screenshots', () => {
 		})
 	})
 
+	// @story [[lucrjournal/tooling#^screenshot-capture]] Covers selector clips scaled CDP capture and output writes
 	it('uses selector-based CDP clips and writes screenshots one by one', async () => {
 		const calls = []
 		const writes = []
@@ -305,6 +307,7 @@ describe('capture Obsidian screenshots', () => {
 		expect(writes[0].bytes.toString()).toBe('png')
 	})
 
+	// @story [[lucrjournal/tooling#^screenshot-cleanup]] Covers ordered teardown of overlays debug metrics and mobile mode
 	it('restores screenshot styles before turning mobile emulation off', async () => {
 		const calls = []
 		const plan = buildScreenshotPlan({

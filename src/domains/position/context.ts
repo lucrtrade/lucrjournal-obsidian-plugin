@@ -50,6 +50,7 @@ export type PositionDetailsContextModel = {
 	playbookGroup: PositionContextPlaybookGroup
 }
 
+// @story [[lucrjournal/position-body#^position-context-options]] Builds sorted available entries for a position-independent empty model
 export function createEmptyPositionDetailsContextModel(app: App): PositionDetailsContextModel {
 	return {
 		newsGroup: {
@@ -92,6 +93,7 @@ export function createEmptyPositionDetailsContextModel(app: App): PositionDetail
 	}
 }
 
+// @story [[lucrjournal/position-body#^position-context-options]] Replaces public confluence options with the current playbook visibility scope
 export async function buildPositionDetailsContextModel(
 	app: App,
 	positionFile: TFile | null,
@@ -120,6 +122,7 @@ export async function buildPositionDetailsContextModel(
 	}
 }
 
+// @story [[lucrjournal/position-body#^add-position-context]] Reuses a normalized basename or creates one TFile-backed context entry
 export async function addPositionSectionEntry<Entry>({
 	app,
 	availableEntries,
@@ -178,6 +181,7 @@ export async function removePositionSectionEntry({
 	})
 }
 
+// @story [[lucrjournal/position-body#^add-position-playbook-context]] Uses exact playbook reuse before sanitized creation and frontmatter writeback
 export async function addPlaybookContextEntry({
 	app,
 	playbookOptionValue,

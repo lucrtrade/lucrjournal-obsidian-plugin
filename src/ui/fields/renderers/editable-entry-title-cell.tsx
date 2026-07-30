@@ -37,6 +37,9 @@ export function EditableEntryTitleCell({
 		return () => window.clearTimeout(timer)
 	}, [isEditing, value])
 
+	// @story [[lucrjournal/analysis#^dashboard-linked-entry-rename]] Delegates entry rename and title synchronization to Obsidian
+	// @story [[lucrjournal/fields#^entry-title-writeback]] Renames the file before synchronizing its top-level heading
+	// @story [[lucrjournal/fields#^writeback-failure-state]] Closes title editing after reporting a rename or heading failure
 	const save = async () => {
 		const nextValue = sanitizeObsidianFileName(draft)
 		const currentValue = sanitizeObsidianFileName(value)

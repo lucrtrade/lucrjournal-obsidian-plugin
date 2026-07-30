@@ -58,6 +58,7 @@ export function TableFilterPopover<
 	onReset,
 	onClose,
 }: TableFilterPopoverProps<Schema>) {
+	// @story [[lucrjournal/fields#^filter-draft-isolation]] Keeps popover edits local until explicit apply
 	const [draft, setDraft] = useState<TableFilterState>(value)
 
 	const normalizeNextDraft = (nextValue: TableFilterState) => normalizeDraft?.(nextValue, {
@@ -75,6 +76,7 @@ export function TableFilterPopover<
 
 	return (
 		<>
+			{/* @story [[lucrjournal/fields#^filter-draft-isolation]] Closes without applying the local draft */}
 			<div className="lj:fixed lj:inset-0 lj:z-40" onClick={onClose} />
 			<div
 				className="lj:absolute lj:left-0 lj:top-full lj:mt-2 lj:z-50 lj:w-[320px] lj:rounded-2xl lj:border lj:border-lj-alpha-10 lj:bg-lj-surf-popover lj:shadow-2xl"
@@ -143,6 +145,7 @@ export function TableFilterPopover<
 					})}
 				</div>
 				<div className="lj:px-6 lj:py-4 lj:border-t lj:border-lj-alpha-10 lj:flex lj:items-center lj:justify-between">
+					{/* @story [[lucrjournal/fields#^filter-apply-reset]] Restores definition defaults before closing the popover */}
 					<button
 						type="button"
 						onClick={() => {
@@ -153,6 +156,7 @@ export function TableFilterPopover<
 					>
 						{t('DASHBOARD_TABLE_FILTER_RESET_ALL')}
 					</button>
+					{/* @story [[lucrjournal/fields#^filter-apply-reset]] Normalizes and applies the complete draft before closing */}
 					<button
 						type="button"
 						onClick={() => {

@@ -9,11 +9,13 @@ const ACCESS_DENIED_KEY = 'lucrjournal-access-denied'
 export type SessionProfile = AccountProfile
 export type PendingLogin = { state: string; codeVerifier: string }
 
+// @story [[lucrjournal/session#^token-in-secret-storage]] Reads the long-lived token only from Obsidian secret storage.
 export function getToken(app: App): string | null {
 	const v = app.secretStorage.getSecret(TOKEN_SECRET_ID)
 	return v === '' ? null : v
 }
 
+// @story [[lucrjournal/session#^token-in-secret-storage]] Writes the long-lived token only to Obsidian secret storage.
 export function setToken(app: App, token: string): void {
 	app.secretStorage.setSecret(TOKEN_SECRET_ID, token)
 	app.saveLocalStorage(ACCESS_DENIED_KEY, false)
@@ -26,16 +28,19 @@ export function clearSession(app: App): void {
 }
 
 export function denyJournalAccess(app: App, context: AccountContext | null): void {
+	// @story [[lucrjournal/entitlement#^entitlement-check-denies]] Preserves cached identity when denial lacks a replacement context.
 	if (context !== null) {
 		app.saveLocalStorage(ACCOUNT_CONTEXT_KEY, context)
 	}
 	app.saveLocalStorage(ACCESS_DENIED_KEY, true)
 }
 
+// @story [[lucrjournal/entitlement#^views-share-access-gate]] Exposes one shared upgrade predicate for all journal views.
 export function requiresJournalUpgrade(app: App): boolean {
 	return getToken(app) !== null && app.loadLocalStorage(ACCESS_DENIED_KEY) === true
 }
 
+// @story [[lucrjournal/entitlement#^active-check-unlocks]] Stores refreshed context and removes access denial together.
 export function setAccountContext(app: App, context: AccountContext): void {
 	app.saveLocalStorage(ACCOUNT_CONTEXT_KEY, context)
 	app.saveLocalStorage(ACCESS_DENIED_KEY, false)

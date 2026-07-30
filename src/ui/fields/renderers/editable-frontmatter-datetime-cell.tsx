@@ -20,6 +20,8 @@ export function EditableFrontmatterDatetimeCell<Schema>({
 	value,
 	renderDisplay,
 }: EditableFrontmatterDatetimeCellProps<Schema>): ReactNode {
+	// @story [[lucrjournal/fields#^position-cell-writeback]] Sets nonempty datetime strings and deletes cleared frontmatter keys
+	// @story [[lucrjournal/fields#^writeback-failure-state]] Exposes datetime writeback as an unhandled asynchronous save
 	const handleSave = async (nextValue: string) => {
 		const trimmedValue = nextValue.trim()
 		const previousValue = value ?? ''

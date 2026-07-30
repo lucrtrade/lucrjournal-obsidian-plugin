@@ -14,6 +14,7 @@ export type { SymbolSuggestion } from './search-results'
 const logger = createLogger('symbol suggestion')
 const BUILTIN_BY_NAME = new Map(BuiltinSymbolList.map((entry) => [entry.symbol_name.toUpperCase(), entry]))
 
+// @story [[lucrjournal/symbol-search#^builtin-prefix-suggestions]] Resolves normalized builtin prefix matches without remote access
 export function findBuiltinSymbolSuggestions(
 	input: string,
 	excludedSymbols: ReadonlySet<string> = new Set(),
@@ -26,6 +27,7 @@ export function findBuiltinSymbolSuggestions(
 	return matchBuiltinByPrefix(normalized, normalizeSymbolSet(excludedSymbols))
 }
 
+// @story [[lucrjournal/symbol-search#^suggestion-failure-isolated]] Isolates each remote candidate failure before merging local results
 export async function findSymbolSuggestions(
 	input: string,
 	requester: TradingViewRequester,
@@ -64,6 +66,7 @@ function normalizeSymbolSet(symbols: ReadonlySet<string>): Set<string> {
 	return new Set(Array.from(symbols, (symbol) => symbol.trim().toUpperCase()).filter((symbol) => symbol.length > 0))
 }
 
+// @story [[lucrjournal/symbol-search#^prefixed-micro-suggestion]] Adds an existing M-prefixed builtin after an exact base match
 function matchBuiltinByPrefix(input: string, excluded: ReadonlySet<string>): SymbolSuggestion[] {
 	const rows: SymbolSuggestion[] = []
 	const seen = new Set<string>()
@@ -96,10 +99,12 @@ if (import.meta.vitest) {
 	const { describe, expect, it, vi } = import.meta.vitest
 
 	describe('findBuiltinSymbolSuggestions', () => {
+		// @story [[lucrjournal/symbol-search#^builtin-prefix-suggestions]] Covers synchronous local prefix suggestions
 		it('returns builtin prefix matches synchronously without a TradingView requester', () => {
 			expect(findBuiltinSymbolSuggestions('XAG', new Set()).map((row) => row.symbol)).toEqual(['XAGUSD'])
 		})
 
+		// @story [[lucrjournal/symbol-search#^builtin-prefix-suggestions]] Covers persisted symbol exclusion from local matches
 		it('excludes journal symbols from builtin prefix matches', () => {
 			expect(findBuiltinSymbolSuggestions('XA', new Set(['XAGUSD'])).map((row) => row.symbol)).toEqual(['XAUUSD'])
 		})
@@ -172,6 +177,7 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/symbol-search#^prefixed-micro-suggestion]] Covers M-prefixed micro futures for exact base input
 		it('matches micro futures when the base future is typed', async () => {
 			const fetcher = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ symbols: [] }) }))
 			expect((await findSymbolSuggestions('ES', fetcher)).map((row) => row.symbol)).toEqual(['ES', 'MES', 'ES35'])
@@ -179,6 +185,7 @@ if (import.meta.vitest) {
 			expect(fetcher).not.toHaveBeenCalled()
 		})
 
+		// @story [[lucrjournal/symbol-search#^exact-builtin-skips-remote]] Covers local-only exact builtin suggestions
 		it('does zero TV requests when the user types an exact builtin name', async () => {
 			const fetcher = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ symbols: [] }) }))
 			const rows = await findSymbolSuggestions('XAUUSD', fetcher)
@@ -186,12 +193,14 @@ if (import.meta.vitest) {
 			expect(fetcher).not.toHaveBeenCalled()
 		})
 
+		// @story [[lucrjournal/symbol-search#^builtin-prefix-suggestions]] Covers the minimum local suggestion input length
 		it('returns [] for sub-threshold input without calling TV or scanning builtins', async () => {
 			const fetcher = vi.fn()
 			await expect(findSymbolSuggestions('E', fetcher as never)).resolves.toEqual([])
 			expect(fetcher).not.toHaveBeenCalled()
 		})
 
+		// @story [[lucrjournal/symbol-search#^suggestion-failure-isolated]] Covers local suggestion survival after remote failure
 		it('keeps builtin suggestions when TradingView search fails', async () => {
 			const fetcher = vi.fn(async () => {
 				throw new Error('offline')

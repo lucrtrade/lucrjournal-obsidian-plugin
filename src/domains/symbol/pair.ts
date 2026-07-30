@@ -23,6 +23,7 @@ const BUILTIN_BY_NAME = new Map<string, BuiltinSymbolConstant>(
 
 export const SpecialSuffixes = ['USDT', 'USDC'] as const
 
+// @story [[lucrjournal/symbol#^known-quote-compact-name]] Defines the quote allowlist for compact pair identity
 const SLASHLESS_QUOTE_SUFFIXES = [
 	'FDUSD', 'USDC', 'USDT', 'BUSD', 'TUSD', 'USDP', 'USDD', 'USDS',
 	'FRAX', 'EUSD', 'USTC', 'DAI',
@@ -31,9 +32,12 @@ const SLASHLESS_QUOTE_SUFFIXES = [
 	'BTC', 'ETH', 'BNB', 'SOL', 'TON', 'TRX', 'XRP',
 ] as const
 
+// @story [[lucrjournal/symbol#^perp-canonical-name]] Defines derivative suffixes that collapse to the perpetual identity
 const DERIVATIVE_SUFFIX_PATTERN = /[.\-_](PERP|NEXT|PS|NW|P|F|S)$/u
 const EXPLICIT_PAIR_PATTERN = /^([A-Z0-9]+)[/\-_]([A-Z0-9]+)(?::([A-Z0-9]+))?$/u
 
+// @story [[lucrjournal/symbol#^builtin-canonical-resolution]] Resolves builtin identity before pair-shape inference
+// @story [[lucrjournal/symbol#^shape-type-inference]] Infers non-builtin crypto types only from recognized pair shapes
 export function resolveSymbolInfo(symbolName: string): SymbolInfo {
 	const normalized = symbolName.trim().toUpperCase()
 
@@ -77,6 +81,7 @@ function buildFromBuiltin(builtin: BuiltinSymbolConstant): SymbolInfo {
 	}
 }
 
+// @story [[lucrjournal/symbol#^unknown-quote-preserves-shape]] Keeps unknown explicit spot quotes in their original normalized shape
 function shouldUseCanonicalName(canonical: string, normalized: string, pair: SymbolPair | null): boolean {
 	return canonical !== normalized && (canonical.endsWith('.P') || (pair !== null && isKnownCompactQuote(pair.quote)))
 }
@@ -140,6 +145,7 @@ export function parseSymbolPair(symbol: string | null | undefined): SymbolPair |
 		}
 	}
 
+	// @story [[lucrjournal/symbol#^six-letter-pair-fallback]] Splits otherwise unknown six-letter symbols into a spot pair
 	return /^[A-Z]{6}$/u.test(normalized)
 		? { base: normalized.slice(0, 3), quote: normalized.slice(3), type: 'spot' }
 		: null
@@ -222,6 +228,7 @@ if (import.meta.vitest) {
 			expect(parseSymbolPair('BTCUSDT.NEXT')).toEqual({ base: 'BTC', quote: 'USDT', type: 'perp' })
 		})
 
+		// @story [[lucrjournal/symbol#^six-letter-pair-fallback]] Covers the otherwise unknown six-letter pair fallback
 		it('falls back to six-letter forex pairs', () => {
 			expect(parseSymbolPair('EURUSD')).toEqual({ base: 'EUR', quote: 'USD', type: 'spot' })
 		})

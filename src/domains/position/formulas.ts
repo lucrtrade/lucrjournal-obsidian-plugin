@@ -86,6 +86,9 @@ type ApplyPositionBeforeSaveFormulasArgs = {
  * First-order source fields only. Downstream formulas read `changed` so a
  * formula write behaves like a source touch without mutating the patch.
  */
+// @story [[lucrjournal/position-formulas#^notional-writeback-triggers]] Defines every source patch that re-derives persisted notional value
+// @story [[lucrjournal/position-formulas#^fee-writeback-triggers]] Defines every direct fee source patch
+// @story [[lucrjournal/position-formulas#^profit-risk-writeback-triggers]] Defines the persisted profit and risk source fields
 const POSITION_FORMULA_DEPENDENCIES = {
 	notional_value: ['notional_asset', 'notional_amount', 'contract', 'lots', 'entry_price', 'symbol'],
 	fee: ['symbol', 'notional_value', 'contract', 'lots'],
@@ -169,10 +172,12 @@ const positionNotionalFormulaMath = {
 	resolveEffectiveQuantity: resolvePositionEffectiveQuantity,
 }
 
+// @story [[lucrjournal/position-formulas#^derived-amount-precision]] Applies shared amount rounding only after a formula produces its result
 export function normalizePositionAmount(value: number | null): number | null {
 	return value === null ? null : roundAmountValue(value)
 }
 
+// @story [[lucrjournal/position-formulas#^formula-number-normalization]] Collapses supported primitive formula inputs to finite numbers
 export function normalizePositionNumber(value: unknown): number | null {
 	if (typeof value === 'number') {
 		return Number.isFinite(value) ? value : null
@@ -195,6 +200,7 @@ export function normalizePositionNumber(value: unknown): number | null {
 	return Number.isFinite(parsedValue) ? parsedValue : null
 }
 
+// @story [[lucrjournal/position-formulas#^formula-side-direction]] Maps canonical long and short sides to formula signs
 export function resolvePositionFormulaDirection(side: unknown): 1 | -1 | null {
 	if (typeof side !== 'string') {
 		return null
@@ -210,6 +216,7 @@ export function resolvePositionFormulaDirection(side: unknown): 1 | -1 | null {
 	}
 }
 
+// @story [[lucrjournal/position#^position-reopen-writeback]] Clears closed time only when reopening without an explicit timestamp patch
 function shouldResetClosedAtOnStatusOpen(
 	status: unknown,
 	hasClosedAtInPatch: boolean,
@@ -217,6 +224,7 @@ function shouldResetClosedAtOnStatusOpen(
 	return status === 'open' && hasClosedAtInPatch === false
 }
 
+// @story [[lucrjournal/position#^position-exit-closes]] Closes on every explicitly patched finite exit price without creating closed time
 function shouldClosePositionOnExitPrice(
 	exitPrice: unknown,
 	hasExitPriceInPatch: boolean,
@@ -224,6 +232,7 @@ function shouldClosePositionOnExitPrice(
 	return hasExitPriceInPatch && normalizePositionNumber(exitPrice) !== null
 }
 
+// @story [[lucrjournal/position-formulas#^position-profit-formula]] Computes persisted directional price profit and subtracts one absolute fee
 export function calculatePositionProfit(position: PositionFormulaInput): number | null {
 	const quantity = resolvePositionEffectiveQuantity(position)
 	const direction = resolvePositionFormulaDirection(position.side)
@@ -237,6 +246,7 @@ export function calculatePositionProfit(position: PositionFormulaInput): number 
 	return normalizePositionAmount((exitPrice - entryPrice) * direction * quantity - fee)
 }
 
+// @story [[lucrjournal/position-formulas#^position-risk-formula]] Accepts only positive directional stop-loss exposure
 export function calculatePositionRisk(position: PositionFormulaInput): number | null {
 	const quantity = resolvePositionEffectiveQuantity(position)
 	const direction = resolvePositionFormulaDirection(position.side)
@@ -250,6 +260,7 @@ export function calculatePositionRisk(position: PositionFormulaInput): number | 
 	return risk > 0 ? normalizePositionAmount(risk) : null
 }
 
+// @story [[lucrjournal/position-formulas#^effective-position-quantity]] Derives quantity only from positive notional value and entry price
 export function resolvePositionEffectiveQuantity(
 	position: Pick<PositionFormulaInput, 'entry_price' | 'notional_value'>,
 ): number | null {
@@ -262,6 +273,7 @@ export function resolvePositionEffectiveQuantity(
 	return notionalValue / entryPrice
 }
 
+// @story [[lucrjournal/position-formulas#^position-notional-formula]] Delegates notional inputs to the resolved symbol model
 function calculatePositionNotionalValue(
 	position: PositionNotionalInput,
 	ctx: PositionNotionalContext,
@@ -278,6 +290,7 @@ function calculatePositionNotionalAmount(
 		.calculateNotionalAmount(position, ctx, positionNotionalFormulaMath)
 }
 
+// @story [[lucrjournal/position-formulas#^native-notional-conversion]] Converts the prior USD notional when native mode is selected
 function convertPositionNotionalAmountOnAssetToggle(
 	previousRecord: Record<string, unknown>,
 	record: Record<string, unknown>,
@@ -318,6 +331,8 @@ function applyDerivedPositionNotionalValue(
 	return true
 }
 
+// @story [[lucrjournal/position-formulas#^position-derived-fee]] Preserves persisted fee unless the latest symbol model derives a positive value
+// @story [[lucrjournal/position-formulas#^fee-writeback-triggers]] Propagates only an actual positive fee change
 function applyDerivedPositionFee(
 	record: Record<string, unknown>,
 	patch: Record<string, unknown>,
@@ -338,6 +353,7 @@ function applyDerivedPositionFee(
 	return !Object.is(previousFee, nextFee)
 }
 
+// @story [[lucrjournal/position-formulas#^native-notional-conversion]] Backfills native amount after a direct notional value edit
 function syncPositionNotionalAmount(
 	record: Record<string, unknown>,
 	symbolContext: PositionNotionalContext,
@@ -348,12 +364,14 @@ function syncPositionNotionalAmount(
 	}
 }
 
+// @story [[lucrjournal/position-formulas#^native-notional-conversion]] Removes native amount outside native mode
 function prunePositionNotionalAmount(record: Record<string, unknown>) {
 	if (record.notional_asset !== 'native') {
 		delete record.notional_amount
 	}
 }
 
+// @story [[lucrjournal/position-formulas#^manual-derived-overrides]] Normalizes direct amount overrides after formula cascades finish
 function normalizePersistedPatchAmounts(
 	record: Record<string, unknown>,
 	patch: Record<string, unknown>,
@@ -383,6 +401,7 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('applyPositionBeforeSaveFormulas fee writeback', () => {
+		// @story [[lucrjournal/position-formulas#^position-derived-fee]] Covers preservation when the current symbol fee model is absent
 		it('keeps existing fee when derived fee resolves null', () => {
 			const record = {
 				entry_price: 100,
@@ -427,6 +446,7 @@ if (import.meta.vitest) {
 			expect(record.profit).toBe(99)
 		})
 
+		// @story [[lucrjournal/position-formulas#^manual-derived-overrides]] Covers direct fee clear and zero overrides
 		it('allows manual fee clear and zero', () => {
 			for (const fee of [null, 0]) {
 				const record = {
@@ -453,6 +473,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('calculatePositionNotionalValue', () => {
+		// @story [[lucrjournal/position-formulas#^position-notional-formula]] Covers the crypto USD null result
 		it('does not derive crypto/usd notional_value from notional_amount', () => {
 			const legacyUsd = { notional_asset: 'usd', notional_amount: 300, entry_price: 100 }
 
@@ -462,6 +483,7 @@ if (import.meta.vitest) {
 			)).toBeNull()
 		})
 
+		// @story [[lucrjournal/position-formulas#^position-notional-formula]] Covers crypto native amount and entry price inputs
 		it('derives crypto/native notional_value from notional_amount and entry_price', () => {
 			const legacyNative = { notional_asset: 'native', notional_amount: 0.5, entry_price: 100 }
 
@@ -471,6 +493,7 @@ if (import.meta.vitest) {
 			)).toBe(50)
 		})
 
+		// @story [[lucrjournal/position-formulas#^position-notional-formula]] Covers future contract price and contract unit inputs
 		it('future multiplies integer contract, entry_price, and contractUnit', () => {
 			expect(calculatePositionNotionalValue(
 				{ contract: 2, entry_price: 4500 },
@@ -503,6 +526,7 @@ if (import.meta.vitest) {
 			)).toBeNull()
 		})
 
+		// @story [[lucrjournal/position-formulas#^position-notional-formula]] Covers CFD lots price and contract unit inputs
 		it('cfd multiplies lots, entry_price, and contractUnit', () => {
 			expect(calculatePositionNotionalValue(
 				{ lots: 0.1, entry_price: 1.08 },
@@ -555,6 +579,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('resolvePositionEffectiveQuantity', () => {
+		// @story [[lucrjournal/position-formulas#^effective-position-quantity]] Covers positive notional divided by entry price
 		it('divides notional_value by entry_price', () => {
 			expect(resolvePositionEffectiveQuantity({
 				notional_value: 450000,
@@ -562,6 +587,7 @@ if (import.meta.vitest) {
 			})).toBe(100)
 		})
 
+		// @story [[lucrjournal/position-formulas#^effective-position-quantity]] Covers a non-positive entry price
 		it('returns null when entry_price is missing or non-positive', () => {
 			expect(resolvePositionEffectiveQuantity({
 				notional_value: 1000,

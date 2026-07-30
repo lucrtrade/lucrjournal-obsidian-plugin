@@ -37,12 +37,15 @@ class TemplateDomainDefinition extends DomainBase<'template', typeof TemplateTyp
 		buildId(template: Template) {
 			return toTemplateDisplayName(template.name) ?? `${template.tpl_type}-template`
 		},
+		// @story [[lucrjournal/position#^position-template-generic-rejected]] Rejects generic factory creation before any template write
 		buildPayload(): never {
 			throw new Error('Template entries are created via createPositionTemplate()') 
 		},
+		// @story [[lucrjournal/position#^position-template-generic-rejected]] Rejects direct generic body construction for templates
 		buildBody(): never {
 			throw new Error('Template entries are created via createPositionTemplate()') 
 		},
+		// @story [[lucrjournal/position#^position-template-generic-rejected]] Rejects direct generic filename construction for templates
 		buildFileName(): never {
 			throw new Error('Template entries are created via createPositionTemplate()') 
 		},
@@ -68,6 +71,7 @@ export type PositionTemplateSummary = {
 	description: string | null
 }
 
+// @story [[lucrjournal/position#^position-template-manual-create]] Creates the next manually serialized position template file
 export async function createPositionTemplate(app: App, name?: string | null): Promise<PositionTemplateSummary> {
 	const folder = getPersistedFolderPath()
 	if (!app.vault.getAbstractFileByPath(folder)) {
@@ -93,6 +97,7 @@ export async function createPositionTemplate(app: App, name?: string | null): Pr
 	}
 }
 
+// @story [[lucrjournal/position#^position-template-listing]] Lists only valid position templates with normalized sorted summaries
 export function listPositionTemplates(app: DomainRuntimeApp): PositionTemplateSummary[] {
 	return app.vault
 		.getMarkdownFiles()
@@ -228,6 +233,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('listPositionTemplates', () => {
+		// @story [[lucrjournal/position#^position-template-listing]] Covers type filtering metadata normalization ordering and null names
 		it('filters position templates and normalizes display metadata', () => {
 			const app = createTemplateRuntimeApp([
 				{
@@ -275,6 +281,7 @@ if (import.meta.vitest) {
 			])
 		})
 
+		// @story [[lucrjournal/position#^position-template-listing]] Covers omission of invalid template records
 		it('skips uncastable template frontmatter instead of throwing', () => {
 			const app = createTemplateRuntimeApp([
 				{

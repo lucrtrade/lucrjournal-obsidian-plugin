@@ -117,8 +117,10 @@ class PlaybookDomainDefinition extends DomainBase<'playbook', typeof PlaybookTyp
 		async dependencies(formValue, app) {
 			const normalizedSections = normalizePlaybookCriteriaSections(formValue.criteria)
 			await ensurePlaybookConfluencesExist(app, normalizedSections)
+			// @story [[lucrjournal/playbook#^ensure-criteria-files]] Synchronizes criteria dependencies before playbook creation
 			await ensureCriteriaFilesExist(app, normalizedSections.map((section) => section.criteriaName))
 		},
+		// @story [[lucrjournal/playbook#^playbook-create-payload]] Normalizes the persisted playbook description
 		buildPayload(formValue) {
 			const description = toNullableTrimmedValue(formValue.description)
 			return PlaybookType.assert({
@@ -131,9 +133,11 @@ class PlaybookDomainDefinition extends DomainBase<'playbook', typeof PlaybookTyp
 			assertNoDuplicatePlaybookConfluenceNames(formValue.criteria)
 			assertNoPersistedEntryBasenameConflict(app, PLAYBOOK_FOLDER_NAME, formValue.name)
 		},
+		// @story [[lucrjournal/playbook#^playbook-create-payload]] Serializes only normalized structured sections
 		buildBody(_entry, _ctx, formValue) {
 			return serializePlaybookCriteriaSectionsMarkdown(normalizePlaybookCriteriaSections(formValue.criteria))
 		},
+		// @story [[lucrjournal/playbook#^playbook-create-payload]] Uses the sanitized form name as the file identity
 		buildFileName(_entry, _ctx, formValue) {
 			const fileBaseName = sanitizeObsidianFileName(formValue.name)
 			if (fileBaseName !== '') {
@@ -203,8 +207,10 @@ export async function savePlaybookCriteriaSections(
 	await maybeRenameCommittedConfluence(app, normalizedPreviousSections, normalizedSections)
 	await maybeRenameCommittedCriteria(app, normalizedPreviousSections, normalizedSections)
 	await ensurePlaybookConfluencesExist(app, normalizedSections)
+	// @story [[lucrjournal/playbook#^ensure-criteria-files]] Synchronizes criteria dependencies before structured writeback
 	await ensureCriteriaFilesExist(app, normalizedSections.map((section) => section.criteriaName))
 
+	// @story [[lucrjournal/playbook#^playbook-body-replacement]] Preserves only frontmatter before replacing the structured body
 	const existingMarkdown = await app.vault.cachedRead(file)
 	const { frontmatterBlock } = splitMarkdownFrontmatter(existingMarkdown)
 	const nextBody = serializePlaybookCriteriaSectionsMarkdown(normalizedSections)
@@ -216,6 +222,7 @@ export async function savePlaybookCriteriaSections(
 			.map((section) => section.criteriaName)
 			.filter((criteriaName) => !normalizedSections.some((section) => section.criteriaName === criteriaName))
 
+	// @story [[lucrjournal/playbook#^cleanup-orphan-criteria]] Triggers candidate cleanup only for removed criteria names
 	if (removedCriteriaNames.length > 0) {
 		await cleanupOrphanCriteriaFiles(app, await loadAllPlaybookMarkdowns(app), removedCriteriaNames)
 	}
@@ -260,6 +267,7 @@ function normalizePlaybookCriteriaSections(sections: readonly CriteriaFormSectio
 	return normalizedSections
 }
 
+// @story [[lucrjournal/playbook#^unique-playbook-criteria]] Rejects duplicate normalized criteria names
 function assertNoDuplicatePlaybookCriteriaNames(sections: readonly CriteriaFormSection[]) {
 	const seenCriteriaNames = new Set<string>()
 
@@ -277,6 +285,7 @@ function assertNoDuplicatePlaybookCriteriaNames(sections: readonly CriteriaFormS
 	}
 }
 
+// @story [[lucrjournal/playbook#^unique-playbook-confluences]] Rejects duplicate normalized confluences across sections
 function assertNoDuplicatePlaybookConfluenceNames(sections: readonly CriteriaFormSection[]) {
 	const seenConfluenceNames = new Set<string>()
 
@@ -296,6 +305,7 @@ function assertNoDuplicatePlaybookConfluenceNames(sections: readonly CriteriaFor
 	}
 }
 
+// @story [[lucrjournal/analysis#^playbook-private-confluence]] Creates missing playbook confluences as private entries
 async function ensurePlaybookConfluencesExist(
 	app: App,
 	sections: readonly CriteriaFormSection[],
@@ -331,6 +341,7 @@ async function ensurePlaybookConfluencesExist(
 	}
 }
 
+// @story [[lucrjournal/analysis#^committed-confluence-rename]] Renames one unambiguous committed confluence before playbook writeback
 async function maybeRenameCommittedConfluence(
 	app: App,
 	previousSections: readonly CriteriaFormSection[] | undefined,
@@ -398,6 +409,7 @@ async function maybeRenameCommittedConfluence(
 	await syncRenamedDocumentTitle(app, previousEntry.file, nextName)
 }
 
+// @story [[lucrjournal/playbook#^committed-criteria-rename]] Renames one unambiguous committed criteria file
 async function maybeRenameCommittedCriteria(
 	app: App,
 	previousSections: readonly CriteriaFormSection[] | undefined,
@@ -472,6 +484,7 @@ async function loadAllPlaybookMarkdowns(app: App): Promise<string[]> {
 	return markdowns
 }
 
+// @story [[lucrjournal/playbook#^playbook-body-replacement]] Recognizes the only frontmatter block preserved by structured save
 function splitMarkdownFrontmatter(markdown: string): { frontmatterBlock: string; body: string } {
 	if (!markdown.startsWith('---\n')) {
 		return { frontmatterBlock: '', body: markdown }
@@ -516,6 +529,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('assertNoDuplicatePlaybookCriteriaNames', () => {
+		// @story [[lucrjournal/playbook#^unique-playbook-criteria]] Covers duplicate normalized criteria rejection
 		it('rejects duplicate normalized criteria names', () => {
 			expect(() => assertNoDuplicatePlaybookCriteriaNames([
 				{
@@ -531,6 +545,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('assertNoDuplicatePlaybookConfluenceNames', () => {
+		// @story [[lucrjournal/playbook#^unique-playbook-confluences]] Covers global duplicate confluence rejection
 		it('rejects duplicate confluence names across the same playbook', () => {
 			expect(() => assertNoDuplicatePlaybookConfluenceNames([
 				{
@@ -568,6 +583,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('playbookFormDefinition', () => {
+		// @story [[lucrjournal/playbook#^default-playbook-criteria]] Covers the new playbook criteria preset
 		it('seeds new playbooks with the default preset criteria section', () => {
 			expect(PlaybookDomain.buildInitialFormValues()).toMatchObject({
 				criteria: [{
@@ -577,6 +593,7 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/analysis#^confluence-scope-lists]] Covers complete playbook confluence option visibility
 		it('shows public and private confluence options', () => {
 			const publicFile = createMockTFile('LucrJournal/analyses/public.md', 'public')
 			const privateFile = createMockTFile('LucrJournal/analyses/private.md', 'private')

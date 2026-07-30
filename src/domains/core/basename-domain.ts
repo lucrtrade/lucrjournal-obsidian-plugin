@@ -40,6 +40,7 @@ export abstract class BasenameDomainBase<
 			validate: (value, _values, context) => this.validateNameField(value, context.app),
 		},
 	} as const) as unknown as F
+	// @story [[lucrjournal/domain-model#^basename-domain-identity]] Keeps basename-driven names out of payload and body content
 	override readonly createEntryDescriptor = {
 		buildId: () => this.name,
 		buildPayload: (formValue: FormValues<F>, ctx: CreateEntryContext) => {

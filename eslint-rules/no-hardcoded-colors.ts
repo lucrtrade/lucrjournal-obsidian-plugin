@@ -24,6 +24,7 @@ const patterns: RegExp[] = [
 	),
 ];
 
+// @story [[lucrjournal/tooling#^no-hardcoded-colors]] Rejects hardcoded Tailwind colors in lj-prefixed class strings
 const rule: Rule.RuleModule = {
 	meta: {
 		type: 'problem',

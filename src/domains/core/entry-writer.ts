@@ -28,6 +28,7 @@ type UniqueCandidateOptions = {
  * Descriptor that each domain provides to declare how entries are created.
  * Pure data + pure functions — no side effects.
  */
+// @story [[lucrjournal/domain-model#^domain-descriptor-contract]] Declares the pure functions and optional stages of entry creation
 export type CreateEntryDescriptor<FormValue, Entry> = {
 	/** Build a stable entry ID from a schema-validated entry (pure) */
 	buildId: (entry: Entry) => string
@@ -108,6 +109,7 @@ type CreateEntryBatch = {
  * 5. Serialize markdown
  * 6. Write file
  */
+// @story [[lucrjournal/domain-model#^create-entry-pipeline]] Executes dependency, validation, payload, body, serialization, and write stages in order
 export async function executeCreateEntry<FormValue, Entry extends Record<string, unknown>>(
 	domain: { name: string; options: DomainDefinitionOptions },
 	descriptor: CreateEntryDescriptor<FormValue, Entry>,
@@ -137,6 +139,7 @@ export async function executeCreateEntry<FormValue, Entry extends Record<string,
 		filePath,
 	}
 	const body = await resolveCreateEntryBody(app, descriptor, entry, finalCtx, formValue)
+	// @story [[lucrjournal/domain-model#^initial-domain-timestamps]] Adds one shared timestamp pair before applying the refined payload
 	const markdown = serializeEntryMarkdown({
 		...buildDomainTimestamps(),
 		...entry,
@@ -154,6 +157,7 @@ export async function executeCreateEntry<FormValue, Entry extends Record<string,
 	return { entry, file, files: [...creationBatch.files] }
 }
 
+// @story [[lucrjournal/position#^position-template-body-create]] Replaces only the normal body source after payload and file identity resolution
 async function resolveCreateEntryBody<FormValue, Entry extends Record<string, unknown>>(
 	app: App,
 	descriptor: CreateEntryDescriptor<FormValue, Entry>,
@@ -190,6 +194,7 @@ function stripMarkdownFrontmatter(markdown: string): string {
 	return markdown.slice(fenceEnd + 5)
 }
 
+// @story [[lucrjournal/position#^position-template-expansion]] Expands through Templater when available and falls back to raw body on failure
 async function expandTemplateBody(
 	app: App,
 	tfile: TFile | TAbstractFile,
@@ -244,6 +249,7 @@ function getPersistedFolderPath(domainName: string, options: DomainDefinitionOpt
 	return `${LUCR_TRADE_ROOT_DIR}/${persisted.folderName}`
 }
 
+// @story [[lucrjournal/domain-model#^global-basename-identity]] Enforces basename uniqueness across every persisted folder under the root
 export function hasPersistedEntryBasenameConflict(app: App, folderName: string, rawName: string): boolean {
 	const _folderName = folderName
 	void _folderName
@@ -361,6 +367,7 @@ function serializeEntryMarkdown(frontmatter: Record<string, unknown>, body: stri
 	return `---\n${serializeFrontmatter(frontmatter)}\n---\n${body}`
 }
 
+// @story [[lucrjournal/domain-model#^frontmatter-serialization]] Omits absent values and preserves the supported scalar and JSON representations
 function serializeFrontmatter(frontmatter: Record<string, unknown>): string {
 	return Object.entries(frontmatter)
 		.filter(([, value]) => value !== null && value !== undefined)
@@ -404,6 +411,7 @@ function showCreateEntryNotice(message: string): void {
 	new Notice(message)
 }
 
+// @story [[lucrjournal/fields#^entry-title-writeback]] Synchronizes the renamed document top-level heading after its file move
 export async function syncRenamedDocumentTitle(app: App, file: TFile, nextTitle: string) {
 	const currentContent = await app.vault.read(file)
 	const nextContent = replaceTopLevelHeading(currentContent, nextTitle)
@@ -417,6 +425,7 @@ if (import.meta.vitest) {
 	const { describe, expect, it, vi } = import.meta.vitest
 
 	describe('serializeFrontmatter', () => {
+		// @story [[lucrjournal/domain-model#^frontmatter-serialization]] Covers omitted values and scalar serialization
 		it('filters null/undefined and serializes remaining fields', () => {
 			expect(serializeFrontmatter({
 				lucr_type: 'test',
@@ -427,6 +436,7 @@ if (import.meta.vitest) {
 			})).toBe('lucr_type: "test"\nname: "hello"\ncount: 42\nactive: true')
 		})
 
+		// @story [[lucrjournal/domain-model#^frontmatter-serialization]] Covers JSON serialization of structured values
 		it('serializes arrays and objects as JSON', () => {
 			expect(serializeFrontmatter({
 				lucr_type: 'test',
@@ -481,6 +491,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('hasPersistedEntryBasenameConflict', () => {
+		// @story [[lucrjournal/domain-model#^global-basename-identity]] Covers cross-folder basename conflicts under the persisted root
 		it('rejects duplicate basenames across persisted folders', () => {
 			const app = {
 				vault: {
@@ -568,6 +579,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('executeCreateEntry', () => {
+		// @story [[lucrjournal/domain-model#^create-entry-pipeline]] Covers payload serialization and the final vault write
 		it('serializes a persisted entry and writes it into the domain folder', async () => {
 			const created: Array<{ path: string; content: string }> = []
 			const app = {
@@ -633,6 +645,7 @@ if (import.meta.vitest) {
 			expect(writtenPaths).toEqual([`${LUCR_TRADE_ROOT_DIR}/demo/Alpha-3.md`])
 		})
 
+		// @story [[lucrjournal/domain-model#^create-entry-pipeline]] Covers validation abort before the parent write
 		it('aborts before writing when validate throws', async () => {
 			const app = {
 				vault: {
@@ -661,6 +674,7 @@ if (import.meta.vitest) {
 			expect((app.vault.create as unknown as { mock: { calls: unknown[] } }).mock.calls).toEqual([])
 		})
 
+		// @story [[lucrjournal/domain-model#^create-entry-pipeline]] Covers dependency ordering and root batch aggregation
 		it('aggregates cascaded dependency files into the root creation batch', async () => {
 			const createdPaths: string[] = []
 			const app = {

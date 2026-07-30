@@ -25,6 +25,7 @@ export function setTradingViewRequesterForTests(
 	tradingViewRequesterOverride = requester
 }
 
+// @story [[lucrjournal/symbol-search#^runtime-request-contract]] Routes production TradingView traffic through Obsidian requestUrl
 async function obsidianTradingViewRequester(
 	options: { headers: Record<string, string>, throw: false, url: string },
 ) {
@@ -38,6 +39,8 @@ export function resolveCurrentTradingViewRequester() {
 	return tradingViewRequesterOverride ?? obsidianTradingViewRequester
 }
 
+// @story [[lucrjournal/symbol-search#^metadata-failure-isolated]] Converts remote metadata failures into an absent enhancement
+// @story [[lucrjournal/symbol-search#^metadata-type-precedence]] Resolves trusted type precedence before accepting a remote logo
 export async function enrichSymbolMetadataFromTradingView(
 	name: string,
 	currentType: PositionSymbolType | null,
@@ -99,6 +102,7 @@ if (import.meta.vitest) {
 	}
 
 	describe('enrichSymbolMetadataFromTradingView', () => {
+		// @story [[lucrjournal/symbol-search#^runtime-request-contract]] Covers the production requester adapter
 		it('uses Obsidian requestUrl for the default TradingView requester', async () => {
 			const Obsidian = await import('obsidian')
 			const requestUrlSpy = vi.spyOn(Obsidian, 'requestUrl').mockResolvedValue({
@@ -124,6 +128,7 @@ if (import.meta.vitest) {
 			await expect(enrichSymbolMetadataFromTradingView('FOOBAR', null, requester)).resolves.toBeNull()
 		})
 
+		// @story [[lucrjournal/symbol-search#^metadata-failure-isolated]] Covers recoverable remote metadata failure
 		it('returns null when TradingView search fails', async () => {
 			const requester = vi.fn(async () => {
 				throw new Error('offline')
@@ -137,6 +142,7 @@ if (import.meta.vitest) {
 			await expect(enrichSymbolMetadataFromTradingView('FOOBAR', null, requester)).resolves.toBeNull()
 		})
 
+		// @story [[lucrjournal/symbol-search#^metadata-type-precedence]] Covers perpetual caller precedence and exact-row selection
 		it('prefers the exact match with a logo over the first match', async () => {
 			const requester = tvResponse([
 				{ symbol: 'WIFUSDT', type: 'spot', logoid: 'crypto/WRONG' },
@@ -156,12 +162,14 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/symbol-search#^metadata-type-precedence]] Covers caller perpetual markers over provider spot types
 		it('forces Crypto_Perp when the caller-supplied name carries .P even if the matched row mapped to Crypto_Spot', async () => {
 			const requester = tvResponse([{ symbol: 'WIFUSDT', type: 'spot', logoid: 'crypto/XTVCWIF' }])
 			const result = await enrichSymbolMetadataFromTradingView('WIFUSDT.P', null, requester)
 			expect(result?.type).toBe('Crypto_Perp')
 		})
 
+		// @story [[lucrjournal/symbol-search#^metadata-type-precedence]] Covers caller type fallback for unmapped provider rows
 		it('keeps the caller-supplied currentType when TV maps the matched row to null but has a logo', async () => {
 			const requester = tvResponse([{ symbol: 'WHATEVER', type: 'stock', logoid: 'foo/bar' }])
 			const result = await enrichSymbolMetadataFromTradingView('WHATEVER', 'CFD', requester)
@@ -188,6 +196,7 @@ if (import.meta.vitest) {
 			await expect(enrichSymbolMetadataFromTradingView('LINK', null, requester)).resolves.toBeNull()
 		})
 
+		// @story [[lucrjournal/symbol-search#^metadata-type-precedence]] Covers rejection when no trusted type source exists
 		it('returns null when TV has a logo but neither the row nor the caller can supply a type', async () => {
 			const requester = tvResponse([{ symbol: 'WHATEVER', type: 'stock', logoid: 'foo/bar' }])
 			await expect(enrichSymbolMetadataFromTradingView('WHATEVER', null, requester)).resolves.toBeNull()

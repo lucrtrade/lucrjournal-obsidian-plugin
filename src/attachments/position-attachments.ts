@@ -25,6 +25,7 @@ type ParsedAttachmentToken =
 		linkpath: string
 	}
 
+// @story [[lucrjournal/attachment#^attachment-field-source]] Prefers normalized attachment references before the legacy field
 export function resolvePositionAttachments(position: Position | Record<string, unknown>): string[] {
 	const record = position as Record<string, unknown>
 	const attachments = normalizeAttachmentField(record.attachments)
@@ -36,6 +37,7 @@ export function resolvePositionAttachments(position: Position | Record<string, u
 	return normalizeAttachmentField(record.chart_screenshots)
 }
 
+// @story [[lucrjournal/attachment#^attachment-token-syntax]] Parses every supported external and vault reference shape
 export function parseAttachmentToken(token: string): ParsedAttachmentToken | null {
 	const normalizedToken = token.trim()
 	if (normalizedToken.length === 0) {
@@ -88,6 +90,7 @@ export function buildAttachmentToken(fileName: string, _label: string): string {
 	return `[[${fileName.split('/').pop() ?? fileName}]]`
 }
 
+// @story [[lucrjournal/attachment#^attachment-storage-layout]] Builds the local-time month partition
 export function buildAttachmentMonthFolder(timestamp: number): string {
 	const date = new Date(timestamp)
 	return `${LUCR_TRADE_ATTACHMENTS_DIR}/${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
@@ -109,6 +112,7 @@ export function buildAttachmentTimestamp(timestamp: number): string {
 		].join('-')
 }
 
+// @story [[lucrjournal/attachment#^attachment-storage-layout]] Sanitizes the original segment and normalizes the extension
 export function buildAttachmentFileName(timestamp: string, originalName: string, extension: string): string {
 	const normalizedExtension = normalizeAttachmentExtension(extension)
 	return `${timestamp}_${sanitizeAttachmentFileSegment(originalName)}${normalizedExtension === '' ? '' : `.${normalizedExtension}`}`
@@ -130,6 +134,7 @@ export function resolveImageExtensionFromMimeType(mimeType: string | null | unde
 	return IMAGE_MIME_TYPE_TO_EXTENSION[mimeType.toLowerCase() as keyof typeof IMAGE_MIME_TYPE_TO_EXTENSION]
 }
 
+// @story [[lucrjournal/attachment#^attachment-image-types]] Restricts selected images to the supported MIME map
 export function isSupportedImageMimeType(mimeType: string | null | undefined): boolean {
 	return !!resolveImageExtensionFromMimeType(mimeType)
 }
@@ -160,6 +165,7 @@ export function applyAttachmentTokensToFrontmatter(
 	frontmatter: Record<string, unknown>,
 	newTokens: string[],
 ): void {
+	// @story [[lucrjournal/attachment#^position-capture-reference]] Appends canonical references and removes the legacy field
 	const existing = resolvePositionAttachments(frontmatter)
 	frontmatter.attachments = [...existing, ...newTokens]
 	if (Object.prototype.hasOwnProperty.call(frontmatter, 'chart_screenshots')) {
@@ -171,6 +177,7 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('resolvePositionAttachments', () => {
+		// @story [[lucrjournal/attachment#^attachment-field-source]] Covers attachment precedence and legacy fallback
 		it('prefers the attachments array and falls back to legacy chart_screenshots', () => {
 			expect(resolvePositionAttachments({
 				attachments: ['[[foo.png|foo]]'],
@@ -184,6 +191,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('parseAttachmentToken', () => {
+		// @story [[lucrjournal/attachment#^attachment-token-syntax]] Covers vault wikilinks and external Markdown images
 		it('parses wikilinks and markdown image syntax', () => {
 			expect(parseAttachmentToken('[[foo/bar.png|preview]]')).toEqual({
 				kind: 'vault',
@@ -200,6 +208,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('position attachments', () => {
+		// @story [[lucrjournal/attachment#^attachment-storage-layout]] Covers the exact month folder and normalized file name
 		it('builds attachment file names under the current month folder', () => {
 			const timestamp = new Date(2026, 4, 15, 10, 20, 30).getTime()
 			const fileName = buildPositionAttachmentFileName(buildAttachmentTimestamp(timestamp), '.PNG', 'logo_black_tight')
@@ -207,6 +216,7 @@ if (import.meta.vitest) {
 			expect(buildPositionAttachmentPath(fileName, timestamp)).toBe(`${LUCR_TRADE_ATTACHMENTS_DIR}/2026-05/2026-05-15_10-20-30-000_logo_black_tight.png`)
 		})
 
+		// @story [[lucrjournal/attachment#^attachment-image-types]] Covers the supported image MIME boundary
 		it('maps supported image mime types to file extensions', () => {
 			expect(resolveImageExtensionFromMimeType('image/png')).toBe('png')
 			expect(resolveImageExtensionFromMimeType('image/jpeg')).toBe('jpg')
@@ -216,12 +226,14 @@ if (import.meta.vitest) {
 	})
 
 	describe('applyAttachmentTokensToFrontmatter', () => {
+		// @story [[lucrjournal/attachment#^position-capture-reference]] Covers ordered attachment append
 		it('preserves existing attachment order and appends new tokens', () => {
 			const fm: Record<string, unknown> = { attachments: ['[[a.png|a]]', '[[b.png|b]]'] }
 			applyAttachmentTokensToFrontmatter(fm, ['[[c.png|c]]'])
 			expect(fm.attachments).toEqual(['[[a.png|a]]', '[[b.png|b]]', '[[c.png|c]]'])
 		})
 
+		// @story [[lucrjournal/attachment#^position-capture-reference]] Covers legacy field removal during append
 		it('deletes the legacy chart_screenshots field', () => {
 			const fm: Record<string, unknown> = {
 				chart_screenshots: ['[[old.png|old]]'],

@@ -8,6 +8,7 @@ const MOMENT_LOCALE_BY_APP_LOCALE = {
 	zh: 'zh-cn',
 } as const
 
+// @story [[lucrjournal/content#^relative-time-wall-clock]] Formats relative labels from stored wall-clock fields and configured runtime preferences.
 export function formatRelativeTimeFromNow(datetime: string | null | undefined): string | null {
 	if (datetime == null) {
 		return null
@@ -23,6 +24,7 @@ export function formatRelativeTimeFromNow(datetime: string | null | undefined): 
 	return parsed.locale(locale).from(getCurrentWallClockMomentInTimeZone())
 }
 
+// @story [[lucrjournal/content#^absolute-datetime-format]] Formats a strict instant in the configured timezone at minute precision.
 export function formatOpenedAtForDisplay(datetime: string | null | undefined): string | null {
 	if (datetime == null) {
 		return null
@@ -97,6 +99,7 @@ function getDateTimeParts(date: Date, timeZone: string) {
 	}
 }
 
+// @story [[lucrjournal/content#^duration-format]] Formats non-negative elapsed instants with fixed day, hour, and minute units.
 export function formatDuration(openedAt: string | null | undefined, closedAt: string | null | undefined): string | null {
 	if (openedAt == null || closedAt == null) {
 		return null
@@ -157,6 +160,7 @@ if (import.meta.vitest) {
 			vi.useRealTimers()
 		})
 
+		// @story [[lucrjournal/content#^relative-time-wall-clock]] Covers English relative labels against the configured wall clock.
 		it('formats relative time from opened_at in english using the configured time zone wall clock', () => {
 			vi.useFakeTimers()
 			vi.setSystemTime(new Date('2026-03-27T02:00:00Z'))
@@ -166,12 +170,14 @@ if (import.meta.vitest) {
 			expect(formatRelativeTimeFromNow('2026-03-27T09:00:00+08:00')).toBe('an hour ago')
 		})
 
+		// @story [[lucrjournal/content#^relative-time-wall-clock]] Covers omitted and non-conforming relative datetime inputs.
 		it('returns null for omitted or invalid datetime values', () => {
 			expect(formatRelativeTimeFromNow(null)).toBeNull()
 			expect(formatRelativeTimeFromNow(undefined)).toBeNull()
 			expect(formatRelativeTimeFromNow('2026-03-27 11:00')).toBeNull()
 		})
 
+		// @story [[lucrjournal/content#^relative-time-wall-clock]] Covers configured timezone wall-clock reinterpretation.
 		it('changes relative time when the configured time zone changes', () => {
 			vi.useFakeTimers()
 			vi.setSystemTime(new Date('2026-03-28T01:00:00Z'))
@@ -192,12 +198,14 @@ if (import.meta.vitest) {
 			setCurrentTimeZoneSetting(defaultTimeZone)
 		})
 
+		// @story [[lucrjournal/content#^absolute-datetime-format]] Covers fixed minute-precision absolute output.
 		it('formats opened_at with minute precision in the configured time zone', () => {
 			setCurrentTimeZoneSetting('Asia/Shanghai')
 
 			expect(formatOpenedAtForDisplay('2026-03-27T09:10:45+08:00')).toBe('03-27 09:10')
 		})
 
+		// @story [[lucrjournal/content#^absolute-datetime-format]] Covers instant conversion across configured timezones.
 		it('changes opened_at display when the configured time zone changes', () => {
 			setCurrentTimeZoneSetting('Asia/Shanghai')
 			expect(formatOpenedAtForDisplay('2026-03-27T09:10:45+08:00')).toBe('03-27 09:10')

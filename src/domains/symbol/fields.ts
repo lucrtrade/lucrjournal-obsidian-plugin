@@ -44,6 +44,9 @@ export const symbolTableFilters = defineTableFilters<SymbolTableRow>([
 	},
 ])
 
+// @story [[lucrjournal/fields#^searchable-field-projections]] Projects symbol names instead of stored wikilinks into global search
+// @story [[lucrjournal/fields#^custom-sort-projections]] Defines symbol account fee and contract-unit ordering
+// @story [[lucrjournal/fields#^symbol-cell-writeback]] Declares the editable symbol type and special fee and contract-unit displays
 export const symbolTableFields = defineFields<SymbolTableRow>([
 	{
 		key: 'account',

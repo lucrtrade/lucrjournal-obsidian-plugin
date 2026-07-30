@@ -72,11 +72,14 @@ import type { CreateEntryContext } from '../core/entry-writer'
 import type { DomainPersistedEntry, DomainRuntimeApp } from '../core/type'
 import type { PositionNotionalContext, PositionSymbolType } from '../symbol/position-model'
 
+// @story [[lucrjournal/position#^position-side-values]] Restricts persisted trade direction to canonical long and short values
 const TradeSideType = type.enumerated('LONG', 'SHORT')
 type TradeSide = typeof TradeSideType.infer
 
+// @story [[lucrjournal/position#^position-lifecycle-shape]] Restricts the optional lifecycle discriminator without imposing cross-field requirements
 const PositionStatusType = type.enumerated('open', 'close')
 
+// @story [[lucrjournal/position#^position-confidence-values]] Restricts persisted confidence to the five supported integer levels
 const PositionConfidenceType = type.enumerated(1, 2, 3, 4, 5)
 
 export type PositionConfidence = typeof PositionConfidenceType.infer
@@ -100,19 +103,23 @@ type PositionFormState = {
 	symbol: string
 }
 
+// @story [[lucrjournal/position#^position-open-schema]] Requires only the position discriminator while preserving undeclared frontmatter
 const PositionType = type({
 	lucr_type: '"position"',
 	...DOMAIN_TIMESTAMP_FIELDS,
 	'id?': 'string | number.integer | null',
 	'status?': PositionStatusType.or('null'),
+	// @story [[lucrjournal/position#^position-link-shapes]] Defines shape-only symbol and playbook references without target validation
 	'symbol?': SymbolWikilinkType.or('null'),
 	'playbook?': 'string | null',
 	'profit?': 'number | null',
 	'side?': TradeSideType.or('null'),
 	'confidence?': PositionConfidenceType.or('null'),
 	'notional_value?': 'number | null',
+	// @story [[lucrjournal/position#^position-notional-mode]] Restricts notional mode and its mode-specific amount field
 	'notional_asset?': '"native" | "usd" | null',
 	'notional_amount?': 'number | null',
+	// @story [[lucrjournal/position#^position-quantity-bounds]] Defines positive integer contracts and bounded decimal lots
 	'contract?': 'number.integer > 0 | null',
 	'lots?': '0.01 <= number <= 20 | null',
 	'risk?': 'number | null',
@@ -121,6 +128,7 @@ const PositionType = type({
 	'fee?': 'number | null',
 	'target_price?': 'number | null',
 	'stop_loss?': 'number | null',
+	// @story [[lucrjournal/position#^position-lifecycle-shape]] Keeps lifecycle timestamps optional and independent from status and exit data
 	'opened_at?': DatetimeType.or('null'),
 	'closed_at?': DatetimeType.or('null'),
 	'attachments?': 'string[] | null',
@@ -136,9 +144,11 @@ const positionFormDefinition = defineForm<PositionFormShape>({
 		valueIcon: (value, _values, context) => context.app === undefined
 			? undefined
 			: AccountDomain.resolvePickerIcon(context.app, value),
+		// @story [[lucrjournal/form#^existing-account-boundary]] Blocks position submission when free-form account input does not resolve
 		validate: (value, _values, context) => resolvePositionAccountValidationMessage(context.app, value),
 	},
 	symbol: {
+		// @story [[lucrjournal/form#^shared-symbol-combobox]] Uses the shared renderer for the position symbol field
 		type: 'symbol_combobox',
 		label: 'POSITION_SYMBOL',
 		placeholder: 'POSITION_SYMBOL_PLACEHOLDER',
@@ -177,6 +187,7 @@ const positionFormDefinition = defineForm<PositionFormShape>({
 	},
 } as const)
 
+// @story [[lucrjournal/position#^position-status-coercion]] Normalizes legacy and canonical lifecycle strings before schema validation
 function coercePositionStatus(value: unknown): unknown {
 	if (value == null) {
 		return null
@@ -228,6 +239,7 @@ function listPositionAccountOptions(app: App): SelectOption[] {
 	return AccountDomain.listPickerOptions(app)
 }
 
+// @story [[lucrjournal/form#^shared-symbol-combobox]] Feeds the position field from the selected account through the shared local source
 function listPositionSymbolOptions(app: App, values: PositionFormState): SelectOption[] {
 	const accountName = resolveCanonicalPositionAccountName(app, values.account)
 	if (accountName.length === 0) {
@@ -237,6 +249,7 @@ function listPositionSymbolOptions(app: App, values: PositionFormState): SelectO
 	return SymbolDomain.listPickerOptionsForAccountName(app, accountName)
 }
 
+// @story [[lucrjournal/position#^position-link-shapes]] Normalizes only symbol values already shaped as wikilinks
 function coerceSymbolWikilink(value: unknown): unknown {
 	if (value == null) {
 		return null
@@ -290,6 +303,7 @@ class PositionDomainDefinition extends DomainBase<'position', typeof PositionTyp
 				nextId: getNextPositionId(app),
 				accountName,
 				positionFeeValue: positionFeeModel.fee_value,
+				// @story [[lucrjournal/domain-model#^position-uuid-identity]] Assigns a UUID v7 to the persisted position id field
 				positionId: createUuidV7(),
 				positionOpenedAt: buildIsoDatetimeInTimeZone(new Date(), getCurrentTimeZoneSetting()),
 				symbolWikilink: symbolWikilink === '' ? undefined : symbolWikilink,
@@ -321,6 +335,8 @@ class PositionDomainDefinition extends DomainBase<'position', typeof PositionTyp
 			}
 			return buildPositionFileId(ctx.nextId)
 		},
+		// @story [[lucrjournal/position#^position-account-symbol-create]] Requires an existing account and ensures its symbol before position persistence
+		// @story [[lucrjournal/form#^existing-account-boundary]] Rejects missing accounts before creating position dependencies
 		async dependencies(formValue: FormValues<typeof positionFormDefinition>, app: App, ctx: CreateEntryContext) {
 			const accountName = resolveCanonicalPositionAccountName(app, formValue.account)
 			if (accountName.length === 0) {
@@ -355,12 +371,14 @@ class PositionDomainDefinition extends DomainBase<'position', typeof PositionTyp
 		coerceFrontmatterField(record, 'id', coerceNullableString)
 		coerceFrontmatterField(record, 'status', coercePositionStatus)
 		coerceFrontmatterField(record, 'symbol', coerceSymbolWikilink)
+		// @story [[lucrjournal/position#^position-link-shapes]] Normalizes non-empty playbook values without resolving their targets
 		coerceFrontmatterField(record, 'playbook', coerceWikilink)
 		coerceFrontmatterField(record, 'profit', coerceNumber)
 		coerceFrontmatterField(record, 'side', coerceUppercaseString)
 		coerceFrontmatterField(record, 'confidence', coerceInteger)
 		coerceFrontmatterField(record, 'notional_value', coerceNumber)
 		coerceFrontmatterField(record, 'notional_asset', coerceNotionalAsset)
+		// @story [[lucrjournal/position#^position-notional-mode]] Retains native amount only while native notional mode is active
 		if (record.notional_asset === 'native') {
 			coerceFrontmatterField(record, 'notional_amount', coerceNumber)
 		} else {
@@ -384,6 +402,7 @@ class PositionDomainDefinition extends DomainBase<'position', typeof PositionTyp
 		return `${this.name}:${position.symbol ?? '-'}` 
 	}
 
+	// @story [[lucrjournal/domain-model#^register-domain-property-types]] Supplies the position lifecycle datetime property types
 	override builtinProperties() {
 		return {
 			closed_at: 'datetime',
@@ -451,6 +470,7 @@ class PositionDomainDefinition extends DomainBase<'position', typeof PositionTyp
 		return new Map(contents)
 	}
 
+	// @story [[lucrjournal/position#^position-closed-projection]] Treats either lifecycle close marker as closed
 	isClosed(position: Position): boolean {
 		return position.status === 'close' || position.closed_at != null
 	}
@@ -467,6 +487,7 @@ class PositionDomainDefinition extends DomainBase<'position', typeof PositionTyp
 		return calculatePositionRealRr(position)
 	}
 
+	// @story [[lucrjournal/ocr#^apply-reviewed-ocr]] Validates and writes reviewed fields and evidence tokens in one frontmatter mutation
 	async updateFieldsAndAppendAttachments(
 		app: App,
 		file: TFile,
@@ -653,6 +674,7 @@ function toPersistedEntryMap<Entry>(entries: DomainPersistedEntry<Entry>[]) {
 	)
 }
 
+// @story [[lucrjournal/position-body#^position-linked-context-reading]] Reads one canonical H1 into its typed linked context group
 function buildPositionContextSectionGroup<Entry>(
 	app: App,
 	file: TFile,
@@ -684,6 +706,7 @@ type PositionCreateFormValue = {
 	profit: string;
 }
 
+// @story [[lucrjournal/position#^position-created-open]] Builds the normal creation defaults for a newly opened position
 function buildCreateEntryPayload(
 	formValue: PositionCreateFormValue,
 	id: string,
@@ -767,6 +790,7 @@ function replaceFrontmatterRecord(
 	Object.assign(target, source)
 }
 
+// @story [[lucrjournal/position#^position-side-immutable]] Rejects every post-creation side patch before mutation
 function normalizePositionUpdatePatch(patch: PositionUpdatePatch): PositionUpdatePatch {
 	const nextPatch = { ...patch }
 	if (hasPatchField(nextPatch, 'side')) {
@@ -778,6 +802,7 @@ function normalizePositionUpdatePatch(patch: PositionUpdatePatch): PositionUpdat
 	return nextPatch
 }
 
+// @story [[lucrjournal/position#^position-risk-order]] Rejects price pairs that contradict the persisted trade direction
 function assertPositionRiskDirection(
 	record: Record<string, unknown>,
 	patch: PositionUpdatePatch,
@@ -832,16 +857,19 @@ function resolvePositionSymbolContext(
 	return { symbolType, contractUnit }
 }
 
+// @story [[lucrjournal/position#^position-derived-account-platform]] Derives the current account only through the resolved symbol entry
 export function derivePositionAccountWikilink(app: DomainRuntimeApp, position: Position): AccountWikilink | null {
 	const symbolEntry = SymbolDomain.resolveEntry(app, position)
 	return symbolEntry?.fm.account ?? null
 }
 
+// @story [[lucrjournal/position#^position-derived-account-platform]] Derives the current platform only through the resolved symbol entry
 export function derivePositionPlatformWikilink(app: DomainRuntimeApp, position: Position): PlatformWikilink | null {
 	const symbolEntry = SymbolDomain.resolveEntry(app, position)
 	return symbolEntry === null ? null : SymbolDomain.resolvePlatformWikilink(app, symbolEntry.fm)
 }
 
+// @story [[lucrjournal/position-formulas#^position-derived-fee]] Reads the current linked symbol fee model for position writeback
 function resolvePositionDerivedFee(
 	app: App,
 	record: Record<string, unknown>,
@@ -871,6 +899,7 @@ function resolvePositionCreateSymbolType(
 	return SymbolDomain.findByAccountAndName(app, normalizedAccountDisplayName, normalizedSymbolName)?.fm.type ?? null
 }
 
+// @story [[lucrjournal/position-formulas#^planned-risk-reward]] Divides positive directional target reward by recomputed risk
 function calculatePositionPlannedRr(position: PositionFormulaInput): number | null {
 	const risk = calculatePositionRisk(position)
 	const quantity = resolvePositionEffectiveQuantity(position)
@@ -885,6 +914,7 @@ function calculatePositionPlannedRr(position: PositionFormulaInput): number | nu
 	return reward > 0 ? normalizePositionAmount(reward / risk) : null
 }
 
+// @story [[lucrjournal/position-formulas#^real-risk-reward]] Divides directional realized move by recomputed risk without fees
 function calculatePositionRealRr(position: PositionFormulaInput): number | null {
 	const risk = calculatePositionRisk(position)
 	const quantity = resolvePositionEffectiveQuantity(position)
@@ -990,6 +1020,7 @@ function resolveCanonicalPositionAccountName(app: App, value: string): string {
 	return matchedAccount === undefined ? accountName : AccountDomain.toDisplayName(matchedAccount.fm)
 }
 
+// @story [[lucrjournal/domain-model#^position-sequence-allocation]] Allocates from every matching markdown basename in the vault
 function getNextPositionId(app: App): number {
 	return (
 		app.vault.getMarkdownFiles().reduce(
@@ -1004,6 +1035,7 @@ function parsePositionFileSequence(fileBaseName: string): number {
 	return matchedSequence === null ? 0 : Number.parseInt(matchedSequence[1]!, 10)
 }
 
+// @story [[lucrjournal/domain-model#^position-file-sequence]] Formats the allocated sequence as the persisted position basename
 function buildPositionFileId(id: number | null | undefined): string {
 	if (typeof id !== 'number') {
 		throw new Error('Position id must be a number to build a file id')
@@ -1079,6 +1111,8 @@ function toTableLinkedEntry<Entry>(
 	}
 }
 
+// @story [[lucrjournal/position-body#^position-linked-context-reading]] Resolves source-order H2 wikilinks to typed TFile-backed entries
+// @story [[lucrjournal/position-body#^unresolved-position-context]] Omits malformed unresolved and wrong-domain headings without rewriting markdown
 function collectSectionLinkedEntries<Entry>(
 	app: App,
 	positionFile: TFile,
@@ -1113,6 +1147,7 @@ function collectSectionLinkedEntries<Entry>(
 	})
 }
 
+// @story [[lucrjournal/position-body#^position-playbook-context]] Resolves playbook frontmatter and exposes the Confluence H1 body as its context
 function collectPlaybookEntry(
 	app: App,
 	positionFile: TFile,
@@ -1160,6 +1195,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('PositionType', () => {
+		// @story [[lucrjournal/position#^position-open-schema]] Covers preservation of fields outside the declared position schema
 		it('allows unknown fields and preserves them in the parsed output', () => {
 			const position = PositionType.assert({
 				lucr_type: 'position',
@@ -1172,6 +1208,7 @@ if (import.meta.vitest) {
 			expect(position.events).toEqual(['CPI'])
 		})
 
+		// @story [[lucrjournal/position#^position-open-schema]] Covers the discriminator-only minimum record
 		it('requires lucr_type and allows every other known field to be omitted or null', () => {
 			expect(PositionType.allows({ lucr_type: 'position' })).toBe(true)
 			expect(
@@ -1203,6 +1240,7 @@ if (import.meta.vitest) {
 			).toBe(true)
 		})
 
+		// @story [[lucrjournal/position#^position-confidence-values]] Covers the bounded confidence enum
 		it('still validates known field formats when a value is present', () => {
 			expect(
 				PositionType.allows({
@@ -1233,6 +1271,8 @@ if (import.meta.vitest) {
 			).toBe(false)
 		})
 
+		// @story [[lucrjournal/position#^position-notional-mode]] Covers canonical notional modes
+		// @story [[lucrjournal/position#^position-quantity-bounds]] Covers accepted and rejected position quantity shapes
 		it('accepts new symbol-type-specific source fields', () => {
 			expect(PositionType.allows({
 				lucr_type: 'position',
@@ -1277,6 +1317,7 @@ if (import.meta.vitest) {
 			})).toBe(false)
 		})
 
+		// @story [[lucrjournal/position#^position-notional-mode]] Covers removal of amount outside native mode
 		it('coerces blank-string source fields to null', () => {
 			expect(PositionDomain.refine({
 				lucr_type: 'position',
@@ -1327,6 +1368,7 @@ if (import.meta.vitest) {
 			}))
 		})
 
+		// @story [[lucrjournal/position#^position-quantity-bounds]] Covers strict positive integer contracts
 		it('rejects non-positive or decimal contract values', () => {
 			expect(PositionDomain.refine({
 				lucr_type: 'position',
@@ -1344,6 +1386,7 @@ if (import.meta.vitest) {
 			})).toBeNull()
 		})
 
+		// @story [[lucrjournal/position#^position-quantity-bounds]] Covers inclusive lot bounds
 		it('rejects non-positive lots values while keeping decimal lots valid', () => {
 			expect(PositionDomain.refine({
 				lucr_type: 'position',
@@ -1507,6 +1550,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('PositionDomain create form', () => {
+		// @story [[lucrjournal/domain-model#^position-uuid-identity]] Covers UUID v7 assignment in the position creation context
 		it('uses uuid v7 for the default persisted position id', () => {
 			const app = {
 				vault: {
@@ -1662,6 +1706,7 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/form#^existing-account-boundary]] Covers position form validation against persisted accounts
 		it('requires the create form account to match an existing account', () => {
 			const app = {
 				vault: {
@@ -1679,6 +1724,8 @@ if (import.meta.vitest) {
 			}, { app })).toBe('SYMBOL_ACCOUNT_NOT_FOUND')
 		})
 
+		// @story [[lucrjournal/position#^position-account-symbol-create]] Covers rejection before creating dependencies for a missing account
+		// @story [[lucrjournal/form#^existing-account-boundary]] Covers position rejection without implicit dependency creation
 		it('rejects missing account instead of creating account dependencies', async () => {
 			const created: Array<{ path: string; content: string }> = []
 			const files: TFile[] = []
@@ -1707,6 +1754,7 @@ if (import.meta.vitest) {
 			expect(created).toHaveLength(0)
 		})
 
+		// @story [[lucrjournal/position#^position-account-symbol-create]] Covers account-scoped symbol creation before position persistence
 		it('does not use removed account frontmatter fields when creating a new position', async () => {
 			const created: Array<{ path: string; content: string }> = []
 			const files = [
@@ -1949,6 +1997,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('PositionDomain.isClosed', () => {
+		// @story [[lucrjournal/position#^position-closed-projection]] Covers the explicit close discriminator
 		it('treats explicit close status as closed', () => {
 			expect(PositionDomain.isClosed({
 				lucr_type: 'position',
@@ -1956,6 +2005,7 @@ if (import.meta.vitest) {
 			})).toBe(true)
 		})
 
+		// @story [[lucrjournal/position#^position-closed-projection]] Covers timestamp precedence over a stale open discriminator
 		it('treats legacy positions with closed_at but stale open status as closed', () => {
 			expect(PositionDomain.isClosed({
 				lucr_type: 'position',
@@ -1964,6 +2014,7 @@ if (import.meta.vitest) {
 			} as Position)).toBe(true)
 		})
 
+		// @story [[lucrjournal/position#^position-closed-projection]] Covers the open result without either close marker
 		it('keeps positions without close markers open', () => {
 			expect(PositionDomain.isClosed({
 				lucr_type: 'position',
@@ -1974,6 +2025,11 @@ if (import.meta.vitest) {
 	})
 
 	describe('PositionDomain derived metrics', () => {
+		// @story [[lucrjournal/position-formulas#^formula-side-direction]] Covers the positive long direction
+		// @story [[lucrjournal/position-formulas#^position-profit-formula]] Covers long price profit with an absolute fee
+		// @story [[lucrjournal/position-formulas#^position-risk-formula]] Covers positive long stop-loss exposure
+		// @story [[lucrjournal/position-formulas#^planned-risk-reward]] Covers long target reward divided by recomputed risk
+		// @story [[lucrjournal/position-formulas#^real-risk-reward]] Covers long realized move divided by recomputed risk
 		it('calculates profit and risk for long positions', () => {
 			const position = {
 				lucr_type: 'position',
@@ -1993,6 +2049,11 @@ if (import.meta.vitest) {
 			expect(PositionDomain.calculateRealRr(position)).toBe(4)
 		})
 
+		// @story [[lucrjournal/position-formulas#^formula-side-direction]] Covers the negative short direction
+		// @story [[lucrjournal/position-formulas#^position-profit-formula]] Covers short price profit with an absolute fee
+		// @story [[lucrjournal/position-formulas#^position-risk-formula]] Covers positive short stop-loss exposure
+		// @story [[lucrjournal/position-formulas#^planned-risk-reward]] Covers short target reward divided by recomputed risk
+		// @story [[lucrjournal/position-formulas#^real-risk-reward]] Covers short realized move divided by recomputed risk
 		it('calculates profit and ratios for short positions', () => {
 			const position = {
 				lucr_type: 'position',
@@ -2011,6 +2072,8 @@ if (import.meta.vitest) {
 			expect(PositionDomain.calculateRealRr(position)).toBe(2)
 		})
 
+		// @story [[lucrjournal/position-formulas#^position-risk-formula]] Covers rejection of non-positive directional risk
+		// @story [[lucrjournal/position-formulas#^planned-risk-reward]] Covers the null result when recomputed risk is invalid
 		it('returns null when the stop loss is on the wrong side', () => {
 			const position = {
 				lucr_type: 'position',
@@ -2025,6 +2088,7 @@ if (import.meta.vitest) {
 			expect(PositionDomain.calculatePlannedRr(position)).toBeNull()
 		})
 
+		// @story [[lucrjournal/position-formulas#^real-risk-reward]] Covers preservation of a negative realized ratio
 		it('allows negative real R:R when the realized move loses more than risk', () => {
 			const position = {
 				lucr_type: 'position',
@@ -2038,6 +2102,7 @@ if (import.meta.vitest) {
 			expect(PositionDomain.calculateRealRr(position)).toBe(-1.6)
 		})
 
+		// @story [[lucrjournal/position-formulas#^derived-amount-precision]] Covers final rounding of derived profit and risk
 		it('rounds derived amounts to suppress floating point artifacts', () => {
 			const impreciseExitPrice = Number.parseFloat('1.0372639999999999')
 			const position = {
@@ -2257,6 +2322,7 @@ if (import.meta.vitest) {
 			expect(frontmatter.risk).toBeNull()
 		})
 
+		// @story [[lucrjournal/position-formulas#^manual-derived-overrides]] Covers direct persisted profit and risk overrides
 		it('keeps manual derived edits when source fields are untouched', async () => {
 			const file = new TFile()
 			file.path = `${LUCR_TRADE_ROOT_DIR}/positions/POS-00003.md`
@@ -2321,6 +2387,7 @@ if (import.meta.vitest) {
 			}
 		})
 
+		// @story [[lucrjournal/position-formulas#^position-derived-fee]] Covers latest linked symbol fee resolution and profit cascade
 		it('recomputes fee from the latest linked symbol fee model when fee dependencies change', async () => {
 			const positionFile = new TFile()
 			positionFile.path = `${LUCR_TRADE_ROOT_DIR}/positions/POS-00010.md`
@@ -2635,6 +2702,7 @@ if (import.meta.vitest) {
 			expect(updated.status).toBe('close')
 		})
 
+		// @story [[lucrjournal/position#^position-side-immutable]] Covers rejection without mutating persisted direction or metrics
 		it('rejects side updates after creation', async () => {
 			const file = new TFile()
 			file.path = `${LUCR_TRADE_ROOT_DIR}/positions/POS-00005.md`
@@ -2962,6 +3030,7 @@ if (import.meta.vitest) {
 			expect(persistedFm).not.toHaveProperty('notional_amount')
 		})
 
+		// @story [[lucrjournal/position-formulas#^native-notional-conversion]] Covers USD to native amount conversion without changing notional value
 		it('preserves notional_value when crypto asset switches to native', async () => {
 			const { app, positionFile, persistedFm } = makeApp({
 				positionFm: {
@@ -2982,6 +3051,7 @@ if (import.meta.vitest) {
 			expect(persistedFm.notional_amount).toBe(0.015)
 		})
 
+		// @story [[lucrjournal/position-formulas#^native-notional-conversion]] Covers native amount removal when returning to USD mode
 		it('preserves notional_value when crypto asset switches to usd', async () => {
 			const { app, positionFile, persistedFm } = makeApp({
 				positionFm: {
@@ -3021,6 +3091,7 @@ if (import.meta.vitest) {
 			expect(persistedFm).not.toHaveProperty('notional_amount')
 		})
 
+		// @story [[lucrjournal/position-formulas#^native-notional-conversion]] Covers native amount backfill after a direct notional edit
 		it('backfills native notional_amount from direct native notional_value edits', async () => {
 			const { app, positionFile, persistedFm } = makeApp({
 				positionFm: {
@@ -3146,6 +3217,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('buildPositionFileId', () => {
+		// @story [[lucrjournal/domain-model#^position-file-sequence]] Covers five-digit padding of position basenames
 		it('formats persisted file ids with zero padding', () => {
 			expect(buildPositionFileId(1)).toBe('POS-00001')
 			expect(buildPositionFileId(42)).toBe('POS-00042')
@@ -3161,6 +3233,8 @@ if (import.meta.vitest) {
 			return file
 		}
 
+		// @story [[lucrjournal/position-body#^position-linked-context-reading]] Covers all typed H1 and H2 linked context groups
+		// @story [[lucrjournal/position-body#^position-playbook-context]] Covers playbook frontmatter resolution alongside body context
 		it('parses fixed top-level sections and the frontmatter playbook link', async () => {
 			const frontmatterByPath = {
 				[`${LUCR_TRADE_ROOT_DIR}/news/news1.md`]: {
@@ -3351,10 +3425,12 @@ if (import.meta.vitest) {
 			},
 		} as unknown as App
 
+		// @story [[lucrjournal/position#^position-derived-account-platform]] Covers account derivation from the resolved symbol
 		it('derives account wikilink from linked symbol entry', () => {
 			expect(derivePositionAccountWikilink(app, { lucr_type: 'position', symbol: '[[SBL-Research-BTCUSDT]]' } as Position)).toBe('[[ACC-Research]]')
 		})
 
+		// @story [[lucrjournal/position#^position-derived-account-platform]] Covers platform derivation from the resolved symbol
 		it('derives platform wikilink from linked symbol entry', () => {
 			expect(derivePositionPlatformWikilink(app, { lucr_type: 'position', symbol: '[[SBL-Research-BTCUSDT]]' } as Position)).toBe('[[Binance]]')
 		})
@@ -3364,6 +3440,7 @@ if (import.meta.vitest) {
 			expect(derivePositionPlatformWikilink(app, { lucr_type: 'position' })).toBeNull()
 		})
 
+		// @story [[lucrjournal/position#^position-derived-account-platform]] Covers null relations for an unresolved symbol
 		it('returns null when symbol entry cannot be resolved', () => {
 			const emptyApp = { vault: { getMarkdownFiles: () => [] }, metadataCache: { getFileCache: () => null } } as unknown as App
 			expect(derivePositionAccountWikilink(emptyApp, { lucr_type: 'position', symbol: '[[SBL-Unknown-XYZ]]' } as Position)).toBeNull()

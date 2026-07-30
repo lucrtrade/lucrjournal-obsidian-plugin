@@ -266,6 +266,7 @@ export function usePositionDetailsMedia({
 		}
 	}
 
+	// @story [[lucrjournal/ocr#^ocr-image-import]] Reads only the first supported image from upload or drop
 	const importAttachmentOcrFromFiles = async (
 		files: FileList | File[] | null,
 		source: 'modal-drop' | 'modal-upload',
@@ -321,6 +322,7 @@ export function usePositionDetailsMedia({
 		}
 	}
 
+	// @story [[lucrjournal/ocr#^vault-attachment-ocr]] Reads OCR input only from a local vault image
 	const importAttachmentOcrFromAttachment = async (attachment: PositionAttachment): Promise<boolean> => {
 		if (positionFile === null) {
 			return false
@@ -400,6 +402,7 @@ export function usePositionDetailsMedia({
 		}
 	}
 
+	// @story [[lucrjournal/ocr#^ocr-image-import]] Rejects clipboard payloads without a supported image
 	const importAttachmentOcrFromPasteEvent = async (event: ClipboardEvent): Promise<boolean> => {
 		if (positionFile === null) {
 			return false
@@ -474,6 +477,8 @@ export function usePositionDetailsMedia({
 		}
 	}
 
+	// @story [[lucrjournal/ocr#^apply-reviewed-ocr]] Persists the reviewed patch and evidence reference together
+	// @story [[lucrjournal/ocr#^ocr-apply-rollback]] Cleans newly created evidence after a failed apply
 	const applyPendingAttachmentOcr = async (draft: PositionAttachmentOcrDraft): Promise<boolean> => {
 		if (positionFile === null || pendingAttachmentOcrResult === null || pendingAttachmentOcrFile === null) {
 			return false
@@ -527,6 +532,7 @@ export function usePositionDetailsMedia({
 		}
 	}
 
+	// @story [[lucrjournal/ocr#^dismiss-ocr-review]] Discards pending recognition without persistence
 	function dismissPendingAttachmentOcr() {
 		setPendingAttachmentOcrResult(null)
 		setPendingAttachmentOcrFile(null)
@@ -561,6 +567,7 @@ export function usePositionDetailsMedia({
 
 			const recognizedValues = listRecognizedPositionAttachmentOcrValues(mergedResult)
 
+			// @story [[lucrjournal/ocr#^empty-ocr-result]] Stops before review when no trade field was recognized
 			if (recognizedValues.length === 0) {
 				notice.setMessage(t('POSITION_DETAILS_ATTACHMENT_OCR_EMPTY'))
 				queueNoticeHide(notice)
@@ -636,6 +643,7 @@ function buildAttachmentOcrProgressMessage(progress: PositionAttachmentOcrProgre
 
 // ─── Attachment helpers ───────────────────────────────────────────────────────
 
+// @story [[lucrjournal/attachment#^visible-attachment-resolution]] Resolves external URLs and filters vault references to image files
 function resolveAttachmentItems(
 	app: App,
 	positionFile: TFile | null,
@@ -689,6 +697,7 @@ function resolveAttachmentItems(
 	})
 }
 
+// @story [[lucrjournal/attachment#^position-attachment-save]] Creates or reuses files before appending their references
 async function persistPositionAttachments({
 	app,
 	files,
@@ -749,12 +758,14 @@ async function createPositionAttachmentFiles({
 
 	for (const pendingFile of files) {
 		const hash = await hashArrayBuffer(pendingFile.buffer)
+		// @story [[lucrjournal/attachment#^linked-attachment-dedupe]] Skips content already linked in this position or batch
 		if (linkedHashes.has(hash)) {
 			continue
 		}
 
 		let timestamp = baseTimestamp + attachmentTokens.length
 		const reusableFile = reusableFilesByHash.get(hash)
+		// @story [[lucrjournal/attachment#^vault-attachment-reuse]] Reuses identical unlinked files from the managed attachment directory
 		if (reusableFile !== undefined) {
 			const label = new Date(timestamp).toISOString()
 			const token = buildAttachmentToken(reusableFile.path, label)
@@ -885,6 +896,8 @@ async function trashCreatedAttachments(app: App, attachments: PositionAttachment
 	}
 }
 
+// @story [[lucrjournal/attachment#^remove-attachment-reference]] Removes frontmatter references before considering the file
+// @story [[lucrjournal/attachment#^remove-attachment-file]] Trashes only unshared managed vault files
 async function removePositionAttachment({
 	app,
 	attachment,
@@ -1017,6 +1030,7 @@ async function readAttachmentPendingFile(app: App, attachment: PositionAttachmen
 	}
 }
 
+// @story [[lucrjournal/attachment#^attachment-image-types]] Accepts only the supported image MIME types or extensions
 function isSelectableImageFile(file: File): boolean {
 	if (isSupportedImageMimeType(file.type)) {
 		return true
@@ -1258,6 +1272,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('createPositionAttachmentFiles', () => {
+		// @story [[lucrjournal/attachment#^position-attachment-save]] Covers file creation without premature frontmatter mutation
 		it('creates attachment files without mutating position frontmatter', async () => {
 			const timestamp = new Date(2026, 4, 15, 10, 20, 30).getTime()
 			vi.spyOn(Date, 'now').mockReturnValue(timestamp)
@@ -1319,6 +1334,7 @@ if (import.meta.vitest) {
 			expect(frontmatter.attachments).toEqual(['[[LucrJournal/attachments/existing.png|existing]]'])
 		})
 
+		// @story [[lucrjournal/attachment#^linked-attachment-dedupe]] Covers skipping content already linked to the position
 		it('skips images already linked to the current position', async () => {
 			const positionFile = new TFile()
 			positionFile.path = 'LucrJournal/positions/POS-00001.md'
@@ -1371,6 +1387,7 @@ if (import.meta.vitest) {
 			expect(result.createdAttachments).toEqual([])
 		})
 
+		// @story [[lucrjournal/attachment#^linked-attachment-dedupe]] Covers duplicate content within one import batch
 		it('creates only one attachment for duplicate images in the same batch', async () => {
 			const positionFile = new TFile()
 			positionFile.path = 'LucrJournal/positions/POS-00001.md'
@@ -1416,6 +1433,7 @@ if (import.meta.vitest) {
 			expect(result.createdAttachments).toHaveLength(1)
 		})
 
+		// @story [[lucrjournal/attachment#^vault-attachment-reuse]] Covers content-addressed reuse without file creation
 		it('reuses an existing vault attachment with the same content', async () => {
 			const positionFile = new TFile()
 			positionFile.path = 'LucrJournal/positions/POS-00001.md'

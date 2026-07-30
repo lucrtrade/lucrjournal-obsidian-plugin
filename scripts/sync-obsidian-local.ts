@@ -3,7 +3,9 @@ import path from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 
 const shouldInstallFromCli = process.argv.includes("--install");
+// @story [[lucrjournal/tooling#^sandbox-only-reset]] Pins local synchronization to the named sandbox vault
 const SANDBOX_VAULT_NAME = "Obsidian Sandbox";
+// @story [[lucrjournal/tooling#^local-sync-skip]] Bounds every Obsidian CLI probe and sync command
 const CLI_TIMEOUT_MS = 5_000;
 const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 globalThis.__LUCRJOURNAL_CHART_VERSION__ = packageJson.chart_version;
@@ -114,6 +116,7 @@ function ensureSandboxVaultExists() {
 	}
 }
 
+// @story [[lucrjournal/tooling#^sandbox-only-reset]] Resets only the registered sandbox from direct example subdirectories
 function resetSandboxTradeRoot(vaultPath) {
 	const examplesDir = path.join(process.cwd(), "examples");
 
@@ -185,6 +188,7 @@ try {
 	const pluginDir = path.join(vaultPath, ".obsidian", "plugins", pluginId);
 	mkdirSync(pluginDir, { recursive: true });
 
+	// @story [[lucrjournal/tooling#^copy-and-reload]] Replaces the installable bundle and local OCR asset tree before reload
 	for (const assetDirName of ["onnxruntime-web", "ocr"]) {
 		rmSync(path.join(pluginDir, assetDirName), { recursive: true, force: true });
 	}
@@ -256,6 +260,7 @@ try {
 		console.log(`[obsidian-sync] Synced plugin ${pluginId} to ${pluginDir} and reloaded it.`);
 	}
 } catch (error) {
+	// @story [[lucrjournal/tooling#^local-sync-skip]] Degrades an unresponsive beta CLI to a skipped local sync
 	if (isCliTimeoutError(error)) {
 		console.warn(`[obsidian-sync] Obsidian CLI stopped responding (timed out after ${CLI_TIMEOUT_MS}ms); skipping local vault sync.`);
 		process.exit(0);

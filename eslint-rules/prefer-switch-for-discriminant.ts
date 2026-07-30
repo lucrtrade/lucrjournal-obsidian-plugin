@@ -64,6 +64,7 @@ function collectChain(head: IfStatementNode): IfStatementNode[] {
 	return chain
 }
 
+// @story [[lucrjournal/tooling#^prefer-switch-discriminant]] Rejects repeated literal equality branches on one discriminant
 const rule: Rule.RuleModule = {
 	meta: {
 		type: 'suggestion',

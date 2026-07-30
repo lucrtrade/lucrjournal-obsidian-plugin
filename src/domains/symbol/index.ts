@@ -39,10 +39,12 @@ const SYMBOL_ACCOUNT_REQUIRED_ERROR = 'SYMBOL_ACCOUNT_REQUIRED_ERROR'
 const SYMBOL_ACCOUNT_NOT_FOUND_ERROR = 'SYMBOL_ACCOUNT_NOT_FOUND_ERROR'
 const SYMBOL_NAME_INVALID_ERROR = 'SYMBOL_NAME_INVALID_ERROR'
 
+// @story [[lucrjournal/symbol#^symbol-type-domain]] Restricts persisted symbol types to the canonical trading categories
 const SymbolAssetType = type.enumerated('Crypto_Perp', 'Crypto_Spot', 'Future', 'CFD')
 
 export type PositionSymbolType = typeof SymbolAssetType.infer
 
+// @story [[lucrjournal/domain-model#^symbol-file-identity]] Requires the semantic account and name fields behind the filename
 const SymbolEntryType = type({
 	lucr_type: '"symbol"',
 	...DOMAIN_TIMESTAMP_FIELDS,
@@ -71,6 +73,7 @@ const symbolFormDefinition = defineForm<SymbolFormShape>({
 		valueIcon: (value, _values, context) => context.app === undefined
 			? undefined
 			: AccountDomain.resolvePickerIcon(context.app, value),
+		// @story [[lucrjournal/form#^existing-account-boundary]] Blocks symbol submission when free-form account input does not resolve
 		validate: (value, _values, context) => {
 			const normalizedValue = sanitizeObsidianFileName(value).trim()
 			if (normalizedValue === '') {
@@ -83,6 +86,7 @@ const symbolFormDefinition = defineForm<SymbolFormShape>({
 		},
 	},
 	name: {
+		// @story [[lucrjournal/form#^shared-symbol-combobox]] Uses the shared renderer for explicit symbol creation
 		type: 'symbol_combobox',
 		label: 'POSITION_SYMBOL',
 		placeholder: 'POSITION_SYMBOL_PLACEHOLDER',
@@ -122,6 +126,8 @@ function listSymbolNameOptions(app: App, values: { account: string }): SelectOpt
 	return listSymbolPickerOptionsForAccountName(app, values.account)
 }
 
+// @story [[lucrjournal/symbol-search#^local-journal-symbols]] Lists account-scoped persisted symbols without remote metadata
+// @story [[lucrjournal/form#^shared-symbol-combobox]] Supplies the single account-scoped local option source used by both creation paths
 function listSymbolPickerOptionsForAccountName(app: DomainRuntimeApp, accountDisplayName: string): SelectOption[] {
 	const accountName = sanitizeObsidianFileName(accountDisplayName).trim()
 	if (accountName === '') {
@@ -151,6 +157,7 @@ function resolveSymbolFormLogo(app: DomainRuntimeApp, accountDisplayName: string
 	return findSymbolEntryByAccountAndName(app, normalizedAccountName, normalizedSymbolName)?.fm.logo ?? null
 }
 
+// @story [[lucrjournal/symbol#^symbol-type-domain]] Normalizes persisted type strings to canonical values
 function normalizeSymbolAssetTypeValue(value: unknown): PositionSymbolType | null {
 	if (typeof value !== 'string') {
 		return null
@@ -185,6 +192,7 @@ function resolveSymbolCreateContext(
 
 	const symbolInfo = resolveSymbolInfo(formValue.name)
 	const accountEntry = AccountDomain.findByDisplayName(app, accountDisplayName)
+	// @story [[lucrjournal/form#^existing-account-boundary]] Rejects missing accounts before symbol creation can persist dependencies
 	if (accountEntry === undefined) {
 		throw new Error(SYMBOL_ACCOUNT_NOT_FOUND_ERROR)
 	}
@@ -202,6 +210,7 @@ function resolveSymbolCreateContext(
 	}
 }
 
+// @story [[lucrjournal/domain-model#^symbol-file-identity]] Persists canonical account and symbol values in frontmatter
 function buildSymbolPayload(
 	formValue: SymbolCreateFormValue,
 	ctx: CreateEntryContext,
@@ -231,6 +240,7 @@ function buildSymbolPayload(
 	})
 }
 
+// @story [[lucrjournal/symbol-search#^metadata-failure-isolated]] Leaves creation on locally resolved metadata when enrichment is absent
 async function enrichSymbolCreateContext(ctx: CreateEntryContext): Promise<void> {
 	if (ctx.symbolLogo != null || ctx.symbolName === undefined) {
 		return
@@ -325,15 +335,18 @@ class SymbolDomainDefinition extends DomainBase<'symbol', typeof SymbolEntryType
 			await enrichSymbolCreateContext(ctx)
 			return buildSymbolPayload(formValue, ctx)
 		},
+		// @story [[lucrjournal/domain-model#^symbol-file-identity]] Leaves symbol documents without a duplicate title
 		buildBody() {
 			return ''
 		},
+		// @story [[lucrjournal/domain-model#^symbol-file-identity]] Combines canonical account and symbol values into the file basename
 		buildFileName(entry: SymbolEntry, ctx: CreateEntryContext, formValue: SymbolCreateFormValue) {
 			return buildSymbolFileBaseName(ctx.accountName ?? formValue.account, entry.name)
 		},
 		validate(formValue: SymbolCreateFormValue, app: App) {
 			const context = resolveSymbolCreateContext(app, formValue)
 			const accountDisplayName = context.accountName ?? sanitizeObsidianFileName(formValue.account).trim()
+			// @story [[lucrjournal/symbol#^duplicate-symbol-scope]] Rejects a duplicate canonical symbol basename before creation
 			assertNoPersistedEntryBasenameConflict(
 				app,
 				'symbols',
@@ -342,6 +355,7 @@ class SymbolDomainDefinition extends DomainBase<'symbol', typeof SymbolEntryType
 		},
 	}
 
+	// @story [[lucrjournal/domain-model#^register-domain-property-types]] Supplies the symbol metadata property types
 	override builtinProperties() {
 		return {
 			...super.builtinProperties(),
@@ -454,6 +468,7 @@ class SymbolDomainDefinition extends DomainBase<'symbol', typeof SymbolEntryType
 		validateFeeModel(record)
 	}
 
+	// @story [[lucrjournal/symbol#^ensure-existing-symbol]] Reuses canonical or legacy account-scoped symbol identity
 	async ensureEntry(
 		app: App,
 		formValue: SymbolCreateFormValue,
@@ -497,6 +512,7 @@ export const SymbolDomain = new SymbolDomainDefinition()
 
 export type SymbolEntryValue = SymbolEntry
 
+// @story [[lucrjournal/domain-model#^symbol-file-identity]] Defines the persisted symbol filename shape
 export function buildSymbolFileBaseName(accountDisplayName: string, symbolName: string): string {
 	const normalizedSymbolName = normalizeSymbolName(symbolName)
 	return sanitizeObsidianFileName(`SBL-${accountDisplayName}-${normalizedSymbolName}`)

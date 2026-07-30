@@ -1,5 +1,6 @@
 import type { Rule } from 'eslint'
 
+// @story [[lucrjournal/tooling#^no-non-ascii]] Rejects non-ASCII letters numbers and marks outside locale sources
 const NON_ASCII_PATTERN = /[^\x00-\x7F]/gu
 const NON_ASCII_TEXT_CHAR_PATTERN = /[\p{Letter}\p{Number}\p{Mark}]/u
 

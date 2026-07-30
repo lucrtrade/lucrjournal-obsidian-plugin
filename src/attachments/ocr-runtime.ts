@@ -6,6 +6,7 @@ import { createLogger } from '../logger'
 
 const logger = createLogger('attachment-ocr')
 
+// @story [[lucrjournal/ocr#^local-ocr-runtime-assets]] Defines the local runtime and model filenames
 const ONNX_RUNTIME_ASSET_DIR = 'onnxruntime-web'
 const ONNX_RUNTIME_MODULE_FILE = 'ort-wasm-simd-threaded.jsep.mjs'
 const ONNX_RUNTIME_WASM_FILE = 'ort-wasm-simd-threaded.jsep.wasm'
@@ -283,6 +284,7 @@ function buildPluginRuntimePath(app: App, pluginId: string, relativePath: string
 	return normalizePath(`${app.vault.configDir}/plugins/${pluginId}/${relativePath}`)
 }
 
+// @story [[lucrjournal/ocr#^local-ocr-runtime-assets]] Fails when a plugin asset is absent without any network fallback
 async function ensurePluginAssetAvailable(
 	context: PositionAttachmentOcrRuntimeContext,
 	relativePath: string,
@@ -393,6 +395,7 @@ if (import.meta.vitest) {
 	const { describe, expect, it, vi } = import.meta.vitest
 
 	describe('ensurePluginAssetAvailable', () => {
+		// @story [[lucrjournal/ocr#^local-ocr-runtime-assets]] Covers missing assets without download or writes
 		it('does not download missing OCR runtime assets', async () => {
 			const Obsidian = await import('obsidian')
 			const requestUrlSpy = vi.spyOn(Obsidian, 'requestUrl').mockResolvedValue({

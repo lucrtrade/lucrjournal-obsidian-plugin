@@ -58,6 +58,7 @@ export function EditableCriteriaLinksCell({
 		return () => activeDocument.removeEventListener('mousedown', handlePointerDown)
 	}, [committedCriteriaNames, isEditing])
 
+	// @story [[lucrjournal/fields#^criteria-readonly-gate]] Implements the dormant writable criteria path without creating new criteria files
 	const persistCriteriaNames = async (nextCriteriaNames: string[]) => {
 		const normalizedNextCriteriaNames = [...new Set(
 			nextCriteriaNames
@@ -76,6 +77,7 @@ export function EditableCriteriaLinksCell({
 			})
 
 			const removedCriteriaNames = previousCriteriaNames.filter((name) => !normalizedNextCriteriaNames.includes(name))
+			// @story [[lucrjournal/playbook#^cleanup-orphan-criteria]] Cleans removed confluence criteria references after writeback
 			if (removedCriteriaNames.length > 0) {
 				await cleanupOrphanCriteriaFiles(
 					app,

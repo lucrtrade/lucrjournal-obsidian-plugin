@@ -42,6 +42,8 @@ class ConfluenceDomainDefinition extends SimpleAnalysisDomainBase<'confluence', 
 	protected override readonly defaultIcon = { kind: 'lucide', value: 'git-merge' } as const
 	override readonly options = { persisted: { folderName: CONFLUENCE_FOLDER_NAME } }
 
+	// @story [[lucrjournal/analysis#^position-linked-entry-defaults]] Defaults directly created confluences to public
+	// @story [[lucrjournal/analysis#^playbook-private-confluence]] Accepts the private creation context used by playbooks
 	protected override buildPayloadFields(formValue: { name: string; description?: string }, ctx: CreateEntryContext) {
 		return {
 			...super.buildPayloadFields(formValue, ctx),
@@ -49,12 +51,15 @@ class ConfluenceDomainDefinition extends SimpleAnalysisDomainBase<'confluence', 
 		}
 	}
 
+	// @story [[lucrjournal/domain-model#^register-domain-property-types]] Supplies the confluence visibility property type
 	override builtinProperties() {
 		return {
 			public: 'checkbox',
 		} as const
 	}
 
+	// @story [[lucrjournal/analysis#^confluence-public-normalization]] Normalizes persisted visibility and removes the legacy owner
+	// @story [[lucrjournal/analysis#^confluence-criteria-links]] Normalizes persisted criteria references
 	override coerce(record: CoercibleFrontmatter<typeof ConfluenceType['inferIn']>) {
 		this.coerceSimpleAnalysisRecord(record)
 		delete record.playbook
@@ -80,6 +85,8 @@ class ConfluenceDomainDefinition extends SimpleAnalysisDomainBase<'confluence', 
 		]
 	}
 
+	// @story [[lucrjournal/fields#^custom-sort-projections]] Orders criteria by their normalized newline-joined names
+	// @story [[lucrjournal/fields#^criteria-readonly-gate]] Keeps the current criteria table descriptor on the readonly renderer path
 	private tableCriteriaField(): SimpleAnalysisTableFieldDescriptor {
 		return {
 			key: 'criteria',
@@ -106,6 +113,7 @@ export const ConfluenceDomain = new ConfluenceDomainDefinition()
 
 export type Confluence = DomainValue<typeof ConfluenceDomain>
 
+// @story [[lucrjournal/analysis#^position-linked-entry-defaults]] Creates direct position confluences with the public default
 async function createLinkedConfluenceEntry(app: App, name: string) {
 	const result = await ConfluenceDomain.createEntry(app, { name, description: '' })
 	return { file: result.file, fm: result.entry }
@@ -130,14 +138,17 @@ export function isPublicConfluence(entry: Pick<Confluence, 'public'>) {
 	return entry.public !== false
 }
 
+// @story [[lucrjournal/analysis#^confluence-scope-lists]] Restricts the public confluence collection
 export function listPublicConfluenceEntries(app: App) {
 	return ConfluenceDomain.totalEntries(app).filter((entry) => isPublicConfluence(entry.fm))
 }
 
+// @story [[lucrjournal/analysis#^confluence-scope-lists]] Exposes both public and private confluences to playbooks
 export function listPlaybookConfluenceEntries(app: App) {
 	return ConfluenceDomain.totalEntries(app)
 }
 
+// @story [[lucrjournal/analysis#^position-confluence-visibility]] Adds only current-playbook private confluences to position options
 export async function listPositionConfluenceEntries(
 	app: App,
 	playbookFile: TFile | null,
@@ -188,6 +199,7 @@ if (import.meta.vitest) {
 			})).toBe(true)
 		})
 
+		// @story [[lucrjournal/analysis#^analysis-description-normalization]] Covers trimmed and empty confluence descriptions
 		it('creates entries with optional description frontmatter', () => {
 			expect(Reflect.has(ConfluenceDomain.formDefinition, 'description')).toBe(true)
 			expect(ConfluenceDomain.createEntryDescriptor.buildPayload({
@@ -206,6 +218,7 @@ if (import.meta.vitest) {
 			})
 		})
 
+		// @story [[lucrjournal/analysis#^confluence-criteria-links]] Covers sanitized deduplicated criteria links and the null empty value
 		it('coerces criteria arrays to normalized wikilinks', () => {
 			expect(ConfluenceDomain.coerce({
 				lucr_type: 'confluence',
@@ -218,6 +231,7 @@ if (import.meta.vitest) {
 			}).criteria).toBeNull()
 		})
 
+		// @story [[lucrjournal/analysis#^confluence-public-normalization]] Covers public defaults false-like values and legacy owner removal
 		it('coerces visibility to public by default and ignores legacy playbook owners', () => {
 			expect(ConfluenceDomain.coerce({
 				lucr_type: 'confluence',
@@ -235,6 +249,7 @@ if (import.meta.vitest) {
 			}).public).toBe(false)
 		})
 
+		// @story [[lucrjournal/analysis#^confluence-scope-lists]] Covers public-only confluence listing
 		it('lists public confluences for public visibility', () => {
 			const publicFile = createMockTFile('LucrJournal/analyses/public.md', 'public')
 			const privateFile = createMockTFile('LucrJournal/analyses/private.md', 'private')
@@ -255,6 +270,7 @@ if (import.meta.vitest) {
 			expect(listPublicConfluenceEntries(app).map((entry) => entry.file.basename)).toEqual(['public'])
 		})
 
+		// @story [[lucrjournal/analysis#^position-confluence-visibility]] Covers position visibility with and without a playbook
 		it('lists public and current-playbook private confluences for position visibility', async () => {
 			const publicFile = createMockTFile('LucrJournal/analyses/public.md', 'public')
 			const currentPrivateFile = createMockTFile('LucrJournal/analyses/current-private.md', 'current-private')

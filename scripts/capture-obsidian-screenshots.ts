@@ -7,6 +7,7 @@ const projectRootPath = fileURLToPath(new URL('..', import.meta.url))
 const DEFAULT_POLL_MS = 100
 const DEFAULT_TIMEOUT_MS = 5000
 const DEFAULT_WAIT_MS = 500
+// @story [[lucrjournal/tooling#^screenshot-cli-timeout]] Bounds CLI calls and permits one CDP retry
 const OBSIDIAN_CLI_TIMEOUT_MS = 120000
 const SCREENSHOT_CLIP_SCALE = 0.5
 const MOBILE_DEVICE_METRICS = {
@@ -43,6 +44,7 @@ const SCREENSHOT_CLEANUP_CSS = `
 }
 `
 
+// @story [[lucrjournal/tooling#^screenshot-matrix]] Expands the fixed screenshot slugs across language and theme variants
 const DEFAULT_SCREENSHOT_CONFIG = {
 	vault: 'Obsidian Sandbox',
 	defaults: {
@@ -587,6 +589,7 @@ Filters:
 `)
 }
 
+// @story [[lucrjournal/tooling#^screenshot-capture]] Captures each selected definition through selector-based CDP clipping
 export async function captureScreenshotPlan(plan, dependencies = {}) {
 	const existsSync = dependencies.existsSync ?? nodeExistsSync
 	const mkdirSync = dependencies.mkdirSync ?? nodeMkdirSync
@@ -671,6 +674,7 @@ export async function captureScreenshotPlan(plan, dependencies = {}) {
 			console.log(`[obsidian-screenshot] Captured ${screenshot.name}: ${screenshot.outputPath}`)
 		}
 	} finally {
+		// @story [[lucrjournal/tooling#^screenshot-cleanup]] Restores debug overlay and mobile state on every exit path
 		try {
 			try {
 				callObsidian(run, { vaultName: plan.screenshots[0]?.vaultName }, ['eval', `code=${buildRestoreScreenshotOverlaysScript()}`])
@@ -1000,6 +1004,7 @@ function callObsidian(run, screenshot, args) {
 	return output
 }
 
+// @story [[lucrjournal/tooling#^screenshot-cli-timeout]] Retries only CDP and validates timed-out stdout before reuse
 function runObsidianCommand(args, options = {}) {
 	const commandArgs = options.vaultName === undefined
 		? args

@@ -30,6 +30,7 @@ const DEFAULT_MODEL_FILES = {
 
 const OCR_RECOGNITION_LINE_SEGMENT_MAX_GAP = 120
 const DEFAULT_MODELS_DIR = path.join(os.homedir(), '.cache', 'lucrjournal-ocr-models')
+// @story [[lucrjournal/tooling#^ocr-snapshot-verification]] Defines the default fixture and exact snapshot directories
 const DEFAULT_FIXTURES_DIR = path.resolve('dev/ocr-fixtures/images')
 const DEFAULT_SNAPSHOTS_DIR = path.resolve('dev/ocr-fixtures/snapshots')
 
@@ -495,6 +496,7 @@ async function writeSnapshots(outputs, snapshotDir) {
 	}
 }
 
+// @story [[lucrjournal/tooling#^ocr-snapshot-verification]] Fails on every missing or byte-different OCR snapshot
 async function verifySnapshots(outputs, snapshotDir) {
 	const failures = []
 
@@ -605,6 +607,7 @@ try {
 
 		console.log(JSON.stringify(cli.json ? outputs : summarizeOutputs(outputs), null, 2))
 	} finally {
+		// @story [[lucrjournal/tooling#^ocr-snapshot-verification]] Releases both inference sessions after every runner outcome
 		await service.destroy()
 	}
 } catch (error) {

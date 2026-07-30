@@ -35,6 +35,7 @@ type LucrTypeIconName =
 	| 'sunrise'
 	| 'wallet'
 
+// @story [[lucrjournal/domain-model#^lucr-type-icons]] Defines the icon paired with every registered domain discriminator
 const LUCR_TYPE_ICONS = {
 	account: 'wallet',
 	confluence: 'git-merge',
@@ -55,6 +56,7 @@ type ReadonlyLucrTypePropertyPlugin = {
 	registerEvent: (eventRef: EventRef) => void
 }
 
+// @story [[lucrjournal/domain-model#^readonly-lucr-type]] Reapplies type protection after layout and active leaf changes
 export function registerReadonlyLucrTypeProperty(plugin: ReadonlyLucrTypePropertyPlugin): void {
 	let timer = 0
 
@@ -83,6 +85,7 @@ export function registerReadonlyLucrTypeProperty(plugin: ReadonlyLucrTypePropert
 	plugin.register(clear)
 }
 
+// @story [[lucrjournal/domain-model#^readonly-lucr-type]] Marks the type row readonly and disables every editable descendant
 export function applyReadonlyLucrTypeProperties(root: ParentNode): number {
 	let applied = 0
 
@@ -100,6 +103,7 @@ export function applyReadonlyLucrTypeProperties(root: ParentNode): number {
 	return applied
 }
 
+// @story [[lucrjournal/domain-model#^lucr-type-icons]] Prepends and refreshes the mapped icon without duplication
 function syncLucrTypeIcon(propertyEl: Element): void {
 	const valueEl = propertyEl.querySelector<HTMLElement>(LUCR_TYPE_VALUE_SELECTOR)
 	if (!valueEl) {
@@ -140,6 +144,7 @@ function readLucrTypeValue(valueEl: Element): string {
 	return (valueEl.textContent ?? '').trim()
 }
 
+// @story [[lucrjournal/domain-model#^unknown-lucr-type-icon]] Refuses to decorate unknown discriminator values
 function resolveLucrTypeIconName(value: string): LucrTypeIconName | null {
 	return isLucrTypeName(value) ? LUCR_TYPE_ICONS[value] : null
 }

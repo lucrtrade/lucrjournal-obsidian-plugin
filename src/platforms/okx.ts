@@ -35,6 +35,7 @@ function toBar(row: unknown, volumeIndex: number): OhlcvBar {
 
 function dataOf(body: unknown): unknown[] {
 	const data = (body as { data?: unknown }).data
+	// @story [[lucrjournal/market-data#^invalid-market-data-fails]] Rejects malformed OKX payloads.
 	if (!Array.isArray(data)) {
 		throw new Error('okx: unexpected candles body')
 	}
@@ -42,6 +43,7 @@ function dataOf(body: unknown): unknown[] {
 }
 
 // Verified live 2026-06-01: spot BTCUSDT (BTC-USDT), perp BTCUSDT.P (BTC-USDT-SWAP)
+// @story [[lucrjournal/market-data#^okx-ohlcv-contract]] Defines OKX market ids, history windows, intervals, and volume fields.
 const ohlcv = {
 	maxLimit: 300,
 	// ccxt mirror: okx.js#fetchOHLCV (l.2602)

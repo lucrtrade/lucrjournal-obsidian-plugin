@@ -106,6 +106,8 @@ export abstract class BasePositionSymbol {
 		return 'exchange'
 	}
 
+	// @story [[lucrjournal/symbol#^future-notional-model]] Multiplies valid future quantity, price, and contract unit
+	// @story [[lucrjournal/symbol#^cfd-notional-model]] Multiplies valid CFD quantity, price, and contract unit
 	calculateNotionalValue(
 		position: PositionNotionalInput,
 		ctx: PositionNotionalContext,
@@ -186,6 +188,7 @@ class CryptoPositionSymbolModel extends BasePositionSymbol {
 		showCryptoAmount: true,
 	}
 	readonly quantityFieldConfig = null
+	// @story [[lucrjournal/symbol#^crypto-contract-unit]] Keeps crypto contract units read-only
 	readonly contractUnitEditable = false
 	readonly feeValueInputConfig = {
 		min: 0,
@@ -195,6 +198,7 @@ class CryptoPositionSymbolModel extends BasePositionSymbol {
 	} as const
 
 	override resolveContractUnit(_symbolName: string): number | null {
+		// @story [[lucrjournal/symbol#^crypto-contract-unit]] Keeps crypto contract size fixed and independent of symbol metadata
 		return 1
 	}
 
@@ -205,6 +209,7 @@ class CryptoPositionSymbolModel extends BasePositionSymbol {
 		}
 	}
 
+	// @story [[lucrjournal/symbol#^crypto-notional-model]] Derives native crypto notional only from positive amount and entry price
 	override calculateNotionalValue(
 		position: PositionNotionalInput,
 		_ctx: PositionNotionalContext,
@@ -235,6 +240,7 @@ class CryptoPositionSymbolModel extends BasePositionSymbol {
 	}
 
 	override convertNotionalAmountOnAssetToggle(
+		// @story [[lucrjournal/position-formulas#^native-notional-conversion]] Uses previous notional value and current entry price for the native amount
 		previousRecord: PositionNotionalInput,
 		record: PositionNotionalInput,
 		_ctx: PositionNotionalContext,
@@ -254,10 +260,12 @@ class CryptoPositionSymbolModel extends BasePositionSymbol {
 		return math.normalizeAmount(previousUsdNotional / entryPrice) ?? undefined
 	}
 
+	// @story [[lucrjournal/symbol#^crypto-fee-model]] Enforces the open percentage interval for crypto fees
 	override isValidFeeValue(feeValue: number): boolean {
 		return Number.isFinite(feeValue) && feeValue > 0 && feeValue < FEE_VALUE_CRYPTO_MAX
 	}
 
+	// @story [[lucrjournal/symbol#^crypto-fee-model]] Converts percentage fees to a notional multiplier
 	protected override resolveFeeQuantity(
 		position: PositionFeeInput,
 		math: PositionFormulaMath,
@@ -281,6 +289,7 @@ class FuturePositionSymbolModel extends BasePositionSymbol {
 		step: 1,
 		valueKind: 'positive-integer',
 	} as const
+	// @story [[lucrjournal/symbol#^future-contract-units]] Prevents frontmatter overrides for future multipliers
 	readonly contractUnitEditable = false
 	readonly feeValueInputConfig = {
 		min: FEE_VALUE_MIN,
@@ -289,6 +298,7 @@ class FuturePositionSymbolModel extends BasePositionSymbol {
 		suffixKey: 'FEE_VALUE_SUFFIX_PER_CONTRACT',
 	} as const
 
+	// @story [[lucrjournal/symbol#^future-contract-units]] Resolves future multipliers only from the builtin table
 	override resolveContractUnit(symbolName: string): number | null {
 		return findBuiltinFutureSymbol(symbolName)?.contract_unit ?? null
 	}
@@ -297,6 +307,7 @@ class FuturePositionSymbolModel extends BasePositionSymbol {
 		return 'yahoo'
 	}
 
+	// @story [[lucrjournal/symbol#^future-notional-model]] Restricts future quantities to bounded integer contracts
 	protected override resolveNotionalQuantity(
 		position: PositionNotionalInput,
 		math: PositionFormulaMath,
@@ -313,6 +324,7 @@ class FuturePositionSymbolModel extends BasePositionSymbol {
 		return contract
 	}
 
+	// @story [[lucrjournal/symbol#^future-fee-model]] Applies the same bounded contract quantity to future fees
 	protected override resolveFeeQuantity(
 		position: PositionFeeInput,
 		math: PositionFormulaMath,
@@ -343,6 +355,8 @@ class CfdPositionSymbolModel extends BasePositionSymbol {
 		suffixKey: 'FEE_VALUE_SUFFIX_PER_LOT',
 	} as const
 
+	// @story [[lucrjournal/symbol#^cfd-contract-units]] Falls back to the builtin CFD multiplier
+	// @story [[lucrjournal/symbol#^cfd-contract-override]] Prefers a valid custom CFD multiplier
 	override resolveContractUnit(symbolName: string, overrideValue?: unknown): number | null {
 		return this.normalizeContractUnitOverride(overrideValue)
 			?? findBuiltinCfdSymbol(symbolName)?.contract_unit
@@ -353,6 +367,7 @@ class CfdPositionSymbolModel extends BasePositionSymbol {
 		return null
 	}
 
+	// @story [[lucrjournal/symbol#^cfd-contract-override]] Rounds positive finite CFD multiplier overrides
 	override normalizeContractUnitOverride(value: unknown): number | null {
 		if (value == null || value === '') {
 			return null
@@ -372,6 +387,7 @@ class CfdPositionSymbolModel extends BasePositionSymbol {
 		}
 	}
 
+	// @story [[lucrjournal/symbol#^cfd-notional-model]] Restricts CFD quantities to bounded lots
 	protected override resolveNotionalQuantity(
 		position: PositionNotionalInput,
 		math: PositionFormulaMath,
@@ -387,6 +403,7 @@ class CfdPositionSymbolModel extends BasePositionSymbol {
 		return lots
 	}
 
+	// @story [[lucrjournal/symbol#^cfd-fee-model]] Applies the same bounded lot quantity to CFD fees
 	protected override resolveFeeQuantity(
 		position: PositionFeeInput,
 		math: PositionFormulaMath,
@@ -409,6 +426,7 @@ const POSITION_SYMBOL_MODELS_BY_TYPE = new Map<PositionSymbolType, BasePositionS
 	POSITION_SYMBOL_MODELS.map((model) => [model.type, model]),
 )
 
+// @story [[lucrjournal/symbol#^missing-type-fallback]] Routes absent symbol types through crypto perpetual semantics
 export function resolvePositionSymbolModel(symbolType: PositionSymbolType | null | undefined): BasePositionSymbol {
 	return POSITION_SYMBOL_MODELS_BY_TYPE.get(symbolType ?? 'Crypto_Perp') ?? CryptoPerpPositionSymbol
 }

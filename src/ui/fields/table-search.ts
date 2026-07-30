@@ -11,6 +11,7 @@ function normalizeSearchValue(value: string): string {
 	return value.trim().toLowerCase()
 }
 
+// @story [[lucrjournal/fields#^search-token-syntax]] Parses quoted substrings separately from unquoted prefix tokens
 function parseSearchTokens(query: string): SearchToken[] {
 	const normalizedQuery = query.trim()
 	if (normalizedQuery === '') {
@@ -76,6 +77,7 @@ function extractSearchText(value: unknown): string[] {
 	return []
 }
 
+// @story [[lucrjournal/fields#^search-token-conjunction]] Requires every parsed token to match one searchable value
 export function matchesSearchQuery(values: readonly string[], query: string): boolean {
 	const tokens = parseSearchTokens(query)
 	if (tokens.length === 0) {
@@ -93,6 +95,7 @@ export function matchesSearchQuery(values: readonly string[], query: string): bo
 	)
 }
 
+// @story [[lucrjournal/fields#^searchable-field-projections]] Reads only searchable table descriptors and prefers their search projection
 export function getSearchableFieldValues<Schema>(
 	entry: DomainPersistedEntry<Schema>,
 	fields: readonly FieldDescriptor<Schema>[],
@@ -114,12 +117,14 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('matchesSearchQuery', () => {
+		// @story [[lucrjournal/fields#^search-token-syntax]] Covers Unicode word-prefix matching for unquoted search terms
 		it('uses word prefix match for unquoted terms', () => {
 			expect(matchesSearchQuery(['federal reserve outlook'], 'fed')).toBe(true)
 			expect(matchesSearchQuery(['ETF_Flow_Headline_Supports_Momentum_Leg'], 'head')).toBe(true)
 			expect(matchesSearchQuery(['market outlook'], 'mko')).toBe(false)
 		})
 
+		// @story [[lucrjournal/fields#^search-token-syntax]] Covers continuous substring matching for quoted search terms
 		it('uses exact contains match for quoted terms', () => {
 			expect(matchesSearchQuery(['federal reserve outlook'], '"reserve out"')).toBe(true)
 			expect(matchesSearchQuery(['federal reserve outlook'], '"fro"')).toBe(false)
@@ -129,6 +134,7 @@ if (import.meta.vitest) {
 			expect(matchesSearchQuery(['ETF_Flow_Headline_Supports_Momentum_Leg'], 'fed sp')).toBe(false)
 		})
 
+		// @story [[lucrjournal/fields#^search-token-conjunction]] Covers conjunction across independently searchable values
 		it('requires every token to match at least one searchable value', () => {
 			expect(matchesSearchQuery(['macro setup', 'bloomberg terminal'], 'mac "bloom"')).toBe(true)
 			expect(matchesSearchQuery(['macro setup', 'bloomberg terminal'], 'mac "reuters"')).toBe(false)
@@ -136,6 +142,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('getSearchableFieldValues', () => {
+		// @story [[lucrjournal/fields#^searchable-field-projections]] Covers searchable table field selection and title projection
 		it('extracts only searchable table fields and unwraps title values', () => {
 			const entry = {
 				file: { path: 'LucrTrade/news/test.md', basename: 'test' },
@@ -170,6 +177,7 @@ if (import.meta.vitest) {
 			expect(getSearchableFieldValues(entry, fields)).toEqual(['fed minutes', 'bloomberg'])
 		})
 
+		// @story [[lucrjournal/fields#^searchable-field-projections]] Covers explicit search projections taking precedence over display values
 		it('prefers searchValue when a field needs a different search projection', () => {
 			const entry = {
 				file: { path: 'LucrJournal/positions/POS-1.md', basename: 'POS-1' },

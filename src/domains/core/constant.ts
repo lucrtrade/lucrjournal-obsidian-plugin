@@ -2,8 +2,10 @@
 
 import { type } from 'arktype'
 
+// @story [[lucrjournal/domain-model#^basename-only-wikilinks]] Restricts persisted domain links to unambiguous basenames
 const WikilinkPattern = /^\[\[[^/[\]#^|\n]+\]\]$/
 const SymbolPattern = /^(?:[A-Z0-9]+(?:\.[A-Z0-9]+)?|[A-Z0-9]+\/[A-Z0-9]+(?:\.[A-Z0-9]+)?(?::[A-Z0-9]+)?)$/
+// @story [[lucrjournal/domain-model#^domain-datetime-shape]] Defines the persisted second-precision datetime shape
 const DatetimePattern = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:Z|[+-](?:0\d|1\d|2[0-3]):[0-5]\d)$/
 
 const PLATFORM_WIKILINK_FORMAT = 'a platform wikilink like [[Binance]]'
@@ -42,6 +44,7 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('WikilinkPattern', () => {
+		// @story [[lucrjournal/domain-model#^basename-only-wikilinks]] Covers non-empty basename-only domain links
 		it('accepts a wikilink with a non-empty body', () => {
 			expect(WikilinkPattern.test('[[Binance]]')).toBe(true)
 			expect(WikilinkPattern.test('[[OKX]]')).toBe(true)
@@ -54,6 +57,7 @@ if (import.meta.vitest) {
 			expect(WikilinkPattern.test('Binance')).toBe(false)
 		})
 
+		// @story [[lucrjournal/domain-model#^basename-only-wikilinks]] Covers every forbidden basename-link character
 		it('rejects forbidden wikilink characters', () => {
 			expect(WikilinkPattern.test('[[foo/bar]]')).toBe(false)
 			expect(WikilinkPattern.test('[[foo[bar]]')).toBe(false)
@@ -114,12 +118,14 @@ if (import.meta.vitest) {
 	})
 
 	describe('DatetimePattern', () => {
+		// @story [[lucrjournal/domain-model#^domain-datetime-shape]] Covers accepted timezone-aware second-precision values
 		it('accepts second-precision ISO datetime strings with timezone offsets', () => {
 			expect(DatetimePattern.test('2026-03-20T16:31:05+08:00')).toBe(true)
 			expect(DatetimePattern.test('2026-12-31T00:00:00+00:00')).toBe(true)
 			expect(DatetimePattern.test('2026-03-20T16:31:05Z')).toBe(true)
 		})
 
+		// @story [[lucrjournal/domain-model#^domain-datetime-shape]] Covers missing offsets, precision, and bounded datetime parts
 		it('rejects non-datetime or malformed datetime strings', () => {
 			expect(DatetimePattern.test('2026-03-20 16:31')).toBe(false)
 			expect(DatetimePattern.test('2026-03-20T16:31:05')).toBe(false)

@@ -25,6 +25,7 @@ export function buildDomainTimestamp(date: Date = new Date()): string {
 	return buildIsoDatetimeInTimeZone(date, getCurrentTimeZoneSetting())
 }
 
+// @story [[lucrjournal/domain-model#^initial-domain-timestamps]] Builds one timezone-aware value for both initial timestamp fields
 export function buildDomainTimestamps(date: Date = new Date()) {
 	const timestamp = buildDomainTimestamp(date)
 	return {

@@ -20,6 +20,7 @@ const DEFAULT_CRITERIA_OPTIONS = [
 	{ value: 'Exit Criteria' },
 ] as const satisfies readonly CriteriaOption[]
 
+// @story [[lucrjournal/playbook#^default-playbook-criteria]] Defines the sole new-playbook criteria placeholder
 const DEFAULT_PLAYBOOK_CRITERIA_PRESET = {
 	criteriaName: 'Entry Criteria',
 	confluences: [{ name: '' }],
@@ -55,6 +56,7 @@ export const CriteriaDomain = new CriteriaDomainDefinition()
 
 type Criteria = DomainValue<typeof CriteriaDomain>
 
+// @story [[lucrjournal/playbook#^criteria-link-identity]] Sanitizes criteria names at the identity boundary
 export function normalizeCriteria(value: string): string {
 	return sanitizeObsidianFileName(value).trim()
 }
@@ -68,6 +70,7 @@ export function parseCriteriaName(value: string): string {
 	return normalizeCriteria(extractCriteriaBody(value))
 }
 
+// @story [[lucrjournal/playbook#^criteria-link-identity]] Produces unique canonical criteria wikilinks
 export function normalizeCriteriaLinks(value: readonly string[] | string | null | undefined): string[] {
 	const values = Array.isArray(value)
 		? value.filter((item): item is string => typeof item === 'string')
@@ -132,6 +135,7 @@ export function normalizeCriteriaOptions(options: readonly CriteriaOption[]): Cr
 	return normalizedOptions
 }
 
+// @story [[lucrjournal/playbook#^criteria-option-source]] Merges defaults and persisted basenames into one sorted source
 export function collectCriteriaOptions(
 	entries: readonly Pick<DomainPersistedEntry<Criteria>, 'file'>[],
 ): CriteriaOption[] {
@@ -160,12 +164,14 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('normalizeCriteria', () => {
+		// @story [[lucrjournal/playbook#^criteria-link-identity]] Covers criteria basename sanitization
 		it('sanitizes criteria names to valid Obsidian basenames', () => {
 			expect(normalizeCriteria(' Enter/Criteria:1 ')).toBe('Enter∕Criteria꞉1')
 		})
 	})
 
 	describe('normalizeCriteriaLinks', () => {
+		// @story [[lucrjournal/playbook#^criteria-link-identity]] Covers raw link normalization empty removal and deduplication
 		it('normalizes raw values to unique wikilinks', () => {
 			expect(normalizeCriteriaLinks([
 				' [[Enter Criteria]] ',
@@ -192,6 +198,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('collectCriteriaOptions', () => {
+		// @story [[lucrjournal/playbook#^criteria-option-source]] Covers default merge deduplication and sorted output
 		it('collects default and persisted criteria basenames', () => {
 			expect(collectCriteriaOptions([
 				{ file: { basename: 'Breakout' } },
@@ -207,6 +214,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('buildDefaultPlaybookCriteriaPreset', () => {
+		// @story [[lucrjournal/playbook#^default-playbook-criteria]] Covers the isolated preset value and placeholder
 		it('builds the stable new-playbook preset section', () => {
 			expect(buildDefaultPlaybookCriteriaPreset()).toEqual([
 				{

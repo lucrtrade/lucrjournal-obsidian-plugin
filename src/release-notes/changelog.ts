@@ -1,3 +1,4 @@
+// @story [[lucrjournal/content#^changelog-source]] Uses the bundled repository changelog as the only release note content source.
 import changelogSource from '../../CHANGELOG.md?raw'
 
 type ChangelogEntries = {
@@ -20,6 +21,7 @@ function parseChangelog(source: string): ChangelogEntries {
 	const versions: string[] = []
 	const bodies: Record<string, string> = {}
 	const matches: Array<{ version: string; start: number; end: number }> = []
+	// @story [[lucrjournal/content#^changelog-source]] Splits released numeric-version headings into cached Markdown bodies.
 	const headingRegex = /^##\s+\[([^\]]+)\][^\n]*$/gm
 	let match: RegExpExecArray | null
 
@@ -89,6 +91,7 @@ function compareParsedSemver(a: [number, number, number], b: [number, number, nu
 	return a[0] - b[0] || a[1] - b[1] || a[2] - b[2]
 }
 
+// @story [[lucrjournal/content#^changelog-version-range]] Selects the descending previous-to-current semantic version range.
 export function selectChangelogVersions(
 	versions: readonly string[],
 	previousVersion: string,
@@ -109,13 +112,16 @@ export function formatChangelogEntries(
 	emptyMessage: string,
 ): string {
 	if (versions.length === 0) {
+		// @story [[lucrjournal/content#^empty-release-notes]] Uses the localized empty body when no version is selected.
 		return emptyMessage
 	}
 
 	if (versions.length === 1) {
+		// @story [[lucrjournal/content#^single-release-note]] Returns one changelog body without another version heading.
 		return bodies[versions[0] ?? ''] ?? ''
 	}
 
+	// @story [[lucrjournal/content#^multiple-release-notes]] Adds version headings and horizontal rules only for multiple bodies.
 	return versions.map((version) => `# ${version}\n\n${bodies[version] ?? ''}`).join('\n\n---\n\n')
 }
 
@@ -123,12 +129,14 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('release notes changelog', () => {
+		// @story [[lucrjournal/content#^changelog-version-range]] Covers numeric semantic version ordering.
 		it('compares semantic versions', () => {
 			expect(isVersionNewerThanOther('1.0.39', '1.0.38')).toBe(true)
 			expect(isVersionNewerThanOther('1.0.38', '1.0.38')).toBe(false)
 			expect(isVersionNewerThanOther('1.0.37', '1.0.38')).toBe(false)
 		})
 
+		// @story [[lucrjournal/content#^changelog-version-range]] Covers the exclusive previous and inclusive current bounds.
 		it('selects versions newer than previous and not newer than current', () => {
 			expect(selectChangelogVersions(['1.0.40', '1.0.39', '1.0.38'], '1.0.38', '1.0.39'))
 				.toEqual(['1.0.39'])
@@ -138,6 +146,7 @@ if (import.meta.vitest) {
 			expect(selectChangelogVersions(['1.0.39'], '', '1.0.39')).toEqual([])
 		})
 
+		// @story [[lucrjournal/content#^single-release-note]] Covers the unwrapped single-version body.
 		it('formats a single entry without adding another heading', () => {
 			expect(formatChangelogEntries(['1.0.39'], { '1.0.39': '- changed' }, 'empty')).toBe('- changed')
 		})

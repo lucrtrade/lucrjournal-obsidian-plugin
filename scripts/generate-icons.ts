@@ -66,6 +66,7 @@ const tryResolveUrl = (href, homepage) => {
 	}
 }
 
+// @story [[lucrjournal/tooling#^platform-icons-refresh]] Bounds every homepage and fallback icon request
 const ICON_REQUEST_TIMEOUT_MS = 20_000
 const DEFAULT_FETCH_HEADERS = {
 	accept: '*/*',
@@ -288,6 +289,7 @@ const cleanupSvgIconDirectory = (directoryName) => {
 	})
 }
 
+// @story [[lucrjournal/tooling#^generated-icon-set]] Removes every stale generated SVG and legacy cache artifact
 const cleanupGeneratedIcons = ({ coreIcons, platformIcons }) => {
 	cleanupSvgIconGroup('', coreIcons)
 	cleanupSvgIconGroup('platforms', platformIcons)
@@ -322,6 +324,7 @@ ${formatImportedSvgRecord(platformIcons)}
 } as const;
 `
 
+// @story [[lucrjournal/tooling#^platform-icons-refresh]] Resolves platform icons from source cache or bounded network fallbacks
 const platformIcons = await generatePlatformIcons()
 const coreIcons = {
 	LucrTrade: LUCR_JOURNAL_SVG,

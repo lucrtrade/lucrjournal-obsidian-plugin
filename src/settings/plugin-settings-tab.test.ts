@@ -216,6 +216,8 @@ describe('PluginSettingsTab', () => {
 		expect(typeof groups[0]?.items[0]?.render).toBe('function')
 	})
 
+	// @story [[lucrjournal/entitlement#^settings-identity-only]] Covers account details and logout for a token-bearing account.
+	// @story [[lucrjournal/entitlement#^settings-account-details]] Covers avatar, email, plan, interval, renewal date, badge, and logout.
 	it('renders avatar, email and a logout button when signed in', () => {
 		setCurrentLocaleSetting('en')
 		const { plugin } = createPlugin()
@@ -258,6 +260,7 @@ describe('PluginSettingsTab', () => {
 		expect(logout).toHaveBeenCalledTimes(1)
 	})
 
+	// @story [[lucrjournal/entitlement#^settings-identity-only]] Covers the sign-in action only when the token is absent.
 	it('renders a sign-in button and no email when signed out', () => {
 		setCurrentLocaleSetting('en')
 		const { plugin } = createPlugin()
@@ -271,6 +274,7 @@ describe('PluginSettingsTab', () => {
 		expect(all.find((node) => attrValue(node, 'data-lj-account') === 'email')).toBeUndefined()
 	})
 
+	// @story [[lucrjournal/session#^claim-loading]] Covers the claim loading state in Settings.
 	it('renders claim loading in settings', () => {
 		vi.mocked(login.isSessionClaimPending).mockReturnValue(true)
 		const { plugin } = createPlugin()

@@ -21,6 +21,8 @@ type AccountSettingsTableRow = {
 
 export type AccountSettingsTableFieldDescriptor = FieldDescriptor<AccountSettingsTableRow>
 
+// @story [[lucrjournal/fields#^searchable-field-projections]] Defines searchable account platform and display name fields
+// @story [[lucrjournal/fields#^custom-sort-projections]] Defines locale ordering for account platform and display name
 export const accountSettingsTableFields = defineFields<AccountSettingsTableRow>([
 	{
 		key: 'platform_name',
@@ -77,6 +79,7 @@ export const accountSettingsTableFields = defineFields<AccountSettingsTableRow>(
 	},
 ] as AccountSettingsTableFieldDescriptor[])
 
+// @story [[lucrjournal/account-platform#^account-relation-counts]] Aggregates linked symbols and positions by exact account basename
 export function listAccountTableEntries(
 	app: App,
 ): Array<DomainPersistedEntry<AccountSettingsTableRow> & { file: TFile }> {

@@ -22,6 +22,7 @@ type AttachmentDependencyResult = {
  * to mirror the logic in `removePositionAttachment` (where the token is about
  * to be removed). Subsequent tokens on the same file still count as references.
  */
+// @story [[lucrjournal/attachment#^remove-attachment-file]] Counts remaining position frontmatter references before file deletion
 export function checkAttachmentDependencies(
 	app: App,
 	attachment: PositionAttachment,
@@ -120,6 +121,7 @@ if (import.meta.vitest) {
 			fileManager: {} as App['fileManager'],
 		}) as unknown as App
 
+		// @story [[lucrjournal/attachment#^remove-attachment-file]] Covers excluding the reference being removed
 		it('returns zero count when no other position references the attachment', () => {
 			const posFile = Object.assign(new TFile(), { path: 'pos/a.md', basename: 'a' })
 			const app = makeApp([{ path: 'pos/a.md', tokens: [`[[${LUCR_TRADE_ATTACHMENTS_DIR}/img.png|lbl]]`] }])
@@ -140,6 +142,7 @@ if (import.meta.vitest) {
 			expect(result.referencingPositions).toHaveLength(0)
 		})
 
+		// @story [[lucrjournal/attachment#^remove-attachment-file]] Covers preserving a file referenced by another position
 		it('returns other positions that reference the same attachment', () => {
 			const posFileA = Object.assign(new TFile(), { path: 'pos/a.md', basename: 'a' })
 			const app = makeApp([

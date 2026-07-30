@@ -11,6 +11,7 @@ const REQUEST_RESOLUTION_ALIASES: Record<string, string> = {
 	'1d': 'D',
 	'1w': 'W',
 }
+// @story [[lucrjournal/market-data#^yahoo-resolution-intervals]] Maps the exposed future resolutions to Yahoo intervals.
 const RESOLUTION_TO_INTERVAL: Record<string, string> = {
 	1: '1m',
 	5: '5m',
@@ -21,11 +22,14 @@ const RESOLUTION_TO_INTERVAL: Record<string, string> = {
 	W: '1wk',
 	M: '1mo',
 }
+// @story [[lucrjournal/market-data#^yahoo-resolutions]] Lists only Yahoo-native future resolutions.
 const YAHOO_SUPPORTED_RESOLUTIONS = ['1', '5', '15', '30', '60', 'D', 'W', 'M'] as const
+// @story [[lucrjournal/market-data#^yahoo-ticker-alias]] Keeps the verified Yahoo futures alias local to the provider.
 const YAHOO_TICKER_BY_SYMBOL = new Map([
 	['E7', '6E'],
 ])
 
+// @story [[lucrjournal/market-data#^yahoo-request-shape]] Defines the Yahoo chart endpoint used for futures requests.
 const YAHOO_CHART_BASE = 'https://query1.finance.yahoo.com/v8/finance/chart'
 
 type FetchYahooBarsParams = {
@@ -51,6 +55,7 @@ export async function fetchYahooBars({
 		period1: String(fromSeconds),
 		period2: String(toSeconds),
 	})
+	// @story [[lucrjournal/market-data#^yahoo-request-shape]] Sends the resolved futures ticker, interval, and time range.
 	const url = `${YAHOO_CHART_BASE}/${resolveYahooTicker(symbol)}=F?${query.toString()}`
 	const response = await requestUrl({ url, method: 'GET', throw: false })
 	return parseYahooChart(response.json)
@@ -66,6 +71,7 @@ type YahooQuote = {
 }
 
 function parseYahooChart(body: unknown): OhlcvBar[] {
+	// @story [[lucrjournal/market-data#^yahoo-response-classification]] Distinguishes malformed responses, empty quotes, and usable rows.
 	const result = readResult(body)
 	const timestamps = Array.isArray(result.timestamp) ? result.timestamp : []
 	const quote = readQuote(result)
@@ -138,6 +144,7 @@ if (import.meta.vitest) {
 	}
 
 	describe('parseYahooChart', () => {
+		// @story [[lucrjournal/market-data#^yahoo-response-classification]] Covers Yahoo row normalization and failure classification.
 		it('maps timestamps to ms and rows to bars', () => {
 			expect(parseYahooChart(body)).toEqual([
 				{ time: 1700000000000, open: 10, high: 12, low: 9, close: 11, volume: 100 },
@@ -158,6 +165,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('resolution support', () => {
+		// @story [[lucrjournal/market-data#^yahoo-resolutions]] Covers the Yahoo resolution allowlist.
 		it('exposes only Yahoo-native resolutions', () => {
 			expect(YAHOO_SUPPORTED_RESOLUTIONS).toEqual(['1', '5', '15', '30', '60', 'D', 'W', 'M'])
 		})
@@ -169,6 +177,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('resolveYahooTicker', () => {
+		// @story [[lucrjournal/market-data#^yahoo-ticker-alias]] Covers the E7 alias and direct M6E fallback.
 		it('maps E7 to the liquid Yahoo Euro FX ticker', () => {
 			expect(resolveYahooTicker('E7')).toBe('6E')
 		})

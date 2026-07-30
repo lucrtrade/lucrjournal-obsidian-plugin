@@ -15,13 +15,16 @@ export const LUCR_POSITION_VIEW_TYPE = 'lucrjournal-position-view'
 export const LUCR_PLAYBOOK_VIEW_TYPE = 'lucrjournal-playbook-view'
 export const OPEN_JOURNAL_COMMAND_ID = 'open-journal'
 export const LUCR_TRADE_ROOT_DIR = 'LucrJournal'
+// @story [[lucrjournal/attachment#^attachment-storage-layout]] Defines the plugin-owned attachment root
 export const LUCR_TRADE_ATTACHMENTS_DIR = `${LUCR_TRADE_ROOT_DIR}/attachments`
 
 export const APP_URL = typeof __LUCRJOURNAL_APP_URL__ === 'string'
 	? __LUCRJOURNAL_APP_URL__
 	: 'https://app.lucrtrade.com'
 
+// @story [[lucrjournal/build#^chart-url-override-fails]] Keeps the current declaration shape that the development override cannot replace.
 const LUCRCHART_URL = 'https://lucrchart.lucrtrade.com/'
+// @story [[lucrjournal/chart#^versioned-iframe-url]] Uses the injected versioned URL and derives its message origin.
 export const LUCRCHART_IFRAME_URL = typeof __LUCRJOURNAL_CHART_IFRAME_URL__ === 'string'
 	? __LUCRJOURNAL_CHART_IFRAME_URL__
 	: `${LUCRCHART_URL.replace(/\/$/, '')}/lc/${__LUCRJOURNAL_CHART_VERSION__}`

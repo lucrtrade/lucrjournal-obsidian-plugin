@@ -11,6 +11,7 @@ function isIdentifierKey(node: unknown, name: string): boolean {
 	)
 }
 
+// @story [[lucrjournal/tooling#^no-raw-month-format]] Detects direct textual month formatting in configured UI source trees
 function hasMonthTextStyleOption(node: Rule.Node | null | undefined): boolean {
 	if (
 		node == null

@@ -14,10 +14,12 @@ import {
 } from './account.generated'
 
 const logger = createLogger('session')
+// @story [[lucrjournal/session#^canonical-auth-transport]] Defines the canonical trailing-slash session endpoints.
 const SESSION_ENDPOINT = `${APP_URL}/api/obsidian/session/`
 const CLAIM_ENDPOINT = `${SESSION_ENDPOINT}claim/`
 const LOGOUT_ENDPOINT = `${APP_URL}/api/obsidian/logout/`
 
+// @story [[lucrjournal/entitlement#^typed-check-result]] Separates active access, entitlement denial, invalid credentials, and ambiguous results.
 export type CheckResult =
 	| { kind: 'active'; context: AccountContext }
 	| { kind: 'signed_out'; reason: 'entitlement_required'; context: AccountContext | null }
@@ -133,11 +135,13 @@ export function mapCheckResponse(
 		if (context == null) {
 			return { kind: 'keep' }
 		}
+		// @story [[lucrjournal/entitlement#^active-requires-journal]] Requires journal access before classifying an active response.
 		return hasFeature(context.entitlements, 'journal_basic')
 			? { kind: 'active', context }
 			: { kind: 'signed_out', reason: 'entitlement_required', context }
 	}
 	const code = body?.code
+	// @story [[lucrjournal/entitlement#^active-requires-journal]] Requires journal access even when the server reports an active session.
 	if (code === 'lucrjournal_entitlement_required') {
 		return {
 			kind: 'signed_out',
@@ -145,14 +149,17 @@ export function mapCheckResponse(
 			context: body === null ? null : coerceContext(body),
 		}
 	}
+	// @story [[lucrjournal/entitlement#^explicit-invalid-only]] Limits credential invalidation to explicit server codes.
 	if (code === 'revoked' || code === 'account_disabled' || code === 'invalid_token') {
 		return { kind: 'signed_out', reason: 'invalid_session' }
 	}
+	// @story [[lucrjournal/entitlement#^explicit-invalid-only]] Keeps any response that does not prove invalidation or entitlement denial.
 	return { kind: 'keep' }
 }
 
 export async function checkSession(token: string): Promise<CheckResult> {
 	try {
+		// @story [[lucrjournal/session#^canonical-auth-transport]] Uses Obsidian requestUrl for the canonical session check endpoint.
 		const res = await requestUrl({
 			url: SESSION_ENDPOINT,
 			method: 'GET',
@@ -162,6 +169,7 @@ export async function checkSession(token: string): Promise<CheckResult> {
 		const body = parseJson(res.text)
 		const result = mapCheckResponse(res.status, body)
 		if (result.kind !== 'active') {
+			// @story [[lucrjournal/session#^auth-logs-redact-credentials]] Logs response metadata without the bearer token or response body.
 			logger.error(
 				result.kind === 'signed_out' ? 'session check rejected' : 'session check could not be classified',
 				{
@@ -175,16 +183,19 @@ export async function checkSession(token: string): Promise<CheckResult> {
 		}
 		return result
 	} catch (error: unknown) {
+		// @story [[lucrjournal/session#^auth-errors-always-visible]] Reports session request failures through the shared error logger.
 		logger.error('session check request failed', {
 			endpoint: SESSION_ENDPOINT,
 			error,
 		})
+		// @story [[lucrjournal/entitlement#^explicit-invalid-only]] Keeps the current access state when the check request fails.
 		return { kind: 'keep' }
 	}
 }
 
 export async function revokeSession(token: string): Promise<void> {
 	try {
+		// @story [[lucrjournal/session#^canonical-auth-transport]] Uses Obsidian requestUrl for the canonical logout endpoint.
 		const res = await requestUrl({
 			url: LOGOUT_ENDPOINT,
 			method: 'POST',
@@ -195,6 +206,7 @@ export async function revokeSession(token: string): Promise<void> {
 		})
 		if (res.status < 200 || res.status >= 300) {
 			const body = parseJson(res.text)
+			// @story [[lucrjournal/session#^auth-logs-redact-credentials]] Logs revoke response metadata without the bearer token or response body.
 			logger.error('session revoke rejected', {
 				endpoint: LOGOUT_ENDPOINT,
 				status: res.status,
@@ -204,6 +216,7 @@ export async function revokeSession(token: string): Promise<void> {
 			})
 		}
 	} catch (error: unknown) {
+		// @story [[lucrjournal/session#^auth-errors-always-visible]] Reports revoke request failures through the shared error logger.
 		logger.error('session revoke request failed', {
 			endpoint: LOGOUT_ENDPOINT,
 			error,
@@ -217,6 +230,7 @@ export async function claimSession(
 	client: ClientInfo,
 ): Promise<ClaimResult> {
 	try {
+		// @story [[lucrjournal/session#^canonical-auth-transport]] Uses Obsidian requestUrl for the canonical claim endpoint.
 		const res = await requestUrl({
 			url: CLAIM_ENDPOINT,
 			method: 'POST',
@@ -226,6 +240,7 @@ export async function claimSession(
 		})
 		const body = parseJson(res.text)
 		if (res.status !== 200) {
+			// @story [[lucrjournal/session#^auth-logs-redact-credentials]] Logs claim response metadata without OAuth credentials or the response body.
 			logger.error('session claim rejected', {
 				endpoint: CLAIM_ENDPOINT,
 				status: res.status,
@@ -268,10 +283,12 @@ export async function claimSession(
 				plan: context.plan?.key ?? null,
 				products: context.products,
 			})
+			// @story [[lucrjournal/entitlement#^claim-entitlement-gate]] Returns the claimed token and account context for the upgrade gate.
 			return { kind: 'entitlement_required', token: body.token, context }
 		}
 		return { kind: 'active', token: body.token, context }
 	} catch (error: unknown) {
+		// @story [[lucrjournal/session#^auth-errors-always-visible]] Reports claim request failures through the shared error logger.
 		logger.error('session claim request failed', {
 			endpoint: CLAIM_ENDPOINT,
 			error,

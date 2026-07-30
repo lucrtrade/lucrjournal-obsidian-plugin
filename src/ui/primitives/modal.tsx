@@ -22,6 +22,7 @@ type ModalProps = {
 export function Modal({ isOpen, onClose, title, children, footer, zIndexClassName, maxWidthClassName, contentClassName, dataLjPanel, titleClassName, headerClassName, footerClassName }: ModalProps) {
 	const modalRef = useRef<HTMLDivElement>(null)
 
+	// @story [[lucrjournal/primitives#^modal-lifecycle]] Pairs modal Escape and body state with open lifecycle cleanup
 	useEffect(() => {
 		const handleKeyDown = (event: KeyboardEvent) => {
 			if (event.key === 'Escape') {

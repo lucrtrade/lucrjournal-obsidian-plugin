@@ -37,6 +37,7 @@ export abstract class SimpleAnalysisDomainBase<
 		},
 	} as const)
 
+	// @story [[lucrjournal/analysis#^analysis-description-normalization]] Normalizes optional analysis descriptions at creation
 	protected override buildPayloadFields(formValue: { name: string; description?: string }, _ctx: CreateEntryContext): Record<string, unknown> {
 		return {
 			description: toNullableTrimmedValue(formValue.description ?? ''),
@@ -101,6 +102,7 @@ export abstract class SimpleAnalysisDomainBase<
 		}
 	}
 
+	// @story [[lucrjournal/fields#^tag-filter]] Defines normalized substring matching for analysis tags
 	protected tableTagsField(): SimpleAnalysisTableFieldDescriptor {
 		return {
 			key: 'tags',
@@ -141,6 +143,8 @@ export abstract class SimpleAnalysisDomainBase<
 		}
 	}
 
+	// @story [[lucrjournal/fields#^searchable-field-projections]] Defines title and tag search fields shared by simple analysis tables
+	// @story [[lucrjournal/fields#^custom-sort-projections]] Defines locale ordering for analysis titles and joined tags
 	tableFields(): SimpleAnalysisTableFieldDescriptor[] {
 		return [
 			this.tableCreatedField(),

@@ -11,6 +11,7 @@ import {
 import type LucrJournalPlugin from '../main'
 import type { App } from 'obsidian'
 
+// @story [[lucrjournal/content#^changelog-version-range]] Caps the selected release note range shown in one modal.
 const MAX_RELEASE_NOTES_ENTRIES = 10
 
 type ReleaseNotesModalOptions = {
@@ -39,10 +40,12 @@ export class ReleaseNotesModal extends Modal {
 	public override onClose(): void {
 		this.contentEl.empty()
 		this.renderHost.unload()
+		// @story [[lucrjournal/content#^manual-release-notes]] Keeps manually opened release notes from changing the saved version.
 		if (this.options.persistVersion === false) {
 			return
 		}
 
+		// @story [[lucrjournal/content#^release-notes-after-upgrade]] Persists the automatically shown manifest version when the modal closes.
 		void this.plugin.settingsManager.editAndSave((settings) => {
 			settings.previousRelease = this.version
 		}, true)

@@ -40,6 +40,7 @@ const domainRoutingCases = [
 describe('domain file routing', () => {
 	for (const item of domainRoutingCases) {
 		it(`rewrites markdown ${item.name} files to the domain file view`, () => {
+			// @story [[lucrjournal/runtime#^domain-default-view]] Covers routing both valid domain types to their structured view state.
 			const app = createDomainRoutingApp({
 				[item.filePath]: item.frontmatter,
 			})
@@ -63,6 +64,7 @@ describe('domain file routing', () => {
 	}
 
 	it('keeps non-domain and incomplete markdown states unchanged', () => {
+		// @story [[lucrjournal/runtime#^invalid-domain-stays-markdown]] Covers preserving non-domain and invalid domain Markdown state.
 		const app = createDomainRoutingApp({
 			'LucrJournal/news/CPI.md': { lucr_type: 'news' },
 			'LucrJournal/positions/Broken.md': { lucr_type: 'position', confidence: 99 },
@@ -80,6 +82,7 @@ describe('domain file routing', () => {
 	})
 
 	it('honors leaf markdown mode until the leaf opens another file', () => {
+		// @story [[lucrjournal/runtime#^markdown-override-scope]] Covers scoping the Markdown override to one leaf and file path.
 		const app = createDomainRoutingApp({
 			'LucrJournal/positions/POS-00001.md': { lucr_type: 'position' },
 			'LucrJournal/positions/POS-00002.md': { lucr_type: 'position' },
@@ -96,6 +99,7 @@ describe('domain file routing', () => {
 	})
 
 	it('opens a position file as markdown without source mode by default', async () => {
+		// @story [[lucrjournal/runtime#^domain-to-markdown]] Covers the history-free Markdown state used by the domain header action.
 		const leaf = { setViewState: vi.fn(async () => {}) }
 
 		await openDomainFileAsMarkdown(leaf as never, 'LucrJournal/positions/POS-00001.md')
@@ -131,6 +135,7 @@ describe('domain file routing', () => {
 
 	for (const item of domainRoutingCases) {
 		it(`adds a markdown header action for valid ${item.name} notes and switches back to domain view`, () => {
+			// @story [[lucrjournal/runtime#^markdown-to-domain]] Covers returning both domain types from Markdown to their structured view.
 			const file = createTestTFile(item.filePath)
 			const app = createDomainRoutingApp({
 				[file.path]: item.frontmatter,

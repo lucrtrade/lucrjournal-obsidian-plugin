@@ -46,12 +46,14 @@ export const CriteriaFormFieldRenderer: FormTypeRenderer<'criteria'> = ({
 		setDraftSections(nextSections)
 	}
 
+	// @story [[lucrjournal/form#^criteria-text-commit]] Commits completed criteria drafts through the outer form boundary
 	const commitSections = (nextSections: typeof value) => {
 		setDraftSections(nextSections)
 		onChange(nextSections)
 	}
 
 	const addSection = () => {
+		// @story [[lucrjournal/form#^criteria-add-section]] Appends and commits the canonical empty criteria section
 		const nextSections = [
 			...draftSections,
 			{ criteriaName: '', confluences: [{ name: '' }] },
@@ -60,14 +62,17 @@ export const CriteriaFormFieldRenderer: FormTypeRenderer<'criteria'> = ({
 	}
 
 	const updateSection = (sectionIndex: number, nextSection: typeof value[number]) => {
+		// @story [[lucrjournal/form#^criteria-text-commit]] Keeps section text changes local until explicit autocomplete commit
 		replaceSections(draftSections.map((section, index) => index === sectionIndex ? nextSection : section))
 	}
 
 	const deleteSection = (sectionIndex: number) => {
+		// @story [[lucrjournal/form#^criteria-structural-commit]] Commits section deletion to the outer form
 		commitSections(draftSections.filter((_, index) => index !== sectionIndex))
 	}
 
 	const addConfluence = (sectionIndex: number) => {
+		// @story [[lucrjournal/form#^criteria-structural-commit]] Commits confluence addition to the outer form
 		const nextSections = draftSections.map((section, index) => index === sectionIndex
 			? {
 				...section,
@@ -78,6 +83,7 @@ export const CriteriaFormFieldRenderer: FormTypeRenderer<'criteria'> = ({
 	}
 
 	const updateConfluence = (sectionIndex: number, confluenceIndex: number, nextName: string) => {
+		// @story [[lucrjournal/form#^criteria-text-commit]] Keeps typed confluence changes local until explicit commit
 		const normalizedName = normalizePlaybookConfluenceName(nextName)
 		replaceSections(draftSections.map((section, index) => index === sectionIndex
 			? {
@@ -89,6 +95,7 @@ export const CriteriaFormFieldRenderer: FormTypeRenderer<'criteria'> = ({
 	}
 
 	const deleteConfluence = (sectionIndex: number, confluenceIndex: number) => {
+		// @story [[lucrjournal/form#^criteria-structural-commit]] Commits confluence deletion to the outer form
 		commitSections(draftSections.map((section, index) => index === sectionIndex
 			? {
 				...section,
@@ -98,6 +105,7 @@ export const CriteriaFormFieldRenderer: FormTypeRenderer<'criteria'> = ({
 	}
 
 	const commitConfluence = (sectionIndex: number, confluenceIndex: number, nextName: string) => {
+		// @story [[lucrjournal/form#^criteria-text-commit]] Commits the normalized confluence draft to the outer form
 		const normalizedName = normalizePlaybookConfluenceName(nextName)
 		commitSections(draftSections.map((candidateSection, candidateSectionIndex) => candidateSectionIndex === sectionIndex
 			? {
@@ -120,6 +128,7 @@ export const CriteriaFormFieldRenderer: FormTypeRenderer<'criteria'> = ({
 		}
 		nextSections.splice(fromIndex, 1)
 		nextSections.splice(toIndex, 0, movingSection)
+		// @story [[lucrjournal/form#^criteria-structural-commit]] Commits a valid section reorder to the outer form
 		commitSections(nextSections)
 	}
 
@@ -337,6 +346,7 @@ export const CriteriaFormFieldRenderer: FormTypeRenderer<'criteria'> = ({
 	)
 }
 
+// @story [[lucrjournal/form#^confluence-option-uniqueness]] Excludes canonically duplicated confluence options while preserving the current row
 function resolveConfluenceAutocompleteOptions(
 	options: readonly { value: string }[],
 	sections: readonly { confluences: readonly { name: string }[] }[],
@@ -392,6 +402,7 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('resolveConfluenceAutocompleteOptions', () => {
+		// @story [[lucrjournal/form#^confluence-option-uniqueness]] Covers exclusion of values selected in another row
 		it('hides confluences already used elsewhere in the same playbook', () => {
 			expect(resolveConfluenceAutocompleteOptions(
 				[
@@ -417,6 +428,7 @@ if (import.meta.vitest) {
 			)).toEqual(['Weekly Level Plus Intraday Trigger'])
 		})
 
+		// @story [[lucrjournal/form#^confluence-option-uniqueness]] Covers preservation of the current row option
 		it('keeps the current row value available while editing', () => {
 			expect(resolveConfluenceAutocompleteOptions(
 				[
@@ -435,6 +447,7 @@ if (import.meta.vitest) {
 			)).toEqual(['Gamma Wall Magnet', 'Weekly Level Plus Intraday Trigger'])
 		})
 
+		// @story [[lucrjournal/form#^confluence-option-uniqueness]] Covers canonical duplicate matching across rows
 		it('matches selected confluences by canonical basename key', () => {
 			expect(resolveConfluenceAutocompleteOptions(
 				[

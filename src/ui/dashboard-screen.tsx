@@ -686,6 +686,7 @@ function isAnalysisPositionFilterTab(tabId: DashboardAnalysisTabId | 'Playbook')
 	return tabId === 'Key Levels' || tabId === 'Confluence' || tabId === 'Market Analysis'
 }
 
+// @story [[lucrjournal/fields#^column-visibility-persistence]] Saves positions hidden columns under the Positions preference key
 async function persistPositionsTableHiddenColumnIds(
 	plugin: LucrJournalPlugin,
 	hiddenColumnIds: PositionTableColumnId[],
@@ -703,6 +704,7 @@ async function persistPositionsTableHiddenColumnIds(
 	plugin.requestJournalViewsRender()
 }
 
+// @story [[lucrjournal/fields#^column-visibility-persistence]] Saves analysis hidden columns under their exact tab preference key
 async function persistAnalysisTableHiddenColumnIds(
 	plugin: LucrJournalPlugin,
 	tabId: DashboardAnalysisPreferenceTabId,

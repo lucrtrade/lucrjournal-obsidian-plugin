@@ -16,6 +16,7 @@ export type TradingViewSymbolSearchResponse = {
 	rows: TradingViewSymbolRow[]
 }
 
+// @story [[lucrjournal/symbol-search#^usable-suggestion-order]] Merges local rows before exact typed remote rows with first-seen deduplication
 export function mergeSymbolSuggestions(
 	builtinMatches: SymbolSuggestion[],
 	tvResponses: TradingViewSymbolSearchResponse[],
@@ -61,6 +62,7 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('filterTradingViewSymbolRows', () => {
+		// @story [[lucrjournal/symbol-search#^usable-suggestion-order]] Covers exact typed remote result filtering
 		it('keeps only exact symbol matches for the query candidate', () => {
 			expect(filterTradingViewSymbolRows({
 				candidate: 'BTCUSDC.P',
@@ -72,6 +74,7 @@ if (import.meta.vitest) {
 			}).map((row) => row.symbol)).toEqual(['BTCUSDC.P'])
 		})
 
+		// @story [[lucrjournal/symbol-search#^usable-suggestion-order]] Covers removal of untyped exact remote rows
 		it('drops exact matches whose type is null', () => {
 			expect(filterTradingViewSymbolRows({
 				candidate: 'BTCUSDC.P',
@@ -86,6 +89,7 @@ if (import.meta.vitest) {
 			}])
 		})
 
+		// @story [[lucrjournal/symbol-search#^usable-suggestion-order]] Covers case-insensitive matching with provider casing preserved
 		it('matches candidates case-insensitively but keeps TradingView symbol casing', () => {
 			expect(filterTradingViewSymbolRows({
 				candidate: 'btcusdc',
@@ -95,6 +99,7 @@ if (import.meta.vitest) {
 	})
 
 	describe('mergeSymbolSuggestions', () => {
+		// @story [[lucrjournal/symbol-search#^usable-suggestion-order]] Covers local-first stable merge order
 		it('keeps builtin rows first, then exact typed TradingView rows in response order', () => {
 			const rows = mergeSymbolSuggestions(
 				[{ symbol: 'BTCUSDT.P', type: 'Crypto_Perp', logo: 'builtin.svg' }],
@@ -108,6 +113,7 @@ if (import.meta.vitest) {
 			expect(rows.map((row) => row.symbol)).toEqual(['BTCUSDT.P', 'BTC', 'BTCUSDC.P', 'BTCUSDT', 'BTCUSDC'])
 		})
 
+		// @story [[lucrjournal/symbol-search#^usable-suggestion-order]] Covers first-seen case-insensitive deduplication
 		it('dedupes by symbol name case-insensitively and keeps first-seen row', () => {
 			const rows = mergeSymbolSuggestions(
 				[{ symbol: 'BTC', type: 'Future', logo: 'builtin.svg' }],

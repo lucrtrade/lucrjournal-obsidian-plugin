@@ -57,12 +57,14 @@ type DashboardPreferenceColumnId =
 	| PositionTableColumnId
 	| DashboardAnalysisTableColumnId
 
+// @story [[lucrjournal/fields#^column-visibility-persistence]] Defines the only persisted table layout state and its tab keys
 export type PluginPreferences = {
 	[TabId in DashboardPreferenceTabId]?: {
 		hiddenColumnIds: DashboardPreferenceColumnId[]
 	}
 }
 
+// @story [[lucrjournal/fields#^column-visibility-persistence]] Normalizes persisted hidden columns and applies tab defaults
 export function createPluginPreferences(persistedPreferences: unknown): PluginPreferences {
 	const preferences = isRecord(persistedPreferences)
 		? persistedPreferences
@@ -134,6 +136,7 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('createPluginPreferences', () => {
+		// @story [[lucrjournal/fields#^column-visibility-persistence]] Covers the positions-only default hidden column
 		it('defaults positions table hidden columns to analyses', () => {
 			expect(createPluginPreferences(null).Positions?.hiddenColumnIds).toEqual(['analyses'])
 		})
@@ -156,6 +159,7 @@ if (import.meta.vitest) {
 			}).Positions?.hiddenColumnIds).toEqual([])
 		})
 
+		// @story [[lucrjournal/fields#^column-visibility-persistence]] Covers removal of unknown and duplicate hidden column ids
 		it('keeps only known positions table column ids', () => {
 			expect(createPluginPreferences({
 				Positions: {

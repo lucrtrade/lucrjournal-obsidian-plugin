@@ -42,6 +42,7 @@ export function AttachmentLightbox({
 			onNext={total > 1 ? onNext : undefined}
 			onPrevious={total > 1 ? onPrevious : undefined}
 			src={attachment.src}
+			// @story [[lucrjournal/ocr#^vault-attachment-ocr]] Exposes OCR only for vault attachments
 			topRightAction={attachment.kind === 'vault' && onRunOcr !== undefined ? (
 				<button
 					type="button"

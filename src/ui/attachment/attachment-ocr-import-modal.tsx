@@ -30,12 +30,14 @@ export function AttachmentOcrImportModal({
 		files: FileList | File[] | null,
 		source: 'modal-drop' | 'modal-upload',
 	) => {
+		// @story [[lucrjournal/ocr#^ocr-image-import]] Closes the import modal only after a recognized image result
 		const didImport = await onImportFiles(files, source)
 		if (didImport) {
 			onClose()
 		}
 	}, [onClose, onImportFiles])
 
+	// @story [[lucrjournal/ocr#^ocr-image-import]] Routes modal paste through the same successful-result boundary
 	const handlePasteEvent = useCallback(async (event: ClipboardEvent) => {
 		if (isImporting) {
 			return

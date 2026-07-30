@@ -38,19 +38,24 @@ export function createLucrJournalRouteViewState(route: LucrJournalRouteState) {
 
 export function resolveLucrJournalRouteStateFromViewState(state: unknown): LucrJournalRouteState {
 	if (state == null) {
+		// @story [[lucrjournal/runtime#^empty-route-default]] Uses the dashboard route when persisted view state is empty.
 		return DEFAULT_JOURNAL_ROUTE_STATE
 	}
 	if (typeof state !== 'object') {
+		// @story [[lucrjournal/runtime#^reject-invalid-route]] Rejects non-object persisted view state.
 		throw new Error('Invalid LucrJournal view state')
 	}
 
 	const route = (state as { route?: unknown }).route
 	if (route === undefined) {
+		// @story [[lucrjournal/runtime#^empty-route-default]] Uses the dashboard route when persisted state has no route.
 		return DEFAULT_JOURNAL_ROUTE_STATE
 	}
 	if (!isLucrJournalRouteState(route)) {
+		// @story [[lucrjournal/runtime#^reject-invalid-route]] Rejects persisted routes outside the dashboard route kind.
 		throw new Error('Invalid LucrJournal route state')
 	}
+	// @story [[lucrjournal/runtime#^persist-dashboard-route]] Preserves a persisted dashboard route for view rendering.
 	return route
 }
 

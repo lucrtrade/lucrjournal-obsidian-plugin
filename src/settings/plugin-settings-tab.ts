@@ -310,6 +310,7 @@ export class PluginSettingsTab extends PluginSettingTab {
 		el.addClass('lj-settings-account')
 		const app = this.plugin.app
 
+		// @story [[lucrjournal/session#^claim-loading]] Shows claim progress in Settings before rendering an account state.
 		if (isSessionClaimPending()) {
 			el.createDiv({
 				cls: 'lj-settings-account-status',
@@ -322,6 +323,7 @@ export class PluginSettingsTab extends PluginSettingTab {
 			return
 		}
 
+		// @story [[lucrjournal/entitlement#^settings-identity-only]] Uses token presence, not journal entitlement, for the Settings account identity.
 		if (getToken(app) === null) {
 			const header = el.createDiv({ cls: 'lj-settings-account-header' })
 			const info = header.createDiv({ cls: 'lj-settings-account-info' })
@@ -342,6 +344,7 @@ export class PluginSettingsTab extends PluginSettingTab {
 			return
 		}
 
+		// @story [[lucrjournal/entitlement#^settings-account-details]] Renders cached profile and plan details for a token-bearing account.
 		const context = getAccountContext(app)
 		const profile = context?.profile
 		const header = el.createDiv({ cls: 'lj-settings-account-header' })
@@ -399,6 +402,7 @@ const accountPlanNames = {
 	lucrjournal: 'LucrJournal',
 } as const satisfies Record<AccountPlanKey, string>
 
+// @story [[lucrjournal/entitlement#^settings-account-details]] Formats plan interval and renewal or expiry details from the account context.
 function accountPlanText(context: AccountContext): string {
 	if (context.plan === null) {
 		return t('SETTINGS_ACCOUNT_PLAN_FREE')

@@ -48,6 +48,7 @@ export function EditableFrontmatterNumberCell({
 		await onSave(parsedValue)
 	}
 
+	// @story [[lucrjournal/fields#^writeback-failure-state]] Leaves edit mode before awaiting generic number writeback
 	const handleBlur = () => {
 		if (!isEditing) {
 			return

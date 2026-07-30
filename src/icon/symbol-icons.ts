@@ -14,6 +14,7 @@ export function getTradingViewSymbolLogoUrl(logo: string | null | undefined): st
 	return toSymbolLogoUrl(logo)
 }
 
+// @story [[lucrjournal/primitives#^symbol-icon-fallback]] Reads the synchronous symbol logo cache before rendering
 export function readCachedSymbolLogoSrc(logo: string | null | undefined): string | null {
 	const logoUrl = getTradingViewSymbolLogoUrl(logo)
 	const storage = getSymbolLogoStorage()
@@ -24,6 +25,7 @@ export function readCachedSymbolLogoSrc(logo: string | null | undefined): string
 	return storage.getItem(symbolLogoCacheKey(logoUrl))
 }
 
+// @story [[lucrjournal/primitives#^symbol-icon-fallback]] Collapses missing metadata fetch failure and cache hits into a nullable image source
 export function loadCachedSymbolLogoSrc(logo: string | null | undefined): Promise<string | null> {
 	const logoUrl = getTradingViewSymbolLogoUrl(logo)
 	if (logoUrl === null) {

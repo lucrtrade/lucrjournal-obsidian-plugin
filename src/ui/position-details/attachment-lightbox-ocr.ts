@@ -11,6 +11,7 @@ type CloseAttachmentLightboxOcrReviewParams = {
 	restoreLightbox?: () => void
 }
 
+// @story [[lucrjournal/ocr#^vault-attachment-ocr]] Opens review only after attachment recognition succeeds
 export async function runAttachmentLightboxOcr({
 	attachment,
 	importAttachmentOcrFromAttachment,
@@ -23,6 +24,7 @@ export async function runAttachmentLightboxOcr({
 	return didImport
 }
 
+// @story [[lucrjournal/ocr#^vault-attachment-ocr]] Restores the source lightbox after review dismissal
 export function closeAttachmentLightboxOcrReview({
 	dismissAttachmentOcr,
 	restoreLightbox,

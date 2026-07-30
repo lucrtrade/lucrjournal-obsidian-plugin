@@ -19,6 +19,7 @@ import type { DomainPersistedEntry } from '../../domains/core/type'
 type PersistedConfluenceEntry = DomainPersistedEntry<Confluence> & { file: TFile }
 type PersistedPositionEntry = DomainPersistedEntry<Position> & { file: TFile }
 
+// @story [[lucrjournal/analysis#^dashboard-linked-entry-delete]] Removes position references before trashing a dashboard entry
 export async function deleteDashboardBacklinkedFile({
 	app,
 	displayName,

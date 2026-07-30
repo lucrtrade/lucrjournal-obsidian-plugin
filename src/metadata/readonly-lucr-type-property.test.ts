@@ -114,6 +114,7 @@ describe('readonly lucr_type property', () => {
 		setIcon.mockClear()
 	})
 
+	// @story [[lucrjournal/domain-model#^readonly-lucr-type]] Covers row protection without disabling unrelated metadata controls
 	it('marks only Obsidian lucr_type metadata rows readonly', () => {
 		const root = new FakeElement('div')
 		const lucrType = new FakeElement('div', ['div.metadata-property[data-property-key="lucr_type"]'])
@@ -167,6 +168,7 @@ describe('readonly lucr_type property', () => {
 		expect(value.children[0]?.children[0]?.getAttribute('data-icon')).toBe('book-open')
 	})
 
+	// @story [[lucrjournal/domain-model#^unknown-lucr-type-icon]] Covers omission of icons for unknown discriminator values
 	it('does not insert an icon for unknown lucr_type values', () => {
 		const root = new FakeElement('div')
 		const lucrType = new FakeElement('div', ['div.metadata-property[data-property-key="lucr_type"]'])

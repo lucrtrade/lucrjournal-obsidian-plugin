@@ -41,6 +41,7 @@ class KeyLevelDomainDefinition extends SimpleAnalysisDomainBase<'key_level', typ
 export const KeyLevelDomain = new KeyLevelDomainDefinition()
 
 export type KeyLevel = DomainValue<typeof KeyLevelDomain>
+// @story [[lucrjournal/analysis#^position-linked-entry-defaults]] Creates position-linked key levels without a description
 async function createLinkedKeyLevelEntry(app: App, name: string) {
 	const result = await KeyLevelDomain.createEntry(app, { name, description: '' })
 	return { file: result.file, fm: result.entry }
@@ -70,6 +71,7 @@ if (import.meta.vitest) {
 			})).toBe(true)
 		})
 
+		// @story [[lucrjournal/analysis#^analysis-description-normalization]] Covers trimmed and empty key level descriptions
 		it('creates entries with optional description frontmatter', () => {
 			expect(Reflect.has(KeyLevelDomain.formDefinition, 'description')).toBe(true)
 			expect(KeyLevelDomain.createEntryDescriptor.buildPayload({

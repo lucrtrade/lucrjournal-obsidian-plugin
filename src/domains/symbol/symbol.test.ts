@@ -21,6 +21,7 @@ describe('BuiltinSymbols', () => {
 })
 
 describe('resolveSymbolInfo', () => {
+	// @story [[lucrjournal/symbol#^builtin-canonical-resolution]] Covers canonical names and builtin type precedence
 	it('resolves public symbol info from symbol name only', () => {
 		expect(resolveSymbolInfo('BTC/USDT.P')).toMatchObject({
 			name: 'BTCUSDT.P',
@@ -43,6 +44,7 @@ describe('resolveSymbolInfo', () => {
 		expect(resolveSymbolInfo('es').type).toBe('Future')
 	})
 
+	// @story [[lucrjournal/symbol#^shape-type-inference]] Covers spot, perpetual, and untyped shape inference
 	it('infers crypto type from symbol name shape', () => {
 		expect(resolveSymbolInfo('BTCUSDT.P').type).toBe('Crypto_Perp')
 		expect(resolveSymbolInfo('BTC/USDT.P').type).toBe('Crypto_Perp')
@@ -51,6 +53,7 @@ describe('resolveSymbolInfo', () => {
 		expect(resolveSymbolInfo('BTC/USDT').type).toBe('Crypto_Spot')
 	})
 
+	// @story [[lucrjournal/symbol#^builtin-canonical-resolution]] Covers builtin CFD aliases and suffix normalization
 	it('infers major CFD pairs from compact and slash pair names', () => {
 		expect(resolveSymbolInfo('EURUSD').type).toBe('CFD')
 		expect(resolveSymbolInfo('eur/usd').type).toBe('CFD')
@@ -63,6 +66,7 @@ describe('resolveSymbolInfo', () => {
 		expect(resolveSymbolInfo('GER40').type).toBe('CFD')
 	})
 
+	// @story [[lucrjournal/symbol#^shape-type-inference]] Covers the untyped fallback for non-pair names
 	it('leaves non-builtin symbols untyped', () => {
 		expect(resolveSymbolInfo('TSLA').type).toBeNull()
 		expect(resolveSymbolInfo('XAU').type).toBeNull()

@@ -72,6 +72,7 @@ export function gatherAccountDeletionScope(app: App, entry: AccountEntry): Accou
 	const accountFile: TFile = entry.file
 	const accountBasename = accountFile.basename
 
+	// @story [[lucrjournal/account-platform#^account-deletion-links]] Collects exact linked symbols and their positions
 	const symbolFiles = (SymbolDomain.totalEntries(app) as { file: unknown; fm: { account?: string | null } }[])
 		.filter((candidate): candidate is { file: TFile; fm: { account?: string | null } } => candidate.file instanceof TFile)
 		.filter((candidate) => parseWikilinkHeading(candidate.fm.account ?? '')?.linkpath === accountBasename)
@@ -86,6 +87,7 @@ export function gatherAccountDeletionScope(app: App, entry: AccountEntry): Accou
 		})
 		.map((e) => e.file)
 
+	// @story [[lucrjournal/account-platform#^account-deletion-platform]] Includes only an exact-path platform used by one exact-name account
 	const platformName = AccountDomain.toPlatformName(entry.fm)
 	let platformFile: TFile | null = null
 	if (platformName != null) {
@@ -105,6 +107,7 @@ export function gatherAccountDeletionScope(app: App, entry: AccountEntry): Accou
 	return { accountFile, symbolFiles, positionFiles, platformFile }
 }
 
+// @story [[lucrjournal/account-platform#^account-deletion-order]] Deletes descendants before the account and optional platform
 export async function deleteAccount(app: App, scope: AccountDeletionScope): Promise<void> {
 	for (const positionFile of scope.positionFiles) {
 		await app.fileManager.trashFile(positionFile)
@@ -118,6 +121,7 @@ export async function deleteAccount(app: App, scope: AccountDeletionScope): Prom
 	}
 }
 
+// @story [[lucrjournal/position#^position-symbol-delete]] Collects only positions with an exact resolved symbol basename
 export function gatherSymbolDeletionScope(app: App, entry: SymbolEntry): SymbolDeletionScope | null {
 	if (!(entry.file instanceof TFile)) {
 		return null
@@ -133,6 +137,8 @@ export function gatherSymbolDeletionScope(app: App, entry: SymbolEntry): SymbolD
 	return { symbolFile, positionFiles }
 }
 
+// @story [[lucrjournal/position#^position-symbol-delete]] Trashes linked positions before their symbol file
+// @story [[lucrjournal/attachment#^position-delete-leaves-attachments]] Leaves attachment files untouched during symbol cascade deletion
 export async function deleteSymbol(app: App, scope: SymbolDeletionScope): Promise<void> {
 	for (const positionFile of scope.positionFiles) {
 		await app.fileManager.trashFile(positionFile)
@@ -140,6 +146,7 @@ export async function deleteSymbol(app: App, scope: SymbolDeletionScope): Promis
 	await app.fileManager.trashFile(scope.symbolFile)
 }
 
+// @story [[lucrjournal/domain-model#^runtime-domain-registry]] Enumerates every discriminator routed by the runtime
 export const Domains = [
 	PositionDomain,
 	NewsDomain,

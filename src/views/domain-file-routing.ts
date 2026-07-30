@@ -56,6 +56,7 @@ export async function openDomainFileAsMarkdown(
 	result: ViewStateResult = MARKDOWN_STATE_RESULT,
 	app?: App,
 ): Promise<void> {
+	// @story [[lucrjournal/runtime#^domain-to-markdown]] Marks the leaf before switching it to a history-free Markdown state.
 	markDomainFileOpenAsMarkdown(leaf, filePath)
 	await leaf.setViewState(createMarkdownFileViewState(filePath, mode), result)
 	if (app !== undefined) {
@@ -87,6 +88,7 @@ function shouldOpenDomainFileView(app: App, state: ViewState, viewType: string, 
 			return false
 		}
 		if (markdownPath !== undefined) {
+			// @story [[lucrjournal/runtime#^markdown-override-scope]] Clears a stale Markdown override when the leaf moves to another file.
 			markdownDomainFiles.delete(leaf)
 		}
 	}
@@ -101,6 +103,8 @@ export function resolveDomainFileViewState(app: App, state: ViewState, leaf?: Wo
 
 	const filePath = readViewStateFilePath(state)
 	const viewType = filePath === null ? null : resolveDomainFileViewType(app, filePath)
+	// @story [[lucrjournal/runtime#^domain-default-view]] Rewrites valid domain Markdown state to its descriptor view type.
+	// @story [[lucrjournal/runtime#^invalid-domain-stays-markdown]] Leaves incomplete or non-domain Markdown state unchanged.
 	return viewType !== null && shouldOpenDomainFileView(app, state, viewType, leaf)
 		? { ...state, type: viewType }
 		: state
@@ -126,6 +130,7 @@ export function registerDomainFileRouting(plugin: DomainFileRoutingPlugin): void
 	WorkspaceLeaf.prototype.detach = patchedDetach
 
 	plugin.register(() => {
+		// @story [[lucrjournal/runtime#^routing-patch-cleanup]] Restores only prototype methods still owned by this routing patch.
 		if (WorkspaceLeaf.prototype.setViewState === patchedSetViewState) {
 			WorkspaceLeaf.prototype.setViewState = originalSetViewState
 		}
@@ -143,6 +148,7 @@ export function registerDomainMarkdownActions(plugin: DomainMarkdownActionsPlugi
 		syncLeaf(plugin.app.workspace.getMostRecentLeaf())
 	}
 
+	// @story [[lucrjournal/runtime#^managed-runtime-resources]] Registers workspace routing listeners with the plugin lifecycle.
 	plugin.registerEvent(plugin.app.workspace.on('active-leaf-change', syncLeaf))
 	plugin.registerEvent(plugin.app.workspace.on('file-open', syncActiveLeaf))
 	syncActiveLeaf()
@@ -177,6 +183,7 @@ function syncDomainMarkdownAction(app: App, leaf: WorkspaceLeaf | null): void {
 					return
 				}
 				clearDomainFileOpenAsMarkdown(leaf)
+				// @story [[lucrjournal/runtime#^markdown-to-domain]] Clears the override and returns the same leaf to its domain view without history.
 				void leaf.setViewState(createDomainFileViewState(view.file.path, descriptor.viewType), MARKDOWN_STATE_RESULT)
 			},
 		),

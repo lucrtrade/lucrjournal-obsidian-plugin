@@ -10,7 +10,9 @@ import { ObsidianIcon } from './obsidian-icon'
 
 import type { IconDescriptor } from '../../domains'
 
+// @story [[lucrjournal/primitives#^icon-asset-fallback]] Defines the generic image fallback rendered for missing assets
 const IMAGE_FALLBACK_ICON_NAME = 'image'
+// @story [[lucrjournal/primitives#^image-icon-shape]] Keeps every image-backed icon circular and cropped
 const IMAGE_ICON_CLASS_NAME = 'lj:rounded-full lj:object-cover'
 
 export function IconView({ icon, className }: {
@@ -69,6 +71,7 @@ function ResolvedPlatformIcon({ name, className }: {
 	className: string
 }) {
 	const iconSrc = useResolvedPlatformIconSrc(name)
+	// @story [[lucrjournal/primitives#^icon-asset-fallback]] Renders the shared platform fallback when no asset resolves
 	if (iconSrc === null) {
 		return (
 			<span className={`lj:flex lj:shrink-0 lj:items-center lj:justify-center ${className}`}>

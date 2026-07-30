@@ -60,6 +60,7 @@ export class PluginSettings {
 	public modifiedUpdateMode: DomainModifiedUpdateMode = 'user-driven'
 	public previousRelease = ''
 	public showReleaseNotes = true
+	// @story [[lucrjournal/runtime#^debug-mode-default]] Keeps runtime debug instrumentation disabled by default.
 	public debugMode = false
 	public preferences: PluginPreferences = createPluginPreferences(null)
 }
@@ -108,6 +109,7 @@ export function createPluginSettings(persistedSettings: unknown): PluginSettings
 		settings.showReleaseNotes = persistedSettings.showReleaseNotes
 	}
 
+	// @story [[lucrjournal/runtime#^debug-mode-default]] Hydrates debug mode only from a persisted boolean.
 	if (typeof persistedSettings.debugMode === 'boolean') {
 		settings.debugMode = persistedSettings.debugMode
 	}
@@ -219,10 +221,12 @@ if (import.meta.vitest) {
 		})
 
 		it('defaults debug mode off', () => {
+			// @story [[lucrjournal/runtime#^debug-mode-default]] Covers the disabled default for runtime debug mode.
 			expect(createPluginSettings(null).debugMode).toBe(false)
 		})
 
 		it('hydrates debug mode setting', () => {
+			// @story [[lucrjournal/runtime#^debug-mode-default]] Covers enabling runtime debug mode from a persisted boolean.
 			expect(createPluginSettings({ debugMode: true }).debugMode).toBe(true)
 		})
 	})

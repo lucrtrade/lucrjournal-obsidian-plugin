@@ -28,6 +28,8 @@ describe('journal access storage', () => {
 		localStorage.clear()
 	})
 
+	// @story [[lucrjournal/entitlement#^claim-entitlement-gate]] Covers retaining a token while journal access is denied.
+	// @story [[lucrjournal/entitlement#^views-share-access-gate]] Covers the shared upgrade predicate.
 	it('distinguishes a missing entitlement from an ordinary signed-out session', () => {
 		setToken(app, 'lj_token')
 		denyJournalAccess(app, null)
@@ -38,6 +40,7 @@ describe('journal access storage', () => {
 		expect(requiresJournalUpgrade(app)).toBe(false)
 	})
 
+	// @story [[lucrjournal/entitlement#^entitlement-check-denies]] Covers retaining cached identity when denial has no context.
 	it('keeps the profile when an entitlement check returns no context', () => {
 		setToken(app, 'lj_token')
 		setAccountContext(app, {

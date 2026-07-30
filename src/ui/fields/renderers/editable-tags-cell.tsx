@@ -60,6 +60,8 @@ export function EditableTagsCell({
 		return () => activeDocument.removeEventListener('mousedown', handlePointerDown)
 	}, [committedTags, isEditing])
 
+	// @story [[lucrjournal/fields#^tag-cell-writeback]] Persists normalized tags and restores the last committed value on failure
+	// @story [[lucrjournal/fields#^writeback-failure-state]] Keeps tag editing open with the prior committed value after failure
 	const persistTags = async (nextTags: string[]) => {
 		const normalizedNextTags = normalizeTags(nextTags)
 		const previousTags = committedTagsRef.current

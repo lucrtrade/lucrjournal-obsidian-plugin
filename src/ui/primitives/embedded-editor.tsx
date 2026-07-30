@@ -68,6 +68,7 @@ export function EmbeddedEditor({ app, file, section }: EmbeddedEditorProps) {
 	const { containerRef, handleDoubleClick, reloadBody } = useEmbeddedMarkdownEditor({
 		app,
 		initialBody: '', // real body is loaded asynchronously in onSetup
+		// @story [[lucrjournal/primitives#^embedded-editor-debounced-save]] Configures the embedded editor save debounce
 		debounceMs: 2000,
 		onSaveBody,
 		onSetup,

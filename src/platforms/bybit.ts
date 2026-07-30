@@ -30,6 +30,7 @@ function toBar(row: unknown): OhlcvBar {
 
 function listOf(body: unknown): unknown[] {
 	const list = (body as { result?: { list?: unknown } }).result?.list
+	// @story [[lucrjournal/market-data#^invalid-market-data-fails]] Rejects malformed Bybit payloads.
 	if (!Array.isArray(list)) {
 		throw new Error('bybit: unexpected kline body')
 	}
@@ -37,6 +38,7 @@ function listOf(body: unknown): unknown[] {
 }
 
 // Verified live 2026-06-01: spot BTCUSDT (BTC/USDT), perp BTCUSDT.P (BTC/USDT:USDT)
+// @story [[lucrjournal/market-data#^bybit-ohlcv-contract]] Defines Bybit category routing and response normalization.
 const ohlcv = {
 	maxLimit: 1000,
 	// ccxt mirror: bybit.js#fetchOHLCV (l.2649)

@@ -47,6 +47,7 @@ export function readPackageOnnxRuntimeVersion(packageJson) {
 	return match[0]
 }
 
+// @story [[lucrjournal/ocr#^sync-ocr-assets]] Builds the version-bound five-file asset plan
 export function buildOcrAssetPlan(packageJson) {
 	const onnxRuntimeVersion = readPackageOnnxRuntimeVersion(packageJson)
 
@@ -76,6 +77,7 @@ export function buildOcrAssetPlan(packageJson) {
 	]
 }
 
+// @story [[lucrjournal/ocr#^verify-ocr-assets]] Verifies manifest version exact files sizes and hashes
 export function verifyLocalOcrAssets({ expectedManifest, expectedOnnxRuntimeVersion, rootPath }) {
 	const manifestPath = join(rootPath, OCR_ASSET_ROOT, 'manifest.json')
 	if (!existsSync(manifestPath)) {
@@ -123,6 +125,8 @@ export function verifyLocalOcrAssets({ expectedManifest, expectedOnnxRuntimeVers
 	return manifest
 }
 
+// @story [[lucrjournal/ocr#^sync-ocr-assets]] Writes planned assets and their integrity manifest
+// @story [[lucrjournal/ocr#^verify-ocr-assets]] Runs the same plan in fail-closed check mode
 export async function syncOcrAssets({ check = false, rootPath = projectRootPath } = {}) {
 	const packageJson = readPackageJson(rootPath)
 	const onnxRuntimeVersion = readPackageOnnxRuntimeVersion(packageJson)

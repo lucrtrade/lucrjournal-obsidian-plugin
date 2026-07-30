@@ -41,6 +41,7 @@ class MarketAnalysisDomainDefinition extends SimpleAnalysisDomainBase<'market_an
 export const MarketAnalysisDomain = new MarketAnalysisDomainDefinition()
 
 export type MarketAnalysis = DomainValue<typeof MarketAnalysisDomain>
+// @story [[lucrjournal/analysis#^position-linked-entry-defaults]] Creates position-linked market analyses without a description
 async function createLinkedMarketAnalysisEntry(app: App, name: string) {
 	const result = await MarketAnalysisDomain.createEntry(app, { name, description: '' })
 	return { file: result.file, fm: result.entry }
@@ -70,6 +71,7 @@ if (import.meta.vitest) {
 			})).toBe(true)
 		})
 
+		// @story [[lucrjournal/analysis#^analysis-description-normalization]] Covers trimmed and empty market analysis descriptions
 		it('creates entries with optional description frontmatter', () => {
 			expect(Reflect.has(MarketAnalysisDomain.formDefinition, 'description')).toBe(true)
 			expect(MarketAnalysisDomain.createEntryDescriptor.buildPayload({

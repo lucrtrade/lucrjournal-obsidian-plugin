@@ -12,6 +12,7 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
+    # @story [[lucrjournal/build#^public-repo-ci]] Gates public releases on the complete standalone verification sequence.
     verify:
         runs-on: ubuntu-latest
 
@@ -72,6 +73,7 @@ jobs:
                   echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
                   echo "Version from package.json: ${VERSION}"
 
+            # @story [[lucrjournal/build#^release-changelog-required]] Fails before release lookup when the package version has no release notes.
             - name: Extract release notes from CHANGELOG.md
               env:
                   VERSION: ${{ steps.version.outputs.version }}
@@ -91,6 +93,7 @@ jobs:
                   fi
                   echo "$notes" > /tmp/release_notes.md
 
+            # @story [[lucrjournal/build#^release-create-once]] Skips every mutating release step when the package version already exists.
             - name: Check if release exists
               id: check_release
               env:
@@ -112,6 +115,7 @@ jobs:
               if: steps.check_release.outputs.exists == 'false'
               run: bun run build:bundle:prod
 
+            # @story [[lucrjournal/build#^release-files]] Copies only the three files consumed by Obsidian installation.
             - name: Prepare release artifacts
               if: steps.check_release.outputs.exists == 'false'
               run: |
@@ -144,6 +148,8 @@ jobs:
               if: steps.check_release.outputs.exists == 'false' && github.event.repository.private != false
               run: echo "Skipping build provenance attestation because this repository is not public."
 
+            # @story [[lucrjournal/build#^release-create-once]] Uses the package version and extracted changelog for the new release.
+            # @story [[lucrjournal/build#^release-files]] Publishes only the installable plugin file set.
             - name: Create release
               if: steps.check_release.outputs.exists == 'false'
               uses: softprops/action-gh-release@v3

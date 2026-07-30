@@ -8,6 +8,7 @@ import { OKX } from './okx'
 
 import type { OhlcvAdapter, PlatformDefinition } from './factory'
 
+// @story [[lucrjournal/account-platform#^preset-platforms]] Defines the exact built-in platform preset order
 const PLATFORMS = [
 	Binance,
 	Bybit,
@@ -31,6 +32,7 @@ export const PLATFORM_TO_EXCHANGE_ID = Object.fromEntries(
 	),
 ) as Readonly<Partial<Record<PlatformName, string>>>
 
+// @story [[lucrjournal/market-data#^exchange-adapter-registry]] Registers only platforms with an exchange id and OHLCV adapter.
 export const EXCHANGE_ID_TO_ADAPTER: ReadonlyMap<string, OhlcvAdapter> = new Map(
 	platformEntries.flatMap(([, p]) =>
 		p.exchangeId !== null && p.ohlcv !== undefined ? [[p.exchangeId, p.ohlcv] as const] : [],

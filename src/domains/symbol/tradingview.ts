@@ -1,6 +1,8 @@
 import type { PositionSymbolType } from './position-model'
 
+// @story [[lucrjournal/symbol-search#^runtime-request-contract]] Defines the TradingView endpoint and request origin
 const TradingViewOrigin = 'https://www.tradingview.com'
+// @story [[lucrjournal/symbol-search#^tradingview-query-contract]] Defines the exact TradingView symbol search endpoint
 const TradingViewSymbolSearchApi = 'https://symbol-search.tradingview.com/symbol_search/v3/'
 
 type FetchRequester = (
@@ -21,6 +23,7 @@ type RequestUrlRequester = (
 
 type TradingViewRequester = FetchRequester | RequestUrlRequester
 
+// @story [[lucrjournal/symbol-search#^vendor-type-mapping]] Maps vendor categories into symbol domain types
 const TV_TYPE_TO_ASSET_CATEGORY: Record<string, PositionSymbolType> = {
 	commodity: 'CFD',
 	crypto: 'Crypto_Spot',
@@ -39,11 +42,13 @@ export type TradingViewSymbolRow = {
 	logo: string
 }
 
+// @story [[lucrjournal/symbol-search#^response-failure-classification]] Filters malformed or unusable provider rows
 export async function searchTradingViewSymbols(
 	requester: TradingViewRequester,
 	query: string,
 	preferredType?: PositionSymbolType,
 ): Promise<TradingViewSymbolRow[]> {
+	// @story [[lucrjournal/symbol-search#^tradingview-query-contract]] Builds the required query and provider parameters
 	const url = `${TradingViewSymbolSearchApi}?text=${encodeURIComponent(query)}&hl=0&lang=en&domain=production`
 	const json = await requestTradingViewJson(requester, url)
 	const symbols = recordField(json, 'symbols')
@@ -72,6 +77,8 @@ export async function searchTradingViewSymbols(
 		.map((entry) => entry.row)
 }
 
+// @story [[lucrjournal/symbol-search#^remote-result-ranking]] Ranks exact and preferred-type rows
+// @story [[lucrjournal/symbol-search#^remote-result-stability]] Uses provider indexes to stabilize equal scores
 function rankScore(row: TradingViewSymbolRow, symbolName: string, preferredType: PositionSymbolType | undefined): number {
 	const exact = row.symbol.toUpperCase() === symbolName ? 0 : 100
 	const typeMatch = preferredType === undefined || row.type === null
@@ -89,6 +96,9 @@ function mapTradingViewAssetCategory(symbol: string, rawType: string | null): Po
 	return mapped
 }
 
+// @story [[lucrjournal/symbol-search#^runtime-request-contract]] Sends the required headers through the runtime requester
+// @story [[lucrjournal/symbol-search#^tradingview-query-contract]] Sends the fixed TradingView user agent
+// @story [[lucrjournal/symbol-search#^response-failure-classification]] Rejects non-success TradingView responses
 async function requestTradingViewJson(requester: TradingViewRequester, url: string): Promise<unknown> {
 	const headers = {
 		Origin: TradingViewOrigin,
@@ -112,6 +122,7 @@ async function requestTradingViewJson(requester: TradingViewRequester, url: stri
 	return await response.json()
 }
 
+// @story [[lucrjournal/symbol-search#^logo-field-precedence]] Resolves provider logo fields in stable precedence order
 function tradingViewLogoKey(symbol: Record<string, unknown>): string | null {
 	const logo = recordField(symbol, 'logo')
 	return stringField(logo, 'logoid')

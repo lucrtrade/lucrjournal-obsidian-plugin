@@ -1,5 +1,6 @@
 import type { en } from './en'
 
+// @story [[lucrjournal/content#^translation-source-fallback]] Limits Chinese translations to keys from the English source catalog.
 export const zhCN: Partial<Record<keyof typeof en, string>> = {
 	OPEN_JOURNAL: '打开日记',
 	SETTINGS_ACCOUNT: '账号',
