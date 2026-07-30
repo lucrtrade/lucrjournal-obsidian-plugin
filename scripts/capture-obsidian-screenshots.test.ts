@@ -281,7 +281,7 @@ describe('capture Obsidian screenshots', () => {
 				vaultName: 'Obsidian Sandbox',
 			},
 			{
-				args: ['dev:cdp', 'method=Page.captureScreenshot', expect.stringContaining('"clip":{"x":10,"y":20,"width":900,"height":700,"scale":0.5}')],
+				args: ['dev:cdp', 'method=Page.captureScreenshot', expect.stringContaining('"clip":{"x":10,"y":20,"width":900,"height":700,"scale":1}')],
 				vaultName: 'Obsidian Sandbox',
 			},
 			{

@@ -3,88 +3,40 @@ icon: CircleHelp
 title: "常见问题"
 ---
 
-先按现象找问题。每个答案只给处理方向，链接中有完整边界和操作步骤。
+这里按主题收录使用 LucrJournal 时常见的现象、原因和处理方向。先找到最接近的问题，再进入对应主题查看答案和完整说明链接。
 
-## 数据保存在哪里？会自动同步券商或云端吗？
+## [[faq-local-data|本地数据与正文结构]]
 
-记录保存在当前 Vault 的 `LucrJournal/`中。LucrJournal 不会自动同步券商历史；Vault 的跨设备同步和备份由你使用的 Obsidian 方案负责。详见 [[local-files-and-markdown]]。
+- [[faq-local-data#数据保存在哪里？会自动同步券商或云端吗？]]
+- [[faq-local-data#断网后还能做什么？]]
+- [[faq-local-data#为什么代码块里的标题改变了仓位正文结构？]]
 
-## 断网后还能做什么？
+## [[faq-symbols-and-values|标的与数值]]
 
-可以继续创建、编辑和复盘本地记录，也可以运行本地 OCR。登录、网页来源、远端标的元数据和图表行情需要联网，失败不会删除已有记录。详见 [[sync-and-import]]。
+- [[faq-symbols-and-values#为什么标的代码能保存，类型却不对？]]
+- [[faq-symbols-and-values#为什么手续费填 0 不能保存？]]
+- [[faq-symbols-and-values#为什么盈亏比和我算的不一样？]]
+- [[faq-symbols-and-values#为什么清空输入后旧的派生值还在？]]
+- [[faq-symbols-and-values#为什么平仓时间、状态和出场价互相对不上？]]
+- [[faq-symbols-and-values#方向选错后为什么不能修改？]]
 
-## OCR 识别错了怎么办？
+## [[faq-deletion-impact|删除与级联影响]]
 
-在`确认 OCR 结果`中对照原图修改，不要直接应用。OCR 只写你确认提交的字段，也不会判断`做多`或`做空`。详见 [[attachments-chart-ocr]] 和 [[sync-and-import]]。
+- [[faq-deletion-impact#账户改名失败后该怎么办？]]
+- [[faq-deletion-impact#为什么删除账户会包含标的、仓位甚至平台？]]
+- [[faq-deletion-impact#为什么删除标的后关联仓位也没了？]]
+- [[faq-deletion-impact#为什么删了仓位但附件还在？]]
+- [[faq-deletion-impact#为什么删除附件后正文图片坏了？]]
+- [[faq-deletion-impact#为什么删除 Confluence 后策略手册留下断链？]]
 
-## 为什么导入新闻后原正文不见了？
+## [[faq-content-and-evidence|内容与证据]]
 
-`导入来源内容`会用远端页面替换新闻当前正文。看到已有内容提示时先取消并复制手写内容，再决定是否导入。详见 [[sync-and-import]]。
+- [[faq-content-and-evidence#OCR 识别错了怎么办？]]
+- [[faq-content-and-evidence#为什么导入新闻后原正文不见了？]]
+- [[faq-content-and-evidence#我的策略手册手写笔记为什么不见了？]]
+- [[faq-content-and-evidence#为什么模板创建的仓位没有 Notes？]]
 
-## 为什么标的代码能保存，类型却不对？
+## [[faq-settings|设置与日志]]
 
-未命中内置目录的六位大写代码会被推断为加密货币现货；类型为空或无法识别时，仓位计算又会回退到加密货币合约。添加后核对类型、手续费和合约单位。详见 [[symbol-types]] 和 [[symbol-fields]]。
-
-## 为什么手续费填 0 不能保存？
-
-没有手续费时应留空，三种手续费模型都拒绝 0。加密货币使用百分比，期货按每张金额，CFD 差价合约按每手金额。详见 [[symbol-types]]。
-
-## 为什么盈亏比和我算的不一样？
-
-计划和实际 R:R 都按方向、入场价、止损及目标价或出场价重新计算，不读取已保存的风险或净利润，也不计手续费。公式只使用一份入场价，没有平均入场模型。详见 [[position-fields]] 和 [[position-lifecycle]]。
-
-## 为什么清空输入后旧的派生值还在？
-
-数量、入场价或合约单位失效后，公式算不出新值时不会自动清空旧名义价值；手续费无法重新派生时也可能保留。重新核对名义价值、手续费、净利润和风险。详见 [[position-details]] 和 [[position-fields]]。
-
-## 为什么平仓时间、状态和出场价互相对不上？
-
-这三个字段不是强制同步的一组；0 或负数出场价也会触发平仓，清空出场价不会自动重新开仓。平仓或重新开仓后逐项核对。详见 [[position-lifecycle]]。
-
-## 方向选错后为什么不能修改？
-
-`方向`在创建后不可修改，触及方向的更新会被整次拒绝。删除错误记录，再用正确方向重新创建。详见 [[record-first-position]]。
-
-## 账户改名失败后该怎么办？
-
-账户改名会逐个改写账户、标的和仓位引用，没有自动回滚。改名前确认新名称不与已有文件冲突并备份 Vault，过程中不要关闭 Obsidian；失败后逐层检查关联。详见 [[accounts-and-symbols]] 和 [[account-fields]]。
-
-## 为什么删除账户会包含标的、仓位甚至平台？
-
-`删除账户？`会删除整条下游关系；确认前核对列出的文件。自建平台名称只有大小写差异时，共享判断可能不符合预期，出现`平台文件（唯一账户）`时要检查其他账户。详见 [[accounts-and-symbols]]。
-
-## 为什么删除标的后关联仓位也没了？
-
-`确认删除`会先移入该标的的关联仓位，再移入标的文件。仓位附件不会随之清理，删除前先处理证据。详见 [[accounts-and-symbols]] 和 [[attachments-chart-ocr]]。
-
-## 为什么删了仓位但附件还在？
-
-直接删除仓位只移入仓位文件，不清理 `LucrJournal/attachments/`中的独占附件。需要删除的附件应先从仓位界面处理。详见 [[position-lifecycle]] 和 [[attachments-chart-ocr]]。
-
-## 为什么删除附件后正文图片坏了？
-
-`删除附件`只移除 frontmatter 引用，不扫描 Markdown 正文；即使正文仍嵌入图片，独占物理文件也可能被删除。确认前先用`以 Markdown 打开`检查正文。详见 [[attachments-chart-ocr]] 和 [[local-files-and-markdown]]。
-
-## 我的策略手册手写笔记为什么不见了？
-
-`保存策略手册`只保留开头合法的 frontmatter，其余正文由当前条件和 Confluence 整体替换。手写段落、额外标题、注释和代码块都不会保留。详见 [[playbooks-and-criteria]] 和 [[local-files-and-markdown]]。
-
-## 为什么删除 Confluence 后策略手册留下断链？
-
-从`分析`删除 Confluence 会清理仓位链接，但不会改写策略手册正文。删除前先确认没有策略手册继续引用它。详见 [[context-notes]] 和 [[playbooks-and-criteria]]。
-
-## 为什么模板创建的仓位没有 Notes？
-
-模板正文会直接成为新仓位正文；模板没有 `# Notes`时，仓位也可能没有默认笔记分区。除非明确需要自定义结构，否则保留该标题。详见 [[templates]]。
-
-## 为什么改时区后“多久以前”变了？
-
-相对时间忽略记录中的偏移，按当前设置时区的挂钟时间比较；绝对时间则会正确换算。还要确认设置值是有效时区，否则日历和相对时间可能报错。详见 [[settings-and-preferences]]。
-
-## 调试日志可以直接发给别人吗？
-
-不可以。开发版本开启`调试模式`后会记录完整请求头和请求体，其中可能有登录凭证；只临时开启，并在分享前关闭和清理敏感内容。详见 [[settings-and-preferences]]。
-
-## 为什么代码块里的标题改变了仓位正文结构？
-
-仓位 section parser 不识别代码围栏，行首的 `# `或`## `会被当成真实标题。调整代码示例，避免井号出现在行首。详见 [[local-files-and-markdown]]。
+- [[faq-settings#为什么改时区后“多久以前”变了？]]
+- [[faq-settings#调试日志可以直接发给别人吗？]]

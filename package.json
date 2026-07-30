@@ -38,8 +38,9 @@
 		"test": "bunx --bun vitest run",
 		"prepare": "bunx --bun husky",
 		"version": "bun scripts/version-bump.ts && git add manifest.json versions.json",
-		"lint": "bun run lint:tsc && bun run lint:eslint:fix && bun run knip && bun run lint:deps",
-		"lint:eslint:fix": "bunx --bun eslint . --fix"
+		"lint": "bun run lint:tsc && bun run lint:eslint:fix && bun run knip && bun run lint:deps && bun run lint:doc-assets",
+		"lint:eslint:fix": "bunx --bun eslint . --fix",
+		"lint:doc-assets": "bun scripts/check-doc-assets.ts"
 	},
 	"keywords": [],
 	"license": "MIT",

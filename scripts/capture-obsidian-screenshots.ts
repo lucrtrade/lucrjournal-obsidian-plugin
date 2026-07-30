@@ -9,7 +9,9 @@ const DEFAULT_TIMEOUT_MS = 5000
 const DEFAULT_WAIT_MS = 500
 // @story [[lucrjournal/tooling#^screenshot-cli-timeout]] Bounds CLI calls and permits one CDP retry
 const OBSIDIAN_CLI_TIMEOUT_MS = 120000
-const SCREENSHOT_CLIP_SCALE = 0.5
+// Captured at the display's own density. Halving it produced 1x assets that the
+// docs site had to upscale on high-DPI screens, which read as blurry.
+const SCREENSHOT_CLIP_SCALE = 1
 const MOBILE_DEVICE_METRICS = {
 	deviceScaleFactor: 2,
 	height: 852,
