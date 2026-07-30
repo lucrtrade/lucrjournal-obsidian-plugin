@@ -9,7 +9,7 @@ title: "仓位详情"
 
 `方向`是创建时确定的只读信息。账户由当前关联标的推导。点击 ID 可以 `在新标签页中打开源文件`。
 
-%% ![[screenshot-position-details-workspace.png]] %%
+![[screenshot-position-detail-crypto-full.png]]
 
 ## 页面有哪些区域
 

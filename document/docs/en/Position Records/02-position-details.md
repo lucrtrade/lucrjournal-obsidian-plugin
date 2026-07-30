@@ -9,7 +9,7 @@ Position details is the workspace for one trade. The header always shows the sym
 
 `Side` is read-only information fixed during creation. The account is derived from the current linked symbol. Select the ID to `Open source file in new tab`.
 
-%% ![[screenshot-position-details-workspace.png]] %%
+![[screenshot-position-detail-crypto-full.png]]
 
 ## Areas on the page
 

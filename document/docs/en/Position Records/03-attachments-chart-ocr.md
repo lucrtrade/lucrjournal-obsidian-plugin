@@ -28,7 +28,7 @@ Image evidence is a screenshot that helps reconstruct the trade plan, execution,
 3. After choosing the image, wait for `Attachment added.`
 4. Select the thumbnail and confirm that `Open attachment preview` shows the original image.
 
-%% ![[screenshot-position-attachments.png]] %%
+![[screenshot-attachment-preview.png]]
 
 Useful evidence includes the chart before entry, the chart after exit, an order screenshot, and a marked-up review chart. The attachment reference is written to position properties. The image itself is written to the managed attachment folder.
 

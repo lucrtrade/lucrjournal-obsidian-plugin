@@ -22,7 +22,7 @@ flowchart LR
 
 因此，==类型选错时，后面的数字即使能显示，也可能不是你以为的口径==。
 
-%% ![[screenshot-symbols-type-fields.png]] %%
+![[screenshot-settings-symbols.png]]
 
 ## 加密货币现货
 

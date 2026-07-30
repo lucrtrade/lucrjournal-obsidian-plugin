@@ -47,7 +47,7 @@ The template body is the Markdown used when a new position is created. Keep it s
 
 If Templater is installed, LucrJournal tries to expand the template body while creating the position. Without Templater, it uses the raw body. If expansion fails, it logs the error and also falls back to the raw body. The template file is not rewritten.
 
-%% ![[screenshot-position-template-source.png]] %%
+![[screenshot-position-template-detail.png]]
 
 ## Create a position from a template
 

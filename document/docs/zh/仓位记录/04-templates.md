@@ -47,7 +47,7 @@ title: "仓位模板"
 
 如果已安装 Templater，创建仓位时会尝试展开模板正文；未安装时直接使用原文。Templater 展开失败时也会记录错误并回退到原文，不会改写模板文件。
 
-%% ![[screenshot-position-template-source.png]] %%
+![[screenshot-position-template-detail.png]]
 
 ## 用模板创建仓位
 

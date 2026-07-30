@@ -34,7 +34,7 @@ If you enter a new platform, the plugin creates a platform file with that name b
 
 Select the gear icon on the right side of the header, then open `Accounts`. The list shows `Platform`, `Account Name`, `Symbols`, `Positions`, and `Actions`.
 
-%% ![[screenshot-settings-accounts.png]] %%
+![[screenshot-settings-accounts.png]]
 
 - Select an `Account Name` to change the display name.
 - Select `Symbols` to view the symbols in that account.
@@ -56,7 +56,7 @@ Renaming an account updates the account file, every symbol file under that accou
 
 A symbol is a tradable instrument under an account. It also provides the rules used to calculate position quantity, notional value, and fees.
 
-%% ![[screenshot-settings-symbols.png]] %%
+![[screenshot-settings-symbols.png]]
 
 1. Select the gear icon on the right side of the header.
 2. Open `Symbols`.

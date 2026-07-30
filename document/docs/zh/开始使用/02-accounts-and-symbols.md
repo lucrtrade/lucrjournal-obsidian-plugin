@@ -34,7 +34,7 @@ flowchart LR
 
 点击页头右侧的齿轮图标，再进入 `账户`。这里会列出 `交易所`、`账户名称`、`标的数`、`仓位数` 和 `操作`。
 
-%% ![[screenshot-settings-accounts.png]] %%
+![[screenshot-settings-accounts.png]]
 
 - 点击 `账户名称` 可以修改显示名称。
 - 点击 `标的数` 可以查看这个账户的标的。
@@ -56,7 +56,7 @@ flowchart LR
 
 标的是账户下的交易品种，也是仓位计算数量、名义价值和手续费的依据。
 
-%% ![[screenshot-settings-symbols.png]] %%
+![[screenshot-settings-symbols.png]]
 
 1. 点击页头右侧的齿轮图标。
 2. 进入 `标的`。

@@ -5,7 +5,7 @@ title: "Settings and preferences"
 
 LucrJournal plugin settings are grouped into `Account`, `General`, `Modified Timestamp`, and `Advanced`. The sign-in actions and six settings in these groups change identity state, presentation, and runtime behavior. They do not change your trading conclusions.
 
-%% ![[screenshot-settings-accounts.png]] %%
+%% ![[screenshot-plugin-settings.png]] %%
 
 ## Account
 

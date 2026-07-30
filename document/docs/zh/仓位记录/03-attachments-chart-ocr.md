@@ -28,7 +28,7 @@ title: "图表、附件和 OCR"
 3. 选择图片后，等待 `已添加附件。`。
 4. 点击缩略图，确认 `打开附件预览`可以显示原图。
 
-%% ![[screenshot-position-attachments.png]] %%
+![[screenshot-attachment-preview.png]]
 
 适合保存的证据包括入场前图表、出场后图表、订单截图和盘后标注图。附件引用会写入仓位属性，图片本身写入插件附件目录。
 

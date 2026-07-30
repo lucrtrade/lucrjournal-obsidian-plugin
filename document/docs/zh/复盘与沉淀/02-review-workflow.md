@@ -19,7 +19,7 @@ title: "复盘流程"
 
 筛选条件与搜索同时生效。先回答一个问题，例如“这个月某个账户的做多为什么亏损”，不要把所有维度一次堆在一起。
 
-%% ![[screenshot-position-table-filters.png]] %%
+![[screenshot-position-table-filters.png]]
 
 > [!TIP]
 > 日常复盘优先看刚结束的仓位和明显偏离计划的仓位。周期复盘再看同一策略手册或同一上下文下的一组样本。

@@ -5,7 +5,7 @@ title: "设置和偏好"
 
 LucrJournal 的插件设置分为`账号`、`通用`、`修改时间戳`和`高级`。这些区域中的登录操作和六个设置项只改变身份状态、界面呈现和插件运行方式，不会替你修改交易结论。
 
-%% ![[screenshot-settings-accounts.png]] %%
+%% ![[screenshot-plugin-settings.png]] %%
 
 ## 账号
 

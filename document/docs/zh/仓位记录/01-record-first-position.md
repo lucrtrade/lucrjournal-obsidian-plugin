@@ -26,7 +26,7 @@ title: "记录第一笔仓位"
 > [!NOTE]
 > 切换 `账户`后要重新核对 `标的`。候选标的始终来自当前账户。
 
-%% ![[screenshot-position-create-form.png]] %%
+![[screenshot-new-position-modal.png]]
 
 ## 从新建到保存
 

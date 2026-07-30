@@ -26,7 +26,7 @@ If you select a template from `Templates`, the form also displays `Template`. It
 > [!NOTE]
 > Check `Symbol` again after changing `Account`. Symbol choices always come from the current account.
 
-%% ![[screenshot-position-create-form.png]] %%
+![[screenshot-new-position-modal.png]]
 
 ## Create and save the record
 

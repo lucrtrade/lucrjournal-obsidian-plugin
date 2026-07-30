@@ -22,7 +22,7 @@ flowchart LR
 
 This means ==numbers can still appear when the wrong type is selected, but they may not use the rules you expect==.
 
-%% ![[screenshot-symbols-type-fields.png]] %%
+![[screenshot-settings-symbols.png]]
 
 ## Crypto Spot
 

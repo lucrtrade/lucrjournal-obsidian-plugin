@@ -103,7 +103,7 @@ flowchart TD
 
 复盘阶段与 [[context-notes]]、[[attachments-chart-ocr]] 和 [[playbooks-and-criteria]] 相关。这些内容补充“为什么”和“学到了什么”，不改变仓位的开平判断。
 
-%% ![[screenshot-position-lifecycle-review.png]] %%
+![[screenshot-position-detail-crypto-overview.png]]
 
 ## 派生值的更新边界
 

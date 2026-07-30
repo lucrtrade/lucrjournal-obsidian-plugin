@@ -19,7 +19,7 @@ The workflow below connects `Overview`, `Positions`, Position Details, context, 
 
 Filters and search apply together. Start with one question, such as “Why did LONG trades in this account lose this month?” Do not stack every dimension at once.
 
-%% ![[screenshot-position-table-filters.png]] %%
+![[screenshot-position-table-filters.png]]
 
 > [!TIP]
 > For a daily review, start with positions that just closed and positions that clearly missed the plan. For a periodic review, inspect a group under the same Playbook or context entry.

@@ -26,7 +26,7 @@ The structured body recognizes only two levels of linked headings. A Criteria se
 
 For extra free-form text, put a short summary in `Description` and keep single-trade experience in the position's `Notes`. Do not mix unstructured content into the Playbook body.
 
-%% ![[screenshot-playbook-editor.png]] %%
+![[screenshot-playbook-detail-criteria.png]]
 
 ## Create a Playbook
 
@@ -61,7 +61,7 @@ Confluences created through a Playbook are not `Public` by default. They do not 
 
 The Playbook link is stored in the position's `playbook` frontmatter field. LucrJournal includes a position in Playbook performance only when its link resolves to that Playbook file.
 
-%% ![[screenshot-position-playbook-checklist.png]] %%
+![[screenshot-position-detail-crypto-playbook.png]]
 
 ## Maintain a Playbook with real samples
 

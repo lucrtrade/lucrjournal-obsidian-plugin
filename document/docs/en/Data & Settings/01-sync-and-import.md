@@ -46,7 +46,7 @@ The result only contains `Notional Value`, `Entry Price`, `Exit Price`, `Stop Lo
 
 Nothing is written to the position before submission. Closing the review does not create an attachment. After a successful apply, the reviewed fields and source image attachment are written together.
 
-%% ![[screenshot-ocr-import-modal.png]] %%
+![[screenshot-ocr-import-modal.png]]
 
 > [!WARNING]
 > OCR can misread decimal points, prices, and amounts. Check every value against the original image. It also does not decide `LONG` or `SHORT` from price relationships.

@@ -103,7 +103,7 @@ For example, after a closed position includes its execution facts, screenshots, 
 
 The review stage is related to [[context-notes]], [[attachments-chart-ocr]], and [[playbooks-and-criteria]]. These records add the "why" and "what I learned." They do not change whether the position is open or closed.
 
-%% ![[screenshot-position-lifecycle-review.png]] %%
+![[screenshot-position-detail-crypto-overview.png]]
 
 ## Update boundaries for derived values
 

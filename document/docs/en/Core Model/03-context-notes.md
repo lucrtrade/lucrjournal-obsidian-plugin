@@ -84,7 +84,7 @@ Confluence is related to criteria, playbooks, and positions. It also has two vis
 - After a position links to a playbook, it can see private Confluences referenced by that playbook.
 - When a playbook selects a Confluence, it can see both public and private entries.
 
-%% ![[screenshot-context-confluence-visibility.png]] %%
+![[screenshot-confluence.png]]
 
 > [!NOTE]
 > Visibility only controls which selection lists show the entry. It is not an access permission for position content. It separates general Confluences from those used inside a specific playbook.

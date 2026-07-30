@@ -26,7 +26,7 @@ title: "策略手册和检查项"
 
 需要补充一段自由文字时，把简短说明写入`描述`，把单笔经验写回仓位的`笔记`。不要在策略手册正文中混写结构外内容。
 
-%% ![[screenshot-playbook-editor.png]] %%
+![[screenshot-playbook-detail-criteria.png]]
 
 ## 创建一本策略手册
 
@@ -61,7 +61,7 @@ title: "策略手册和检查项"
 
 策略手册链接保存在仓位 frontmatter 的 `playbook`字段中。LucrJournal 只把真实解析到该策略手册文件的仓位纳入手册表现。
 
-%% ![[screenshot-position-playbook-checklist.png]] %%
+![[screenshot-position-detail-crypto-playbook.png]]
 
 ## 用真实样本维护策略手册
 

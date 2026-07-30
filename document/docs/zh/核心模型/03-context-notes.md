@@ -84,7 +84,7 @@ Confluence 与条件、策略手册和仓位相关。它还分为两种可见范
 - 仓位关联某个策略手册后，可以看到该策略手册所引用的不公开 Confluence。
 - 策略手册选择 Confluence 时，可以看到公开和不公开两类条目。
 
-%% ![[screenshot-context-confluence-visibility.png]] %%
+![[screenshot-confluence.png]]
 
 > [!NOTE]
 > 可见范围只控制条目出现在哪些选择列表中，不代表仓位内容的访问权限。它用于把通用 Confluence 与某个策略手册内部使用的 Confluence 分开。
