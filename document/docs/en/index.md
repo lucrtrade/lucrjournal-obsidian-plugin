@@ -4,56 +4,84 @@ title: "LucrJournal Overview"
 sections:
   - name: Getting Started
     icon: BookOpen
+  - name: Core Model
+    icon: Brain
   - name: Position Records
     icon: FilePlus
-  - name: Daily Review
+  - name: Review & Playbooks
     icon: LineChart
-  - name: Core Concepts
-    icon: Brain
-  - name: Q&A
-    icon: CircleHelp
+  - name: Field Reference
+    icon: ListChecks
   - name: Data & Settings
     icon: Settings
+  - name: Q&A
+    icon: CircleHelp
 ---
 
-LucrJournal is a trading journal that runs inside Obsidian. Use it to keep positions, screenshot evidence, News, Analysis, Playbook notes, and review conclusions in one local Markdown workflow.
+## What is LucrJournal?
 
-## What you can use it for
+LucrJournal is a local trading journal that runs inside Obsidian. It connects accounts, symbols, positions, news, analysis, and playbooks. This lets you trace a trade back to its plan, evidence, and review conclusions.
 
-- Record each position with Account, Symbol, side, entry, exit, risk, and result.
-- Add Notes, screenshots, context, and Playbook links to a single position.
-- Review history from Overview, Positions, News, Analysis, and Your Playbooks.
-- Turn repeated setups into Playbooks and criteria.
-- Keep records in your current Obsidian vault, so you can still search, link, and manage files in Obsidian.
+You enter the main interface through `Open journal`. Records created by the plugin stay in the `LucrJournal/` folder of the current vault. They remain Markdown files that you can search, link, and manage.
 
-%% ![[screenshot-overview.png]] %%
+![[screenshot-overview.png]]
 
-> [!warning]
-> LucrJournal is not a broker, order terminal, live trading screen, or investment advice tool. It records and organizes your review. It does not decide trades for you.
+## Who is it for?
 
-## Recommended path
+LucrJournal is for people who record trades consistently and want to answer questions like these:
 
-1. Start with [[quickstart]] to open Journal and complete the minimum setup.
-2. Read [[accounts-and-settings]] to prepare your first Account and Symbol.
-3. Continue with [[record-first-position]] to create your first position record.
-4. Read [[position-details]] to understand the single-position workspace.
-5. Read [[dashboard-review]] to start reviewing every day.
-6. When you have a short question, open [[q-and-a]].
+- Which account and symbol does this position belong to?
+- Why did I choose `LONG` or `SHORT` when I opened it?
+- What were the actual risk, return, and fees?
+- Which news, analysis, key levels, or playbooks affected the result?
+- Which practices should I keep, and which mistakes keep repeating?
 
-## How to use the sections
+LucrJournal is not the right starting point if you do not use Obsidian or only want order entry and market data tools. It records and reviews trades. It does not execute trades or choose a direction for you.
+
+## Meet the four objects first
+
+```mermaid
+flowchart LR
+    A[Platform] --> B[Account]
+    B --> C[Symbol]
+    C --> D[Position]
+```
+
+- A platform represents the trading source.
+- An account separates different purposes or sources of funds.
+- A symbol is a tradable instrument recorded under one account.
+- A position records one specific `Open`, holding, and `Close` process.
+
+The same symbol can exist separately in different accounts. A position finds its account through its symbol. Before you create your first position, you need at least one account and one symbol.
+
+## What to know before the first launch
+
+All LucrJournal views require a valid sign-in and LucrJournal access. The first time you run `Open journal`, you will see `Sign in` instead of `Overview`.
+
+Authorization happens in your browser. You then return to Obsidian for an access check. If your account does not have access yet, the interface shows `Upgrade to LucrJournal`. After upgrading, select `I've upgraded — check again`. You do not need to sign in again.
+
+> [!INFO]
+> Sign-in only verifies your identity and access. Your trading records remain in the current vault.
+
+## Recommended reading path
+
+1. [[quickstart]]: Sign in, check access, and save your first position.
+2. [[accounts-and-symbols]]: Understand accounts, platforms, symbols, and deletion effects.
+3. [[record-first-position]]: Fill in your first complete position record field by field.
+4. [[position-details]]: Add prices, risk, return, notes, and context.
+5. [[dashboard-review]]: Start reviewing from `Overview` and `Positions`.
+6. [[playbooks-and-criteria]]: Turn recurring sources of edge into playbooks.
+
+## How to use the six sections
 
 | Section | When to read it |
 | --- | --- |
-| Getting Started | First launch, Account setup, and Symbol setup. |
-| Position Records | Creating, completing, screenshotting, OCR, and templates. |
-| Daily Review | Daily and weekly review from Dashboard. |
-| Core Concepts | Context, Playbooks, criteria, and Confluence boundaries. |
-| Q&A | Quick answers to common blockers. |
-| Data & Settings | Import, local files, Language, Timezone, and preferences. |
+| Getting Started | Sign in for the first time and prepare accounts and symbols. |
+| Core Model | Understand the relationships between context and files. |
+| Position Records | Create and complete positions, recognize screenshots, or reuse position templates. |
+| Review & Playbooks | Review results and maintain playbooks and criteria. |
+| Data & Settings | Handle imports, local files, language, timezone, and preferences. |
+| Q&A | Get a quick answer to a specific question. |
 
-## Keep this line in mind
-
-> [!tip]
-> Record the position first, add evidence and context next, then write repeated lessons back into Playbooks.
-
-LucrJournal becomes useful through consistent records. On day one, you do not need every feature. You only need one position that you can review later.
+> [!TIP]
+> On day one, complete one position that you can review later. Record the facts first, add evidence and context next, then turn the conclusion into a playbook.

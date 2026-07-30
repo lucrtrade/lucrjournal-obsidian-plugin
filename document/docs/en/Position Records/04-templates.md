@@ -3,49 +3,69 @@ icon: FileText
 title: "Position Templates"
 ---
 
-## When to use a template
+## What a Position Template is
 
-Use a Position Template when you notice that every new position needs the same structure.
+A Position Template is a starting body for a new position. It can hold fixed review questions, checklists, and screenshot placeholders. It does not hold the account, symbol, side, or execution result for one trade.
 
-Templates are useful for:
+When you create a position from a template, the template body replaces the normal empty `Notes` body. You still enter Account, Symbol, and Side under `Create New Position`. The complete validation flow still runs.
 
-- Fixed review questions.
-- Fixed screenshot placeholders.
-- Fixed checklists.
-- A repeated setup record structure.
+> [!NOTE]
+> A template affects only the body copied during creation. Enter real prices, size, times, and conclusions in each position.
 
-Templates are not useful for:
+## Create a template from its dedicated entry point
 
-- Facts that differ on every trade.
-- A complex process you have not used consistently.
-- Long text that replaces thinking.
+Create templates only from the `Templates` menu beside `New Position`. Do not treat one as a generic entry. The generic creation path does not accept Position Templates.
 
-## Create a template
+1. Select the down arrow beside `New Position` to open `Templates`.
+2. Select `Create New Template`.
+3. Enter a nonempty name under `Enter template name`, then press Enter.
+4. When the page shows `Position Template`, select `Open source file`.
+5. Write the Markdown body to copy below the file properties.
 
-1. Decide what this type of position needs every time.
-2. Create a Position Template.
-3. Add the fixed questions and structure.
-4. Save it, then choose it when creating a new position.
+Templates are stored under `LucrJournal/templates/` with five-digit sequences such as `TPL-00001.md`. Use `Edit template file` to reopen an existing template.
 
-%% ![[screenshot-position-template-detail.png]] %%
+%% ![[screenshot-position-template-menu.png]] %%
 
-A template should be short. Its job is to reduce repeated typing, not to make every trade look complete.
+## Write the template body
+
+The template body is the Markdown used when a new position is created. Keep it short. Include only structure that you use every time.
+
+```markdown
+# Notes
+
+## Entry thesis
+
+## Execution mistakes
+
+## Review conclusion
+```
+
+`# Notes` is the body heading for the default `Notes` area. The template body is not validated against the default position structure, so a completely different body is also accepted.
+
+> [!WARNING]
+> If the template omits `# Notes`, a position created from it may also have no default `Notes` section. Keep `# Notes` unless you intentionally need a custom structure.
+
+If Templater is installed, LucrJournal tries to expand the template body while creating the position. Without Templater, it uses the raw body. If expansion fails, it logs the error and also falls back to the raw body. The template file is not rewritten.
+
+%% ![[screenshot-position-template-source.png]] %%
 
 ## Create a position from a template
 
-1. Create a new position.
-2. Choose the Account and Symbol.
-3. Select the template.
-4. Save the position.
-5. Open Position details and fill in the real trade.
+Template creation means choosing a body starting point, then using the normal position creation flow.
 
-> [!note]
-> A template gives you a starting point, not a conclusion. Every position still needs real Notes.
+1. Select the down arrow beside `New Position`.
+2. Under `Templates`, select a template name. The pencil button beside it is `Edit template file`.
+3. `Create New Position` displays `Template` and the selected name.
+4. Complete `Account`, `Symbol`, and `Side`.
+5. Select `Save Position`.
 
-## Avoid over-templating
+Saving still validates the existing account, symbol format, side, file identity, and position property shape. If the template file no longer exists, creation fails before writing the position.
 
-If you delete large parts of a template every time, it is too heavy. Remove the unused parts and keep only fields and questions you actually fill.
+After creation, LucrJournal still writes the `Open` status, current-timezone `Opened At`, and the other normal defaults. Only the body source changes to the template.
 
-## Next
+> [!TIP]
+> If you delete large sections from the template every time, remove those fixed sections. A template should reduce repeated typing, not create cleanup work.
 
-Return to [[position-details]] to complete the single-position review, or continue to [[dashboard-review]].
+## Next step
+
+Return to [[position-details]] to add the real trade, or continue to [[dashboard-review]] for daily review.

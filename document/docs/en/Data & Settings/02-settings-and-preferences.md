@@ -3,45 +3,53 @@ icon: Settings
 title: "Settings and preferences"
 ---
 
-## What Settings affect
-
-Open Settings when you need to change Language, Timezone, table columns, or local preferences. It is not the first place to start daily review.
-
-Common settings include:
-
-- Language.
-- Timezone.
-- Modified Timestamp.
-- Table columns and local UI preferences.
-- Accounts and Symbols management.
+LucrJournal plugin settings are grouped into `Account`, `General`, `Modified Timestamp`, and `Advanced`. The sign-in actions and six settings in these groups change identity state, presentation, and runtime behavior. They do not change your trading conclusions.
 
 %% ![[screenshot-settings-accounts.png]] %%
 
+## Account
+
+When signed out, `Account` shows `Sign in`. It opens LucrTrade for authorization, then shows `Checking LucrJournal access` after you return to Obsidian.
+
+When signed in, this section shows the available avatar, email, and plan. A free Account shows `Free`. A paid plan may also show `Premium`, Monthly or Annual billing, and a renewal or valid-until date. The `Account` section describes identity only. It has no upgrade or recheck action.
+
+After you select `Log out`, the plugin immediately clears the local session and refreshes the interface. It then tries to revoke the old session remotely. Remote revocation is best effort: an offline or failed request does not undo local logout and does not have to succeed first.
+
 ## Language
 
-Language changes LucrJournal UI wording. English docs use the same visible terms as the interface, such as Overview, Positions, News, Analysis, Your Playbooks, Accounts, and Symbols.
+`Language` offers `System`, `English`, and `中文`. The default is `System`: Chinese Obsidian locales use Chinese, and other locales use English.
 
-Changing Language changes UI labels. Your records still live in the vault.
+Changing Language immediately refreshes LucrJournal UI text and date and number formats. It does not translate or rewrite saved vault content.
 
 ## Timezone
 
-Timezone affects how time is displayed and how review dates are understood.
+`Timezone` controls the display or write context for calendar dates, absolute times, relative times, and newly created records. Settings offers common cities and UTC with their current offsets.
 
-If you trade across markets, confirm that Timezone matches your review habit. Otherwise a position may appear under a date you did not expect.
+> [!WARNING]
+> The persisted Timezone setting accepts any string without checking whether it is a real timezone. Writing an invalid value directly makes calendar and relative-time formatting throw errors. Use only the options in Settings.
+
+Absolute time parses the offset stored in the record, then converts it to the current Timezone, so the same instant is displayed correctly. Relative time discards the stored offset and compares the original date and time as wall-clock time in the current Timezone. Changing Timezone can therefore change how long ago the same instant appears.
 
 ## Modified Timestamp
 
-Modified Timestamp shows whether a record has changed. During regular review, it points you to records that were updated recently.
+`Auto update modified` is enabled by default. It only handles Markdown under `LucrJournal/` that still refines as a valid entry. About two seconds after a qualifying change, it updates `modified`. If `created` is missing, it writes the same timestamp there too.
 
-Do not edit it just to make a list look cleaner.
+Enabling it reveals `Update strategy`:
 
-## Table columns and local preferences
+| Option | Default | When it updates |
+| --- | --- | --- |
+| `User-driven` | Yes | Only editor input, deletion, and movement. Programmatic writes are not user edits. |
+| `File-driven` | No | Any vault file modification event, including changes made by other tools. |
 
-Table column preferences help Dashboard match your review style. If you care most about Net Profit, Account, Symbol, or Playbooks, keep those columns visible.
+Turn off `Auto update modified` if you do not want the plugin to maintain these timestamps. Existing timestamps are not deleted.
 
-> [!tip]
-> More columns do not mean better review. Keep the columns you actually read every day.
+## Advanced
 
-## Next
+`Show release notes after updates` is enabled by default. After LucrJournal upgrades to a newer version, it opens the latest changelog difference. A first install does not show historical updates. Turning it off only disables the automatic modal after upgrades. You can still run the `Show release notes` command.
 
-To understand how records and attachments stay in the vault, continue with [[local-files-and-markdown]].
+`Debug mode` is disabled by default. When enabled, the shared logger writes debug messages and groups to the developer console. Warnings and errors remain visible regardless of this setting. Only a development build adds request logging; a production build does not install that request interceptor.
+
+> [!WARNING]
+> With `Debug mode` enabled, a development build writes complete request headers and bodies to the developer console. They may contain sign-in credentials. Enable it only temporarily while troubleshooting. Do not leave it on, and do not send console logs captured while it was enabled directly to anyone.
+
+For Settings problems, start with [[q-and-a]]. To understand file modification boundaries, continue with [[local-files-and-markdown]].
