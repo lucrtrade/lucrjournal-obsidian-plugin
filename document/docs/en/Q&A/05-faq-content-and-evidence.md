@@ -5,18 +5,47 @@ title: "Content and evidence"
 
 These questions cover how OCR, source imports, Playbooks, and templates handle body content and evidence.
 
-## What if OCR is wrong?
+## Incorrect OCR result
 
-Compare the result with the original image in `Review OCR Result` and edit it before applying. OCR only writes fields you submit, and it does not decide `LONG` or `SHORT`. See [[attachments-chart-ocr]] and [[sync-and-import]].
+**OCR read a price in my image incorrectly.**
 
-## Why did my old News body disappear after import?
+Compare the result with the original image in `Review OCR Result`, edit it, and then apply it. OCR only writes the fields you submit.
 
-`Import source content` replaces the current News body with the remote page. If the confirmation says content already exists, cancel and copy handwritten content before importing. See [[sync-and-import]].
+==OCR does not decide `LONG` or `SHORT`.==
 
-## Why did my handwritten Playbook notes disappear?
+→ [[attachments-chart-ocr]] · [[sync-and-import]]
 
-`Save Playbook` preserves only valid leading frontmatter and replaces the rest with the current Criteria and Confluence. Handwritten paragraphs, extra headings, comments, and code blocks do not survive. See [[playbooks-and-criteria]] and [[local-files-and-markdown]].
+## Imported body overwrite
 
-## Why does a position created from a template have no Notes?
+**My old News body disappeared after I imported a source.**
 
-The template body becomes the new position body. If the template has no `# Notes`, the position may have no default Notes section either. Keep that heading unless you deliberately need another structure. See [[templates]].
+`Import source content` replaces the current News body with the remote page.
+
+> [!WARNING] What to do
+> If the confirmation says content already exists, cancel and copy handwritten content before importing.
+
+→ [[sync-and-import]]
+
+## Replaced Playbook body
+
+**My handwritten paragraphs and extra headings disappeared after I saved a Playbook.**
+
+`Save Playbook` preserves only valid leading frontmatter. ==It replaces the rest of the body with the current Criteria and Confluence.==
+
+Handwritten paragraphs, extra headings, comments, and code blocks do not survive.
+
+> [!WARNING] What to do
+> Preserve handwritten content elsewhere before saving the Playbook.
+
+→ [[playbooks-and-criteria]] · [[local-files-and-markdown]]
+
+## Missing Notes section
+
+**A position created from a template has no `Notes`.**
+
+The template body becomes the new position body. If the template has no `# Notes`, the position may have no default Notes section either.
+
+> [!TIP] What to do
+> Keep the `# Notes` heading unless you deliberately need another structure.
+
+→ [[templates]]

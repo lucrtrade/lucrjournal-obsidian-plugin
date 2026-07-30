@@ -11,7 +11,6 @@ import {
 	LUCR_POSITION_VIEW_TYPE,
 	OPEN_JOURNAL_COMMAND_ID,
 } from './constant'
-import { installDevelopmentIpcRequestLogger } from './debug/install-development-ipc-request-logger'
 import { registerDomainModifiedTracker } from './domains/core/domain-modified-tracker'
 import { registerLucrJournalAttachmentCapture } from './editor/attachment-paste-drop'
 import { IconsSvg } from './icons'
@@ -49,7 +48,6 @@ const SESSION_CHECK_INTERVAL_MS = 60 * 60 * 1000
 export default class LucrJournalPlugin extends Plugin {
 	public override settings = new PluginSettings()
 	public settingsManager = new PluginSettingsManager(this)
-	private debugRuntimeCleanup: () => void = () => {}
 	private settingsTab: PluginSettingsTab | null = null
 
 	public override async onload(): Promise<void> {
@@ -77,16 +75,9 @@ export default class LucrJournalPlugin extends Plugin {
 		void this.app.workspace.detachLeavesOfType(LUCR_JOURNAL_VIEW_TYPE)
 		void this.app.workspace.detachLeavesOfType(LUCR_PLAYBOOK_VIEW_TYPE)
 		void this.app.workspace.detachLeavesOfType(LUCR_POSITION_VIEW_TYPE)
-		this.debugRuntimeCleanup()
-		this.debugRuntimeCleanup = () => {}
 	}
 
 	private async onloadImpl(): Promise<void> {
-		this.register(() => {
-			// @story [[lucrjournal/runtime#^debug-ipc-cleanup]] Binds debug IPC cleanup to the plugin lifecycle.
-			this.debugRuntimeCleanup()
-			this.debugRuntimeCleanup = () => {}
-		})
 		this.register(registerPositionAttachmentOcrRuntime(this))
 		bindCacheRuntime(this.app, CacheRegistry)
 		const domainModifiedTracker = registerDomainModifiedTracker(this)
@@ -262,10 +253,6 @@ export default class LucrJournalPlugin extends Plugin {
 	public applyDebugMode(): void {
 		// @story [[lucrjournal/runtime#^debug-ipc-gate]] Cleans the previous runtime before applying the current debug setting.
 		setDebugLoggingEnabled(this.settings.debugMode)
-		this.debugRuntimeCleanup()
-		this.debugRuntimeCleanup = this.settings.debugMode
-			? installDevelopmentIpcRequestLogger()
-			: () => {}
 	}
 
 	public requestJournalViewsRender(): void {
