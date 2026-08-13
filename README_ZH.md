@@ -2,103 +2,49 @@
 
 [英文](README.md)
 
-LucrJournal 是一个 Obsidian 插件，用于在一个本地工作区里复盘和管理仓位、策略手册、条件、标的、账户、附件以及相关市场分析。
+LucrJournal 是一个 Obsidian 插件，把你的交易日志放进你本来就在用的库。每一笔仓位、账户、标的、关键位、新闻、分析和策略手册都以纯 Markdown 文件保存——可搜索、可链接，也完全属于你。
 
-它适合已经用 Obsidian 记录交易和研究笔记的用户，把交易记录、上下文、截图证据和复盘结论放回同一个库。
+![LucrJournal 概览](document/assets/zh/light/screenshot-overview.png)
 
-## 可以做什么
+## 为什么在 Obsidian 里记日志
 
-- 记录仓位所属账户、标的、执行、风险和复盘上下文。
-- 把交易和新闻、关键位、市场分析、策略手册、条件、Confluence 连接起来。
-- 从仪表盘查看近期表现，而不是逐篇翻分散的交易笔记。
-- 将截图和其他图片证据保存在对应仓位下。
-- 通过 OCR 和导入流程减少重复录入，并在写回前人工确认结果。
-- 将记录作为本地文本和附件文件保存在 Obsidian 库中。
-
-LucrJournal 不是券商、下单工具、实时交易终端，也不提供投资建议。
+- 记录留在你自己的库里。不上云、不锁定：文件是你的，想怎么读、怎么备份、怎么链接都行。
+- 一笔交易不只是一条笔记。仓位会连到所属账户、标的、关键位、新闻、市场分析和策略手册，复盘时可以从一笔交易追溯到当时的计划与证据。
+- 为复盘设计，不只是记录。仪表盘、筛选和策略手册统计能把已平仓的交易变成可复用的检查项。
 
 ## 主要功能
 
-- 创建、补全和复盘交易记录的仓位工作流。
-- 用于概览、仓位、新闻、分析、策略手册、账户和标的的仪表盘视图。
-- 账户和标的管理，可按来源、品种或策略筛选记录。
-- 策略手册、条件和 Confluence 结构，可把重复形态沉淀成可复用检查项。
-- 在库的 `LucrJournal/` 目录下保存本地文本记录。
-- 管理截图、图表证据和复盘图片的附件功能。
-- OCR 辅助复核，可从截图提取候选交易字段，再由用户确认后写回。
-- 对已关联加密货币标的的仓位提供蜡烛图，并可将图表截图保存为附件。
-- 英文和简体中文界面语言设置。
+- **仓位记录** — 开仓/平仓生命周期，含入场、出场、止损、目标与笔记；名义价值、风险、盈亏和 R:R 按品种类型（加密货币、期货、CFD）自动计算。
+- **上下文区块** — 每笔仓位内直接链接 `新闻`、`关键位`、`Confluence` 和 `市场分析`。
+- **策略手册与条件** — 结构化检查清单写回 Markdown，并按实际引用它的仓位计算胜率和净盈亏。
+- **证据与 OCR** — 粘贴或拖拽截图作为去重后的附件；本地 OCR 识别 MetaTrader 和 TradingView 截图，写回记录前由你确认结果。
+- **图表** — 带入场/出场标记的蜡烛图；期货行情来自 Yahoo，加密货币来自账户对应的交易所（Binance、Bybit、OKX）。
+- **标的** — 内置目录（ES、NQ、EURUSD、XAUUSD 等）、规范化命名，TradingView 提供 logo 与类型。
+- **模板、更新说明、英文与简体中文界面** — 以及绑定 LucrTrade 账户的权益入口。
 
 ## 安装
 
-LucrJournal 需要 Obsidian `1.11.4` 或更高版本。
-使用插件需要登录具备 LucrJournal 使用权益的 LucrTrade 账户。
+LucrJournal 已上架 Obsidian 社区插件商店（id：`lucrjournal`）。
 
-手动安装时，将以下文件复制到库的插件目录：
+1. 设置 → 第三方插件 → 浏览 → 搜索 **LucrJournal** → 安装 → 启用。
+2. 运行 `打开日记` 命令，用你的 LucrTrade 账户登录。如果账户还没有 journal 权益，升级界面会说明如何开通——之后无需重新登录。
 
-```text
-VaultFolder/.obsidian/plugins/lucrjournal/
-```
+需要 Obsidian 1.11.4 或更高版本。手动安装：把 `manifest.json`、`main.js`、`styles.css`、`onnxruntime-web/` 和 `ocr/` 复制到 `VaultFolder/.obsidian/plugins/lucrjournal/`，然后重新加载 Obsidian。
 
-必需插件文件和目录：
+## 文档
 
-- `manifest.json`
-- `main.js`
-- `styles.css`
-- `onnxruntime-web/`
-- `ocr/`
-
-然后重新加载 Obsidian，并在第三方插件中启用 LucrJournal。
-
-## 使用
-
-可以从左侧功能区图标打开 LucrJournal，也可以在 Obsidian 命令面板中运行 `打开日记`。
-
-推荐的第一次使用路径：
-
-1. 打开 LucrJournal。
-2. 创建或确认一个账户。
-3. 用账户和标的创建一笔仓位。
-4. 打开仓位详情，补充这笔交易最重要的执行、风险、笔记和复盘上下文。
-5. 当截图或其他证据能解释入场、出场、风险或结论时，把它们添加到仓位。
-6. 之后从仪表盘按账户、标的、策略手册或上下文复盘仓位。
-
-LucrJournal 会把记录保存在你的库中，因此可以在 Obsidian 里搜索、链接和谨慎检查这些文件。
+使用指南、字段参考和常见问题：<https://lucrjournal.lucrtrade.com/docs/>
 
 ## 开发
 
-安装依赖：
-
 ```bash
 bun install
-```
-
-启动开发构建：
-
-```bash
 bun run dev
-```
-
-构建插件包：
-
-```bash
 bun run build:bundle
-```
-
-运行测试：
-
-```bash
 bun run test
-```
-
-运行代码检查：
-
-```bash
 bun run lint
 ```
 
-发布产物包含 `manifest.json`、`main.js`、`styles.css`，以及带离线 OCR runtime assets 的 zip。
-
 ## 许可证
 
-见仓库许可证文件。
+MIT

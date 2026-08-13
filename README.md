@@ -2,102 +2,48 @@
 
 [中文](README_ZH.md)
 
-LucrJournal is an Obsidian plugin for reviewing and managing positions, playbooks, criteria, symbols, accounts, attachments, and related market analysis in one focused local workspace.
+LucrJournal is an Obsidian plugin that keeps your trading journal inside the vault you already use. Every position, account, symbol, key level, news item, analysis, and playbook lives as plain Markdown — searchable, linkable, and yours.
 
-It is built for traders who already use Obsidian for notes and want trade records, context, screenshots, and review conclusions to stay in the same vault.
+![LucrJournal dashboard](document/assets/en/light/screenshot-overview.png)
 
-## What It Helps You Do
+## Why keep the journal in Obsidian
 
-- Record positions with account, symbol, execution, risk, and review context.
-- Connect trades with news, key levels, market analysis, playbooks, criteria, and confluence.
-- Review recent performance from a dashboard instead of reading isolated trade notes.
-- Keep screenshots and other image evidence attached to the position they explain.
-- Use OCR and import flows to reduce repetitive entry while still reviewing the result before writeback.
-- Keep records as local Markdown and attachment files inside your Obsidian vault.
+- Records stay in your vault. No cloud, no lock-in: the files are yours to read, back up, and link however you like.
+- A trade is more than a note. Positions link to their account, symbol, key levels, news, market analysis, and playbook, so a review can trace one trade back to the plan and evidence behind it.
+- Built for review, not just entry. Dashboards, filters, and playbook statistics turn closed trades into reusable checks.
 
-LucrJournal is not a broker, an order-entry tool, a real-time trading terminal, or an investment advice product.
+## Features
 
-## Key Features
+- **Position records** — open/close lifecycle with entry, exit, stop, target, and notes; notional, risk, P&L, and R:R derived per instrument type (crypto, futures, CFD).
+- **Context sections** — `News`, `Key Levels`, `Confluence`, and `Market Analysis` linked right inside each position.
+- **Playbooks & criteria** — structured checklists written back to Markdown, with win rate and net P&L computed from the positions that actually used them.
+- **Evidence & OCR** — paste or drop screenshots as deduplicated attachments; local OCR recognizes MetaTrader and TradingView screenshots and lets you review the result before it touches the record.
+- **Charts** — candlestick charts with entry/exit markers; futures data comes from Yahoo, crypto from your account's exchange (Binance, Bybit, OKX).
+- **Symbols** — built-in catalog (ES, NQ, EURUSD, XAUUSD…), canonical naming, TradingView-backed logos and types.
+- **Templates, release notes, English and 简体中文 UI** — plus an upgrade gate tied to your LucrTrade account.
 
-- Position workflow for creating, completing, and reviewing trade records.
-- Dashboard views for Overview, Positions, News, Analysis, Playbook, Accounts, and Symbols.
-- Account and symbol management for filtering records by source, instrument, or strategy.
-- Playbook, criteria, and confluence structures for turning repeated setups into reusable checks.
-- Local Markdown storage under `LucrJournal/` in your vault.
-- Attachment handling for screenshots, chart evidence, and review images.
-- OCR-assisted review for extracting candidate trade fields from screenshots before applying them.
-- Candlestick chart support for linked crypto positions, with chart screenshots saved as attachments.
-- English and Simplified Chinese interface language settings.
+## Install
 
-## Installation
+LucrJournal is listed in the Obsidian community plugin store (id: `lucrjournal`).
 
-LucrJournal requires Obsidian `1.11.4` or later.
-Using the plugin requires signing in with a LucrTrade account that includes LucrJournal access.
+1. Settings → Community plugins → Browse → search **LucrJournal** → Install → Enable.
+2. Run the `Open journal` command and sign in with your LucrTrade account. If your plan does not include journal access, the upgrade screen shows how to enable it — no re-login needed afterwards.
 
-For a manual install, copy these files into your vault plugin folder:
+Requires Obsidian 1.11.4 or later. For a manual install, copy `manifest.json`, `main.js`, `styles.css`, `onnxruntime-web/`, and `ocr/` into `VaultFolder/.obsidian/plugins/lucrjournal/` and reload Obsidian.
 
-```text
-VaultFolder/.obsidian/plugins/lucrjournal/
-```
+## Documentation
 
-Required plugin files and directories:
-
-- `manifest.json`
-- `main.js`
-- `styles.css`
-- `onnxruntime-web/`
-- `ocr/`
-
-Then reload Obsidian and enable LucrJournal from Community plugins.
-
-## Usage
-
-Open LucrJournal from the left ribbon icon or the Obsidian command palette command `Open journal`.
-
-A practical first run is:
-
-1. Open LucrJournal.
-2. Create or confirm one account.
-3. Create a position with the account and symbol.
-4. Open position details and fill the execution, risk, notes, and review context that matter for this trade.
-5. Add screenshots or other evidence when they explain entry, exit, risk, or conclusion.
-6. Review positions later from the dashboard by account, symbol, playbook, or context.
-
-LucrJournal keeps its records in your vault, so you can search, link, and carefully inspect them from Obsidian.
+Guides, field reference, and FAQs: <https://lucrjournal.lucrtrade.com/docs/>
 
 ## Development
 
-Install dependencies:
-
 ```bash
 bun install
-```
-
-Start the development build:
-
-```bash
 bun run dev
-```
-
-Build the plugin bundle:
-
-```bash
 bun run build:bundle
-```
-
-Run tests:
-
-```bash
 bun run test
-```
-
-Run lint checks:
-
-```bash
 bun run lint
 ```
-
-The release artifacts include `manifest.json`, `main.js`, `styles.css`, and a zip with offline OCR runtime assets.
 
 ## License
 
