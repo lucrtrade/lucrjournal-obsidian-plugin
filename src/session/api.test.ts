@@ -23,6 +23,19 @@ describe('mapCheckResponse', () => {
 		expect(mapCheckResponse(200, { status: 'active', ...context }))
 			.toEqual({ kind: 'active', context })
 	})
+	it('active with half_year subscription', () => {
+		const halfYearContext = {
+			...context,
+			plan: { key: 'lucrjournal', status: 'active' },
+			subscription: {
+				interval: 'half_year',
+				currentPeriodEnd: '2026-08-31T00:00:00.000Z',
+				cancelAtPeriodEnd: false,
+			},
+		} as const
+		expect(mapCheckResponse(200, { status: 'active', ...halfYearContext }))
+			.toEqual({ kind: 'active', context: halfYearContext })
+	})
 	it('filters unknown features', () => {
 		expect(mapCheckResponse(200, {
 			status: 'active',

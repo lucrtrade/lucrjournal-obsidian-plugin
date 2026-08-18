@@ -8,6 +8,7 @@ export const zhCN: Partial<Record<keyof typeof en, string>> = {
 	SETTINGS_ACCOUNT_PLAN_FREE: '免费套餐',
 	SETTINGS_ACCOUNT_PLAN_INTERVAL: '{plan}（{interval}）',
 	SETTINGS_ACCOUNT_PLAN_INTERVAL_MONTH: '月付',
+	SETTINGS_ACCOUNT_PLAN_INTERVAL_HALF_YEAR: '半年付',
 	SETTINGS_ACCOUNT_PLAN_INTERVAL_YEAR: '年付',
 	SETTINGS_ACCOUNT_PLAN_RENEWS_ON: '{plan} · 下次续费：{date}',
 	SETTINGS_ACCOUNT_PLAN_VALID_UNTIL: '{plan} · 有效期至 {date}',

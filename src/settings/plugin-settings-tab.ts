@@ -413,7 +413,9 @@ function accountPlanText(context: AccountContext): string {
 	}
 	const interval = context.subscription.interval === 'month'
 		? t('SETTINGS_ACCOUNT_PLAN_INTERVAL_MONTH')
-		: t('SETTINGS_ACCOUNT_PLAN_INTERVAL_YEAR')
+		: context.subscription.interval === 'half_year'
+			? t('SETTINGS_ACCOUNT_PLAN_INTERVAL_HALF_YEAR')
+			: t('SETTINGS_ACCOUNT_PLAN_INTERVAL_YEAR')
 	const plan = t('SETTINGS_ACCOUNT_PLAN_INTERVAL', {
 		plan: planName,
 		interval,

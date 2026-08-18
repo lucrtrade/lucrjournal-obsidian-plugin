@@ -87,7 +87,7 @@ function coerceSubscription(value: unknown): AccountContext['subscription'] | un
 	const currentPeriodEnd = coercePeriodEnd((value as { currentPeriodEnd?: unknown }).currentPeriodEnd)
 	const cancelAtPeriodEnd = (value as { cancelAtPeriodEnd?: unknown }).cancelAtPeriodEnd
 	if (
-		(interval !== 'month' && interval !== 'year')
+		(interval !== 'month' && interval !== 'half_year' && interval !== 'year')
 		|| currentPeriodEnd === undefined
 		|| typeof cancelAtPeriodEnd !== 'boolean'
 	) {

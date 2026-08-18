@@ -260,6 +260,36 @@ describe('PluginSettingsTab', () => {
 		expect(logout).toHaveBeenCalledTimes(1)
 	})
 
+	it('renders semi-annual subscription interval details when signed in', () => {
+		setCurrentLocaleSetting('en')
+		const { plugin } = createPlugin()
+		Object.assign(plugin, {
+			app: appWith('lj_token', accountContext(
+				{
+					userId: 'u1',
+					username: 'alice',
+					displayName: 'Alice',
+					avatarUrl: null,
+					email: 'alice@example.com',
+				},
+				{ key: 'lucrjournal', status: 'active' },
+				{
+					interval: 'half_year',
+					currentPeriodEnd: '2026-08-31T00:00:00.000Z',
+					cancelAtPeriodEnd: false,
+				},
+			)),
+			logout: vi.fn(),
+		})
+		const tab = new PluginSettingsTab(plugin)
+		const el = fakeEl()
+		renderAccount(tab, el)
+
+		const all = collect(el)
+		const plan = all.find((node) => attrValue(node, 'data-lj-account') === 'plan')
+		expect(plan?.textContent).toBe('LucrJournal (Semi-annual) · Renews on Aug 31, 2026')
+	})
+
 	// @story [[lucrjournal/entitlement#^settings-identity-only]] Covers the sign-in action only when the token is absent.
 	it('renders a sign-in button and no email when signed out', () => {
 		setCurrentLocaleSetting('en')
