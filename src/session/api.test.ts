@@ -101,7 +101,7 @@ describe('mapCheckResponse', () => {
 	})
 	// @story [[lucrjournal/entitlement#^active-requires-journal]] Covers the dedicated entitlement denial code.
 	it('lucrjournal_entitlement_required -> signed_out', () => {
-		expect(mapCheckResponse(403, {
+		expect(mapCheckResponse(200, {
 			status: 'entitlement_required',
 			code: 'lucrjournal_entitlement_required',
 		})).toEqual({ kind: 'signed_out', reason: 'entitlement_required', context: null })
@@ -118,7 +118,7 @@ describe('mapCheckResponse', () => {
 				cancelAtPeriodEnd: false,
 			},
 		} as const
-		expect(mapCheckResponse(403, {
+		expect(mapCheckResponse(200, {
 			status: 'entitlement_required',
 			code: 'lucrjournal_entitlement_required',
 			...deniedContext,
