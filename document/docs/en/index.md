@@ -65,18 +65,19 @@ Authorization happens in your browser. You then return to Obsidian for an access
 
 ## Recommended reading path
 
-1. [[quickstart]]: Sign in, check access, and save your first position.
-2. [[accounts-and-symbols]]: Understand accounts, platforms, symbols, and deletion effects.
-3. [[record-first-position]]: Fill in your first complete position record field by field.
-4. [[position-details]]: Add prices, risk, return, notes, and context.
-5. [[dashboard-review]]: Start reviewing from `Overview` and `Positions`.
-6. [[playbooks-and-criteria]]: Turn recurring sources of edge into playbooks.
+1. [[install-lucrjournal]]: Install Obsidian and LucrJournal.
+2. [[quickstart]]: Sign in, check access, and save your first position.
+3. [[accounts-and-symbols]]: Understand accounts, platforms, symbols, and deletion effects.
+4. [[record-first-position]]: Fill in your first complete position record field by field.
+5. [[position-details]]: Add prices, risk, return, notes, and context.
+6. [[dashboard-review]]: Start reviewing from `Overview` and `Positions`.
+7. [[playbooks-and-criteria]]: Turn recurring sources of edge into playbooks.
 
 ## How to use the six sections
 
 | Section | When to read it |
 | --- | --- |
-| Getting Started | Sign in for the first time and prepare accounts and symbols. |
+| Getting Started | Install Obsidian and LucrJournal, then sign in and prepare accounts and symbols. |
 | Core Model | Understand the relationships between context and files. |
 | Position Records | Create and complete positions, recognize screenshots, or reuse position templates. |
 | Review & Playbooks | Review results and maintain playbooks and criteria. |

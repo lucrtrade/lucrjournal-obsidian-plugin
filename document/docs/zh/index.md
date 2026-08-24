@@ -65,18 +65,19 @@ flowchart LR
 
 ## 推荐阅读路径
 
-1. [[quickstart]]：完成登录、权益检查和第一笔仓位。
-2. [[accounts-and-symbols]]：理解账户、平台、标的及其删除影响。
-3. [[record-first-position]]：逐项填写第一条正式仓位记录。
-4. [[position-details]]：补充价格、风险、收益、笔记和上下文。
-5. [[dashboard-review]]：从 `概览` 和 `仓位` 开始复盘。
-6. [[playbooks-and-criteria]]：把重复出现的优势模式沉淀为策略手册。
+1. [[install-lucrjournal]]：安装 Obsidian 和 LucrJournal。
+2. [[quickstart]]：完成登录、权益检查和第一笔仓位。
+3. [[accounts-and-symbols]]：理解账户、平台、标的及其删除影响。
+4. [[record-first-position]]：逐项填写第一条正式仓位记录。
+5. [[position-details]]：补充价格、风险、收益、笔记和上下文。
+6. [[dashboard-review]]：从 `概览` 和 `仓位` 开始复盘。
+7. [[playbooks-and-criteria]]：把重复出现的优势模式沉淀为策略手册。
 
 ## 六个章节怎么读
 
 | 章节 | 什么时候读 |
 | --- | --- |
-| 开始使用 | 第一次登录，准备账户和标的。 |
+| 开始使用 | 安装 Obsidian 和 LucrJournal，完成第一次登录，准备账户和标的。 |
 | 核心模型 | 理解上下文和文件之间的关系。 |
 | 仓位记录 | 创建、补全、截图识别或复用仓位模板。 |
 | 复盘与沉淀 | 回看结果，维护策略手册和条件。 |
