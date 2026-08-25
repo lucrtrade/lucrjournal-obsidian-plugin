@@ -86,10 +86,9 @@ function EntryRowActionsMenu({ onDelete }: { onDelete: () => void }) {
 	}, [isOpen])
 
 	return (
-		<div ref={menuRef} className="lj:relative lj:inline-flex">
-			<button type="button" onClick={(event) => {
-				event.stopPropagation(); setIsOpen((value) => !value) 
-			}} className="lj:p-1.5 lj:rounded-md lj:text-lj-c-muted-half lj:hover:text-lj-c-strong lj:hover:bg-lj-surf-button-hover lj:transition-colors">
+		// @story [[lucrjournal/fields#^table-row-action-isolation]] Keeps row action menus from activating parent row navigation
+		<div ref={menuRef} className="lj:relative lj:inline-flex" onClick={(event) => event.stopPropagation()}>
+			<button type="button" onClick={() => setIsOpen((value) => !value)} className="lj:p-1.5 lj:rounded-md lj:text-lj-c-muted-half lj:hover:text-lj-c-strong lj:hover:bg-lj-surf-button-hover lj:transition-colors">
 				<ObsidianIcon name="more-horizontal" className="lj:size-4" />
 			</button>
 			{isOpen && (

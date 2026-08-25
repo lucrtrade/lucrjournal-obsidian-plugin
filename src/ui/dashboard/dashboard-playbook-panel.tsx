@@ -116,6 +116,7 @@ export function DashboardPlaybookPanel({
 				{hasPlaybooks ? (
 					<div className="lj:grid lj:grid-cols-1 lj:md:grid-cols-2 lj:xl:grid-cols-3 lj:gap-6">
 						{orderedPlaybooks.map((playbook) => (
+							// @story [[lucrjournal/playbook#^playbook-card-action-isolation]] Restricts keyboard card activation to the focused card itself
 							<article
 								key={playbook.entry.file.path}
 								role="button"
@@ -123,6 +124,9 @@ export function DashboardPlaybookPanel({
 								className="lj-dashboard-playbook-card-shadow lj:group lj:flex lj:min-h-[15rem] lj:flex-col lj:justify-between lj:rounded-xl lj:border lj:border-lj-alpha-10 lj:bg-lj-surf lj:p-6 lj:md:p-8 lj:transition-all lj:duration-300 lj:hover:-translate-y-1 lj:hover:shadow-xl lj:focus-visible:outline-none lj:focus-visible:ring-2 lj:focus-visible:ring-lj-alpha-15"
 								onClick={(event) => onSelectPlaybook(playbook.entry.file.path, event)}
 								onKeyDown={(event) => {
+									if (event.target !== event.currentTarget) {
+										return
+									}
 									if (event.key === 'Enter' || event.key === ' ') {
 										event.preventDefault()
 										onSelectPlaybook(playbook.entry.file.path)
