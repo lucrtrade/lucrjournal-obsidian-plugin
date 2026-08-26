@@ -4,7 +4,9 @@
   "parsedResult": {
     "entry_price": 4495.46,
     "exit_price": 4497.76,
-    "notional_value": 0.05
+    "notional_value": 0.05,
+    "side": "LONG",
+    "symbol": "XAUUSD"
   },
   "recognition": {
     "lines": [

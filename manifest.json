@@ -1,7 +1,7 @@
 {
 	"id": "lucrjournal",
 	"name": "LucrJournal",
-	"version": "0.1.10",
+	"version": "0.1.11",
 	"minAppVersion": "1.11.4",
 	"description": "Record your trades as local Markdown files and link every entry to its key levels, confluences, market analysis, and news — turning your journal into a connected, private knowledge graph.",
 	"author": "LucrTrade",

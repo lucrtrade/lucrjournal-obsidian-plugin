@@ -62,6 +62,7 @@ export class PluginSettings {
 	public showReleaseNotes = true
 	// @story [[lucrjournal/runtime#^debug-mode-default]] Keeps runtime debug instrumentation disabled by default.
 	public debugMode = false
+	public globalScreenshotShortcut = 'Command+Shift+2'
 	public preferences: PluginPreferences = createPluginPreferences(null)
 }
 
@@ -112,6 +113,9 @@ export function createPluginSettings(persistedSettings: unknown): PluginSettings
 	// @story [[lucrjournal/runtime#^debug-mode-default]] Hydrates debug mode only from a persisted boolean.
 	if (typeof persistedSettings.debugMode === 'boolean') {
 		settings.debugMode = persistedSettings.debugMode
+	}
+	if (typeof persistedSettings.globalScreenshotShortcut === 'string') {
+		settings.globalScreenshotShortcut = persistedSettings.globalScreenshotShortcut
 	}
 
 	settings.preferences = createPluginPreferences(persistedSettings.preferences)

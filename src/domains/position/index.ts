@@ -16,13 +16,13 @@ import {
 } from '../../utils'
 import {
 	coerceDatetime,
+	coerceEnum,
 	coerceFrontmatterField,
 	coerceInteger,
 	coerceLiteral,
 	coerceNullableString,
 	coerceNumber,
 	coerceStringArray,
-	coerceUppercaseString,
 	coerceWikilink,
 	type CoercibleFrontmatter,
 } from '../../utils/frontmatter-coerce'
@@ -85,6 +85,7 @@ const PositionConfidenceType = type.enumerated(1, 2, 3, 4, 5)
 export type PositionConfidence = typeof PositionConfidenceType.infer
 const POSITION_SIDE_OPTIONS = ['LONG', 'SHORT'] as const
 export const POSITION_CONFIDENCE_OPTIONS = [1, 2, 3, 4, 5] as const
+const POSITION_NOTIONAL_ASSET_OPTIONS = ['native', 'usd'] as const
 
 const POSITION_SYMBOL_REQUIRED_ERROR = 'POSITION_SYMBOL_REQUIRED_ERROR'
 const POSITION_ACCOUNT_NOT_FOUND_ERROR = 'POSITION_ACCOUNT_NOT_FOUND_ERROR'
@@ -187,26 +188,20 @@ const positionFormDefinition = defineForm<PositionFormShape>({
 	},
 } as const)
 
-// @story [[lucrjournal/position#^position-status-coercion]] Normalizes legacy and canonical lifecycle strings before schema validation
+// @story [[lucrjournal/position#^position-status-coercion]] Maps legacy and canonical lifecycle strings and clamps anything else to null
 function coercePositionStatus(value: unknown): unknown {
-	if (value == null) {
-		return null
-	}
-
 	if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean' && typeof value !== 'bigint') {
-		return value
+		return null
 	}
 
 	const normalized = String(value).trim().toLocaleLowerCase()
-	if (normalized.length === 0) {
-		return null
+	if (normalized === 'closed' || normalized === 'close') {
+		return 'close'
 	}
-
-	return normalized === 'closed'
-		? 'close'
-		: normalized === 'opened'
-			? 'open'
-			: normalized
+	if (normalized === 'opened' || normalized === 'open') {
+		return 'open'
+	}
+	return null
 }
 
 function getPositionSideSelectOptions(): SelectOption[] {
@@ -267,23 +262,6 @@ function coerceSymbolWikilink(value: unknown): unknown {
 	return trimmed.startsWith('[[') && trimmed.endsWith(']]')
 		? coerceWikilink(trimmed)
 		: value
-}
-
-function coerceNotionalAsset(value: unknown): unknown {
-	if (value == null) {
-		return null
-	}
-	if (typeof value !== 'string') {
-		return value
-	}
-	const normalized = value.trim().toLocaleLowerCase()
-	if (normalized === '') {
-		return null
-	}
-	if (normalized === 'native' || normalized === 'usd') {
-		return normalized
-	}
-	return value
 }
 
 class PositionDomainDefinition extends DomainBase<'position', typeof PositionType, typeof positionFormDefinition> {
@@ -374,10 +352,10 @@ class PositionDomainDefinition extends DomainBase<'position', typeof PositionTyp
 		// @story [[lucrjournal/position#^position-link-shapes]] Normalizes non-empty playbook values without resolving their targets
 		coerceFrontmatterField(record, 'playbook', coerceWikilink)
 		coerceFrontmatterField(record, 'profit', coerceNumber)
-		coerceFrontmatterField(record, 'side', coerceUppercaseString)
-		coerceFrontmatterField(record, 'confidence', coerceInteger)
+		coerceFrontmatterField(record, 'side', (value) => coerceEnum(value, POSITION_SIDE_OPTIONS))
+		coerceFrontmatterField(record, 'confidence', (value) => coerceEnum(value, POSITION_CONFIDENCE_OPTIONS))
 		coerceFrontmatterField(record, 'notional_value', coerceNumber)
-		coerceFrontmatterField(record, 'notional_asset', coerceNotionalAsset)
+		coerceFrontmatterField(record, 'notional_asset', (value) => coerceEnum(value, POSITION_NOTIONAL_ASSET_OPTIONS))
 		// @story [[lucrjournal/position#^position-notional-mode]] Retains native amount only while native notional mode is active
 		if (record.notional_asset === 'native') {
 			coerceFrontmatterField(record, 'notional_amount', coerceNumber)
@@ -1451,6 +1429,21 @@ if (import.meta.vitest) {
 				lucr_type: 'position',
 				symbol: ' tsla ',
 			})).toBeNull()
+		})
+
+		it('clamps unrecognized status, side, confidence, and notional asset to null instead of dropping the record', () => {
+			expect(PositionDomain.refine({
+				lucr_type: 'position',
+				status: 'in-progress',
+				side: 'sideways',
+				confidence: 9,
+				notional_asset: 'gbp',
+			})).toEqual(expect.objectContaining({
+				status: null,
+				side: null,
+				confidence: null,
+				notional_asset: null,
+			}))
 		})
 
 		it('leaves removed account/platform fields untouched on coerce', () => {

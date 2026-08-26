@@ -5,7 +5,8 @@
     "notional_value": 0.147,
     "stop_loss": 74520,
     "target_price": 75420,
-    "entry_price": 74860
+    "entry_price": 75500,
+    "side": "LONG"
   },
   "recognition": {
     "lines": [

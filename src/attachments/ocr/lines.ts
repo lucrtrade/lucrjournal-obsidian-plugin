@@ -96,7 +96,7 @@ export function canonicalizeOcrLine(text: string) {
 		.replaceAll('\u00d7', 'x')
 		.replaceAll(':', ' ')
 		.replaceAll('|', ' ')
-		.replace(/[^\w./,+\- ]/g, ' ')
+		.replace(/[^\w\u4e00-\u9fff./,+\- ]/g, ' ')
 		.replace(/\s+/g, ' ')
 		.trim()
 }

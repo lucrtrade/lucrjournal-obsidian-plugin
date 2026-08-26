@@ -2,11 +2,11 @@
 
 import { type } from 'arktype'
 
+import { DatetimePattern } from '../../utils/datetime-pattern'
+
 // @story [[lucrjournal/domain-model#^basename-only-wikilinks]] Restricts persisted domain links to unambiguous basenames
 const WikilinkPattern = /^\[\[[^/[\]#^|\n]+\]\]$/
 const SymbolPattern = /^(?:[A-Z0-9]+(?:\.[A-Z0-9]+)?|[A-Z0-9]+\/[A-Z0-9]+(?:\.[A-Z0-9]+)?(?::[A-Z0-9]+)?)$/
-// @story [[lucrjournal/domain-model#^domain-datetime-shape]] Defines the persisted second-precision datetime shape
-const DatetimePattern = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:Z|[+-](?:0\d|1\d|2[0-3]):[0-5]\d)$/
 
 const PLATFORM_WIKILINK_FORMAT = 'a platform wikilink like [[Binance]]'
 const ACCOUNT_WIKILINK_FORMAT = 'an account wikilink like [[ACC-Binance]]'

@@ -6,7 +6,7 @@ import { Notice, requestUrl } from 'obsidian'
 
 import { t } from '../../lang/helpers'
 import { resolveHttpPageTitle, sanitizeObsidianFileName, toNullableTrimmedValue } from '../../utils'
-import { coerceFrontmatterField, coerceLiteral, coerceLowercaseString, coerceNullableString, coerceStringArray } from '../../utils/frontmatter-coerce'
+import { coerceEnum, coerceFrontmatterField, coerceLiteral, coerceNullableString, coerceStringArray } from '../../utils/frontmatter-coerce'
 import { listEntriesWithPositionStats, type LinkedEntryStatsRow } from '../analysis/linked-entry-stats'
 import { DOMAIN_TIMESTAMP_FIELDS, applyDomainTimestampCoerce } from '../core/domain-timestamps'
 import {
@@ -190,7 +190,7 @@ class NewsDomainDefinition extends DomainBase<'news', typeof NewsType, typeof ne
 		coerceFrontmatterField(record, 'description', coerceNullableString)
 		coerceFrontmatterField(record, 'icon', coerceNullableString)
 		coerceFrontmatterField(record, 'source', coerceNullableString)
-		coerceFrontmatterField(record, 'impact', coerceLowercaseString)
+		coerceFrontmatterField(record, 'impact', (value) => coerceEnum(value, ['high', 'medium', 'low'] as const))
 		coerceFrontmatterField(record, 'tags', coerceStringArray)
 		return record
 	}
@@ -408,6 +408,13 @@ if (import.meta.vitest) {
 				impact: 'high',
 				tags: ['macro', 'cpi'],
 			})).toBe(true)
+		})
+
+		it('stays readable when impact or created is edited into a malformed value', () => {
+			expect(NewsDomain.refine({ lucr_type: 'news', impact: 'CRITICAL' })).toEqual(
+				expect.objectContaining({ impact: null }),
+			)
+			expect(NewsDomain.refine({ lucr_type: 'news', created: '2026-08-26T20:00' })).not.toBeNull()
 		})
 
 		it('colors the fallback title icon from impact tone', () => {

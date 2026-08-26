@@ -166,12 +166,9 @@ function normalizeSymbolAssetTypeValue(value: unknown): PositionSymbolType | nul
 	return normalizePositionSymbolTypeValue(value.trim().toLocaleLowerCase())
 }
 
+// @story [[lucrjournal/domain-model#^enum-field-null-coercion]] Clamps an unrecognized persisted symbol type to null instead of dropping the record
 function coerceSymbolAssetType(value: unknown): unknown {
-	if (value == null) {
-		return null
-	}
-
-	return normalizeSymbolAssetTypeValue(value) ?? value
+	return normalizeSymbolAssetTypeValue(value) ?? null
 }
 
 function resolveSymbolCreateContext(

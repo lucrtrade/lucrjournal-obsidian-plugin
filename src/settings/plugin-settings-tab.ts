@@ -1,5 +1,6 @@
 import { ButtonComponent, PluginSettingTab, SettingGroup } from 'obsidian'
 
+import { globalScreenshot } from '../global-screenshot'
 import { getCurrentLocale, t } from '../lang/helpers'
 import { isSessionClaimPending, startLogin } from '../session/login'
 import { getAccountContext, getToken } from '../session/storage'
@@ -13,7 +14,7 @@ import {
 
 import type LucrJournalPlugin from '../main'
 import type { AccountContext, AccountPlanKey } from '../session/account.generated'
-import type { SettingDefinitionItem } from 'obsidian'
+import type { App, SettingDefinitionItem } from 'obsidian'
 
 type PluginSettingsControlKey =
 	| 'lang'
@@ -25,6 +26,7 @@ type PluginSettingsControlKey =
 
 export class PluginSettingsTab extends PluginSettingTab {
 	private accountSectionEl: HTMLElement | null = null
+	private globalShortcutRecordingCleanup: (() => void) | null = null
 
 	public constructor(public plugin: LucrJournalPlugin) {
 		super(plugin.app, plugin)
@@ -44,6 +46,15 @@ export class PluginSettingsTab extends PluginSettingTab {
 						},
 					},
 				],
+			},
+			{
+				type: 'group',
+				heading: t('SETTINGS_GLOBAL_SCREENSHOT'),
+				items: [{
+					name: t('SETTINGS_GLOBAL_SCREENSHOT_SHORTCUT'),
+					desc: t('SETTINGS_GLOBAL_SCREENSHOT_SHORTCUT_DESC'),
+					render: (setting) => this.renderGlobalShortcutSetting(setting.controlEl),
+				}],
 			},
 			{
 				type: 'group',
@@ -183,6 +194,8 @@ export class PluginSettingsTab extends PluginSettingTab {
 
 	private renderLegacy(): void {
 		const { containerEl } = this
+		this.globalShortcutRecordingCleanup?.()
+		this.globalShortcutRecordingCleanup = null
 		containerEl.empty()
 
 		new SettingGroup(containerEl)
@@ -272,6 +285,15 @@ export class PluginSettingsTab extends PluginSettingTab {
 		}
 
 		new SettingGroup(containerEl)
+			.setHeading(t('SETTINGS_GLOBAL_SCREENSHOT'))
+			.addSetting((setting) => {
+				setting
+					.setName(t('SETTINGS_GLOBAL_SCREENSHOT_SHORTCUT'))
+					.setDesc(t('SETTINGS_GLOBAL_SCREENSHOT_SHORTCUT_DESC'))
+				this.globalShortcutRecordingCleanup = this.renderGlobalShortcutSetting(setting.controlEl)
+			})
+
+		new SettingGroup(containerEl)
 			.setHeading(t('SETTINGS_ADVANCED'))
 			.addSetting((setting) => {
 				setting
@@ -302,6 +324,92 @@ export class PluginSettingsTab extends PluginSettingTab {
 						})
 					})
 			})
+	}
+
+	private renderGlobalShortcutSetting(el: HTMLElement): () => void {
+		// @story [[lucrjournal/ocr#^global-screenshot-ocr]] Saves a captured accelerator only after global registration validation
+		el.empty()
+		el.addClass('lj-global-shortcut-control')
+		const record = new ButtonComponent(el)
+		record.buttonEl.addClass('lj-global-shortcut-record')
+		const remove = new ButtonComponent(el)
+		remove
+			.setButtonText('×')
+			.setTooltip(t('SETTINGS_GLOBAL_SCREENSHOT_SHORTCUT_REMOVE'))
+		remove.buttonEl.addClass('lj-global-shortcut-remove')
+		remove.buttonEl.setAttribute('aria-label', t('SETTINGS_GLOBAL_SCREENSHOT_SHORTCUT_REMOVE'))
+		const status = el.createDiv({ cls: 'lj-global-shortcut-status' })
+		const recordingWindow = el.ownerDocument.defaultView ?? activeWindow
+		let isRecording = false
+		let conflict: { owner: string; shortcut: string } | null = null
+
+		const render = () => {
+			const shortcut = this.plugin.settings.globalScreenshotShortcut
+			const hasShortcut = shortcut !== ''
+			const displayText = isRecording
+				? t('SETTINGS_GLOBAL_SCREENSHOT_SHORTCUT_RECORDING')
+				: conflict !== null
+					? formatAcceleratorForDisplay(conflict.shortcut)
+					: hasShortcut
+						? formatAcceleratorForDisplay(shortcut)
+						: t('SETTINGS_GLOBAL_SCREENSHOT_SHORTCUT_RECORD')
+
+			record.setButtonText(displayText)
+			record.buttonEl.toggleClass('is-recording', isRecording)
+			record.buttonEl.toggleClass('is-failed', conflict !== null)
+			record.buttonEl.toggleClass('has-shortcut', hasShortcut && !isRecording && conflict === null)
+			remove.buttonEl.toggleClass('is-hidden', isRecording || !hasShortcut)
+			status.toggleClass('is-hidden', conflict === null)
+			status.setText(conflict === null ? '' : t('SETTINGS_GLOBAL_SCREENSHOT_SHORTCUT_IN_USE', { owner: conflict.owner }))
+		}
+
+		const stopRecording = () => {
+			recordingWindow.removeEventListener('keydown', captureShortcut, true)
+			isRecording = false
+		}
+		const captureShortcut = (event: KeyboardEvent) => {
+			const shortcut = acceleratorFromKeyboardEvent(event)
+			if (shortcut === null) {
+				if (event.key === 'Escape') {
+					event.preventDefault()
+					stopRecording()
+					render()
+				}
+				return
+			}
+			event.preventDefault()
+			event.stopPropagation()
+			stopRecording()
+			const owner = shortcutConflictOwner(this.plugin.app, event, shortcut)
+			if (owner !== null) {
+				conflict = { owner, shortcut }
+				render()
+				return
+			}
+			conflict = null
+			void this.plugin.updateGlobalScreenshotShortcut(shortcut).then((didSave) => {
+				conflict = didSave ? null : { owner: t('SETTINGS_GLOBAL_SCREENSHOT_SHORTCUT_OWNER_APP'), shortcut }
+				render()
+			})
+		}
+
+		record.onClick(() => {
+			if (isRecording) {
+				return
+			}
+			conflict = null
+			isRecording = true
+			render()
+			record.buttonEl.blur()
+			recordingWindow.addEventListener('keydown', captureShortcut, true)
+		})
+		remove.onClick(() => {
+			stopRecording()
+			conflict = null
+			void this.plugin.clearGlobalScreenshotShortcut().then(render)
+		})
+		render()
+		return stopRecording
 	}
 
 	private renderAccountSection(el: HTMLElement): void {
@@ -392,6 +500,71 @@ export class PluginSettingsTab extends PluginSettingTab {
 	}
 }
 
+function acceleratorFromKeyboardEvent(event: KeyboardEvent): string | null {
+	if (!event.metaKey && !event.ctrlKey && !event.altKey) {
+		return null
+	}
+	if (['Alt', 'Control', 'Meta', 'Shift'].includes(event.key)) {
+		return null
+	}
+	const key = event.code.startsWith('Key')
+		? event.code.slice('Key'.length)
+		: event.code.startsWith('Digit')
+			? event.code.slice('Digit'.length)
+			: event.key.length === 1 ? event.key.toUpperCase() : event.key
+	const modifiers = [
+		...(event.metaKey ? ['Command'] : event.ctrlKey ? ['Control'] : []),
+		...(event.altKey ? ['Alt'] : []),
+		...(event.shiftKey ? ['Shift'] : []),
+	]
+	return [...modifiers, key].join('+')
+}
+
+function shortcutConflictOwner(app: App, event: KeyboardEvent, shortcut: string): string | null {
+	const command = obsidianCommandName(app, event)
+	if (command !== null) {
+		return command
+	}
+	const availability = globalScreenshot.availabilityOf(shortcut)
+	if (availability === 'available') {
+		return null
+	}
+	if (availability === 'system') {
+		return t('SETTINGS_GLOBAL_SCREENSHOT_SHORTCUT_OWNER_SYSTEM')
+	}
+	if (availability === 'app-menu') {
+		return t('SETTINGS_GLOBAL_SCREENSHOT_SHORTCUT_OWNER_MENU')
+	}
+	return t('SETTINGS_GLOBAL_SCREENSHOT_SHORTCUT_OWNER_APP')
+}
+
+function obsidianCommandName(app: App, event: KeyboardEvent): string | null {
+	const key = (event.code.startsWith('Key')
+		? event.code.slice('Key'.length)
+		: event.code.startsWith('Digit')
+			? event.code.slice('Digit'.length)
+			: event.key).toUpperCase()
+	const modifiers = [
+		...(event.metaKey ? ['Meta'] : []),
+		...(event.ctrlKey ? ['Ctrl'] : []),
+		...(event.altKey ? ['Alt'] : []),
+		...(event.shiftKey ? ['Shift'] : []),
+	].sort().join(',')
+	const internals = app as unknown as {
+		hotkeyManager?: { bakedHotkeys?: Array<{ key: unknown; modifiers: string }>; bakedIds?: string[] }
+		commands?: { commands?: Record<string, { name?: string }> }
+	}
+	const index = internals.hotkeyManager?.bakedHotkeys?.findIndex((hotkey) =>
+		String(hotkey.key).toUpperCase() === key
+		&& hotkey.modifiers.split(',').sort().join(',') === modifiers,
+	) ?? -1
+	if (index < 0) {
+		return null
+	}
+	const id = internals.hotkeyManager?.bakedIds?.[index]
+	return (id === undefined ? undefined : internals.commands?.commands?.[id]?.name) ?? id ?? null
+}
+
 function accountInitial(email: string | null | undefined): string {
 	const ch = email?.trim().charAt(0)
 	return ch ? ch.toUpperCase() : '?'
@@ -434,4 +607,72 @@ function accountPlanText(context: AccountContext): string {
 			: 'SETTINGS_ACCOUNT_PLAN_RENEWS_ON',
 		{ plan, date },
 	)
+}
+
+function formatAcceleratorForDisplay(accelerator: string): string {
+	const trimmed = accelerator.trim()
+	if (trimmed === '') {
+		return ''
+	}
+	return trimmed
+		.split('+')
+		.map((part) => {
+			switch (part.trim().toLowerCase()) {
+				case 'command':
+				case 'cmd':
+					return '⌘'
+				case 'shift':
+					return '⇧'
+				case 'control':
+				case 'ctrl':
+					return '⌃'
+				case 'alt':
+				case 'option':
+				case 'opt':
+					return '⌥'
+				default:
+					return part.trim()
+			}
+		})
+		.join(' ')
+}
+
+if (import.meta.vitest) {
+	const { describe, expect, it } = import.meta.vitest
+
+	describe('global screenshot shortcut recording', () => {
+		it('names the Obsidian command already bound to a captured accelerator', () => {
+			expect(obsidianCommandName({
+				commands: { commands: { 'workspace:next-tab': { name: 'Go to next tab' } } },
+				hotkeyManager: {
+					bakedHotkeys: [{ key: '2', modifiers: 'Meta,Shift' }],
+					bakedIds: ['workspace:next-tab'],
+				},
+			} as unknown as App, {
+				altKey: false,
+				code: 'Digit2',
+				ctrlKey: false,
+				key: '@',
+				metaKey: true,
+				shiftKey: true,
+			} as KeyboardEvent)).toBe('Go to next tab')
+		})
+
+		it('records Command+Shift+2 with the same macOS accelerator spelling as the default', () => {
+			expect(acceleratorFromKeyboardEvent({
+				altKey: false,
+				code: 'Digit2',
+				ctrlKey: false,
+				key: '@',
+				metaKey: true,
+				shiftKey: true,
+			} as KeyboardEvent)).toBe('Command+Shift+2')
+		})
+
+		it('formats accelerator string into clean display symbols', () => {
+			expect(formatAcceleratorForDisplay('Command+Shift+2')).toBe('⌘ ⇧ 2')
+			expect(formatAcceleratorForDisplay('Control+Alt+S')).toBe('⌃ ⌥ S')
+			expect(formatAcceleratorForDisplay('')).toBe('')
+		})
+	})
 }

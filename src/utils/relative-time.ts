@@ -99,6 +99,10 @@ function getDateTimeParts(date: Date, timeZone: string) {
 	}
 }
 
+export function getCurrentTimeZoneOffset(date: Date = new Date(), timeZone: string = getCurrentTimeZoneSetting()): string {
+	return getDateTimeParts(date, timeZone).offset
+}
+
 // @story [[lucrjournal/content#^duration-format]] Formats non-negative elapsed instants with fixed day, hour, and minute units.
 export function formatDuration(openedAt: string | null | undefined, closedAt: string | null | undefined): string | null {
 	if (openedAt == null || closedAt == null) {

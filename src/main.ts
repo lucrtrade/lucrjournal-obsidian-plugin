@@ -1,4 +1,6 @@
 import { addIcon, normalizePath, Plugin } from 'obsidian'
+import { createElement } from 'react'
+import { createRoot, type Root } from 'react-dom/client'
 
 import { registerPositionAttachmentOcrRuntime } from './attachments/ocr-runtime'
 import { bindCacheRuntime } from './cache'
@@ -11,8 +13,10 @@ import {
 	LUCR_POSITION_VIEW_TYPE,
 	OPEN_JOURNAL_COMMAND_ID,
 } from './constant'
+import { AccountDomain } from './domains'
 import { registerDomainModifiedTracker } from './domains/core/domain-modified-tracker'
 import { registerLucrJournalAttachmentCapture } from './editor/attachment-paste-drop'
+import { globalScreenshot } from './global-screenshot'
 import { IconsSvg } from './icons'
 import { setCurrentLocaleSetting, t } from './lang/helpers'
 import { createLogger, setDebugLoggingEnabled } from './logger'
@@ -32,6 +36,7 @@ import { PluginSettingsTab } from './settings/plugin-settings-tab'
 import {
 	LUCR_TRADE_REQUIRED_DIRS,
 } from './trade-directories'
+import { OcrPositionImportModal, type OcrPositionImportPendingManual } from './ui/attachment/ocr-position-import-modal'
 import { registerDomainFileRouting, registerDomainMarkdownActions } from './views/domain-file-routing'
 import { DomainFileView } from './views/domain-file-view'
 import { LucrJournalView } from './views/lucr-journal-view'
@@ -48,6 +53,8 @@ const SESSION_CHECK_INTERVAL_MS = 60 * 60 * 1000
 export default class LucrJournalPlugin extends Plugin {
 	public override settings = new PluginSettings()
 	public settingsManager = new PluginSettingsManager(this)
+	private currentAccountName: string | null = null
+	private ocrPositionImportRoot: { container: HTMLElement; root: Root } | null = null
 	private settingsTab: PluginSettingsTab | null = null
 
 	public override async onload(): Promise<void> {
@@ -75,10 +82,12 @@ export default class LucrJournalPlugin extends Plugin {
 		void this.app.workspace.detachLeavesOfType(LUCR_JOURNAL_VIEW_TYPE)
 		void this.app.workspace.detachLeavesOfType(LUCR_PLAYBOOK_VIEW_TYPE)
 		void this.app.workspace.detachLeavesOfType(LUCR_POSITION_VIEW_TYPE)
+		this.closeOcrPositionImport()
 	}
 
 	private async onloadImpl(): Promise<void> {
 		this.register(registerPositionAttachmentOcrRuntime(this))
+		this.register(globalScreenshot.register(this))
 		bindCacheRuntime(this.app, CacheRegistry)
 		const domainModifiedTracker = registerDomainModifiedTracker(this)
 		this.registerEditorExtension(domainModifiedTracker.editorExtension)
@@ -121,6 +130,16 @@ export default class LucrJournalPlugin extends Plugin {
 			name: t('OPEN_JOURNAL'),
 			callback: async () => {
 				await this.activateJournalView()
+			},
+		})
+
+		this.addCommand({
+			// @story [[lucrjournal/ocr#^ocr-position-command]] Opens the screenshot-to-position import flow from the command palette
+			icon: 'image',
+			id: 'create-position-from-ocr',
+			name: t('OCR_POSITION_COMMAND'),
+			callback: () => {
+				this.openOcrPositionImport()
 			},
 		})
 
@@ -250,6 +269,34 @@ export default class LucrJournalPlugin extends Plugin {
 		this.requestJournalViewsRender()
 	}
 
+	public setCurrentAccount(accountName: string | null): void {
+		this.currentAccountName = accountName
+	}
+
+	public async updateGlobalScreenshotShortcut(shortcut: string): Promise<boolean> {
+		if (!globalScreenshot.update(shortcut)) {
+			return false
+		}
+		this.settings.globalScreenshotShortcut = shortcut
+		await this.saveData(this.settings)
+		return true
+	}
+
+	public async clearGlobalScreenshotShortcut(): Promise<void> {
+		globalScreenshot.clear()
+		this.settings.globalScreenshotShortcut = ''
+		await this.saveData(this.settings)
+	}
+
+	public openGlobalScreenshotOcr(screenshot: { buffer: ArrayBuffer; extension: string; originalName: string }): void {
+		// @story [[lucrjournal/ocr#^global-screenshot-ocr]] Runs position OCR without opening the renderer modal after a global capture
+		this.openOcrPositionImport(screenshot, true)
+	}
+
+	public closeGlobalScreenshotOcr(): void {
+		this.closeOcrPositionImport()
+	}
+
 	public applyDebugMode(): void {
 		// @story [[lucrjournal/runtime#^debug-ipc-gate]] Cleans the previous runtime before applying the current debug setting.
 		setDebugLoggingEnabled(this.settings.debugMode)
@@ -288,6 +335,71 @@ export default class LucrJournalPlugin extends Plugin {
 		if (token !== null) {
 			void revokeSession(token)
 		}
+	}
+
+	private openOcrPositionImport(
+		initialImage?: { buffer: ArrayBuffer; extension: string; originalName: string },
+		isGlobalCapture = false,
+		initialPendingManual?: OcrPositionImportPendingManual,
+	): void {
+		this.closeOcrPositionImport()
+		const container = activeDocument.body.createDiv({ cls: 'lucrjournal-view lj-ocr-root-container' })
+		const root = createRoot(container)
+		this.ocrPositionImportRoot = { container, root }
+		root.render(createElement(OcrPositionImportModal, {
+			accountName: this.resolveCurrentAccountName(),
+			app: this.app,
+			hidden: isGlobalCapture,
+			initialImage,
+			initialPendingManual,
+			onClose: () => this.closeOcrPositionImport(),
+			onFailed: isGlobalCapture
+				? () => globalScreenshot.setFailure(() => this.openOcrPositionImport())
+				: undefined,
+			onIncomplete: isGlobalCapture
+				? (pending: OcrPositionImportPendingManual) => globalScreenshot.setIncomplete(() => {
+					this.openOcrPositionImport(undefined, false, pending)
+				}, [
+					...(pending.initialValues.symbol === undefined ? ['symbol'] : []),
+					...(pending.initialValues.side === undefined ? ['side'] : []),
+				])
+				: undefined,
+			onProgress: isGlobalCapture ? (message: string) => globalScreenshot.setProgress(message) : undefined,
+			onCreated: async (positionId: string) => {
+				if (isGlobalCapture) {
+					globalScreenshot.setSuccess(() => {
+						void this.openCreatedOcrPosition(positionId)
+					})
+					return
+				}
+				await this.openCreatedOcrPosition(positionId)
+			},
+		}))
+	}
+
+	private closeOcrPositionImport(): void {
+		this.ocrPositionImportRoot?.root.unmount()
+		this.ocrPositionImportRoot?.container.remove()
+		this.ocrPositionImportRoot = null
+	}
+
+	private async openCreatedOcrPosition(positionId: string): Promise<void> {
+		await this.activateJournalView()
+		const leaf = await this.ensureJournalLeaf()
+		this.getJournalView(leaf).showRoute({
+			activeTab: 'Positions',
+			kind: 'dashboard',
+			selectedPositionId: positionId,
+		})
+		await this.app.workspace.revealLeaf(leaf)
+	}
+
+	private resolveCurrentAccountName(): string | null {
+		if (this.currentAccountName !== null && AccountDomain.hasDisplayName(this.app, this.currentAccountName)) {
+			return this.currentAccountName
+		}
+
+		return AccountDomain.totalEntries(this.app).map(({ fm }) => AccountDomain.toDisplayName(fm))[0] ?? null
 	}
 }
 

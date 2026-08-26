@@ -127,6 +127,10 @@ export function DashboardScreen({ app, plugin, routeState, onOpenRoute }: Dashbo
 	const accountOptions = useMemo(() => buildDashboardAccountOptions(app, accountEntries, allAccountsLabel), [app, accountEntries, allAccountsLabel])
 	const selectedAccountLabel = accountOptions.find((option) => option.value === selectedAccountValue)?.label ?? allAccountsLabel
 	const preferredAccount = selectedAccountValue === DASHBOARD_ALL_ACCOUNTS_VALUE ? undefined : selectedAccountValue
+
+	useEffect(() => {
+		plugin.setCurrentAccount(preferredAccount ?? null)
+	}, [plugin, preferredAccount])
 	const timeframeOptions = TIMEFRAME_OPTIONS.map((key) => ({
 		value: key,
 		label: t(key),

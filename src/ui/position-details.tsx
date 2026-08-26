@@ -3,13 +3,17 @@
 import { Notice, type App, type TFile } from 'obsidian'
 import { useEffect, useRef, useState } from 'react'
 
-import { PositionDomain, type Position } from '../domains'
+import { PositionDomain, resolveSymbolName, type Position } from '../domains'
 import { t } from '../lang/helpers'
 
 import { AttachmentDeleteModal } from './attachment/attachment-delete-modal'
 import { AttachmentLightbox } from './attachment/attachment-lightbox'
 import { AttachmentOcrImportModal } from './attachment/attachment-ocr-import-modal'
-import { AttachmentOcrReviewModal } from './attachment/attachment-ocr-review-modal'
+import {
+	OcrPositionImportModal,
+	resolveExistingPositionAccountName,
+	resolveOcrPositionSymbol,
+} from './attachment/ocr-position-import-modal'
 import { closeAttachmentLightboxOcrReview, runAttachmentLightboxOcr } from './position-details/attachment-lightbox-ocr'
 import {
 	PositionDetailsBottomPanel,
@@ -58,12 +62,10 @@ export function PositionDetails({
 		positionFile,
 	})
 	const {
-		applyPendingAttachmentOcr,
 		attachments,
 		chartIframeRef,
 		deleteAttachment,
 		dismissPendingAttachmentOcr,
-		isApplyingAttachmentOcr,
 		isChartAvailable,
 		isChartReady,
 		isDeletingAttachment,
@@ -74,6 +76,7 @@ export function PositionDetails({
 		importAttachmentOcrFromPasteEvent,
 		prepareAttachmentOcr,
 		pendingAttachmentOcrResult,
+		pendingAttachmentOcrFile,
 		saveSelectedAttachments,
 	} = usePositionDetailsMedia({
 		app,
@@ -314,19 +317,29 @@ export function PositionDetails({
 				onImportFiles={async (files, source) => await importAttachmentOcrFromFiles(files, source)}
 				onImportPasteEvent={async (event) => await importAttachmentOcrFromPasteEvent(event)}
 			/>
-			<AttachmentOcrReviewModal
-				isApplying={isApplyingAttachmentOcr}
-				isOpen={pendingAttachmentOcrResult !== null}
-				result={pendingAttachmentOcrResult}
-				onClose={closePendingAttachmentOcrReview}
-				onSubmit={(draft) => {
-					void applyPendingAttachmentOcr(draft).then((didApply) => {
-						if (didApply) {
-							restoreAttachmentLightboxAfterOcrReview()
-						}
-					})
-				}}
-			/>
+			{pendingAttachmentOcrResult !== null && pendingAttachmentOcrFile !== null && positionFile !== null && (
+				<OcrPositionImportModal
+					app={app}
+					existingPosition={livePosition}
+					positionFile={positionFile}
+					initialImage={pendingAttachmentOcrFile}
+					initialPendingManual={{
+						image: pendingAttachmentOcrFile,
+						imageDataUrl: pendingAttachmentOcrResult.image_url ?? '',
+						result: pendingAttachmentOcrResult,
+						initialValues: {
+							account: resolveExistingPositionAccountName(app, livePosition) ?? undefined,
+							symbol: pendingAttachmentOcrResult.symbol ? (resolveOcrPositionSymbol(app, resolveExistingPositionAccountName(app, livePosition) ?? '', pendingAttachmentOcrResult.symbol, pendingAttachmentOcrResult.is_perp === true) ?? (resolveSymbolName(app, livePosition.symbol) ?? undefined)) : (resolveSymbolName(app, livePosition.symbol) ?? undefined),
+							side: (pendingAttachmentOcrResult.side ?? livePosition.side) ?? undefined,
+						},
+					}}
+					onClose={closePendingAttachmentOcrReview}
+					onPositionUpdated={(updated) => {
+						setLivePosition((current) => applyLivePositionUpdate(current, updated))
+						restoreAttachmentLightboxAfterOcrReview()
+					}}
+				/>
+			)}
 		</div>
 	)
 }

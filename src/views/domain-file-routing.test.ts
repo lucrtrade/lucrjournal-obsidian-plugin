@@ -1,4 +1,4 @@
-import { MarkdownView } from 'obsidian'
+import { MarkdownView, WorkspaceLeaf } from 'obsidian'
 import { describe, expect, it, vi } from 'vitest'
 
 import { LUCR_PLAYBOOK_VIEW_TYPE, LUCR_POSITION_VIEW_TYPE } from '../constant'
@@ -10,6 +10,7 @@ import {
 	createPositionFileViewState,
 	markDomainFileOpenAsMarkdown,
 	openDomainFileAsMarkdown,
+	registerDomainFileRouting,
 	registerDomainMarkdownActions,
 	resolveDomainFileViewState,
 	shouldOpenPlaybookFileView,
@@ -67,7 +68,7 @@ describe('domain file routing', () => {
 		// @story [[lucrjournal/runtime#^invalid-domain-stays-markdown]] Covers preserving non-domain and invalid domain Markdown state.
 		const app = createDomainRoutingApp({
 			'LucrJournal/news/CPI.md': { lucr_type: 'news' },
-			'LucrJournal/positions/Broken.md': { lucr_type: 'position', confidence: 99 },
+			'LucrJournal/positions/Broken.md': { lucr_type: 'position', lots: 99 },
 		})
 		const missingFileState = { type: 'markdown' }
 		const newsState = { state: { file: 'LucrJournal/news/CPI.md' }, type: 'markdown' }
@@ -108,6 +109,51 @@ describe('domain file routing', () => {
 			createMarkdownFileViewState('LucrJournal/positions/POS-00001.md'),
 			{ history: false },
 		)
+	})
+
+	it('reuses the routing patch across plugin reloads', async () => {
+		// @story [[lucrjournal/runtime#^routing-patch-reload]] Covers preserving the shared routing patch across plugin reload.
+		const app = createDomainRoutingApp({})
+		const firstCleanups: Array<() => void> = []
+		const secondCleanups: Array<() => void> = []
+		const leafPrototype = WorkspaceLeaf.prototype as unknown as Record<string, unknown>
+		const savedSetViewState = leafPrototype.setViewState
+		const savedDetach = leafPrototype.detach
+		const originalSetViewState = vi.fn(async () => {})
+		leafPrototype.setViewState = originalSetViewState
+		const firstPlugin = {
+			app,
+			register: (callback: () => void) => firstCleanups.push(callback),
+		} as never
+		const secondPlugin = {
+			app,
+			register: (callback: () => void) => secondCleanups.push(callback),
+		} as never
+
+		try {
+			registerDomainFileRouting(firstPlugin)
+			const patchedSetViewState = leafPrototype.setViewState
+			const leaf = Object.create(WorkspaceLeaf.prototype) as WorkspaceLeaf
+
+			await openDomainFileAsMarkdown(leaf, 'LucrJournal/positions/POS-00001.md')
+
+			expect(originalSetViewState).toHaveBeenCalledWith(
+				createMarkdownFileViewState('LucrJournal/positions/POS-00001.md'),
+				{ history: false },
+			)
+
+			registerDomainFileRouting(secondPlugin)
+			firstCleanups.forEach((cleanup) => cleanup())
+
+			expect(leafPrototype.setViewState).toBe(patchedSetViewState)
+
+			secondCleanups.forEach((cleanup) => cleanup())
+			expect(leafPrototype.setViewState).toBe(originalSetViewState)
+		} finally {
+			leafPrototype.setViewState = savedSetViewState
+			leafPrototype.detach = savedDetach
+			Reflect.deleteProperty(WorkspaceLeaf.prototype, Symbol.for('lucrjournal.domain-file-routing-state'))
+		}
 	})
 
 	it('syncs the markdown header action after opening a domain file as markdown', async () => {

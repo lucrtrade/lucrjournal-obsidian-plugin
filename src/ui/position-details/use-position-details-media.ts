@@ -613,6 +613,7 @@ export function usePositionDetailsMedia({
 		importAttachmentOcrFromPasteEvent,
 		prepareAttachmentOcr,
 		pendingAttachmentOcrResult,
+		pendingAttachmentOcrFile,
 		saveSelectedAttachments,
 	}
 }

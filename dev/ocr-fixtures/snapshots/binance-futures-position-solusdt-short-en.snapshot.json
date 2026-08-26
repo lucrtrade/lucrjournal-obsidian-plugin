@@ -1,0 +1,153 @@
+{
+  "imagePath": "dev/ocr-fixtures/images/binance-futures-position-solusdt-short-en.png",
+  "modelSource": "local",
+  "parsedResult": {
+    "stop_loss": 100,
+    "target_price": 90,
+    "is_perp": true,
+    "notional_amount": 0.1,
+    "side": "SHORT",
+    "symbol": "SOLUSDT.P",
+    "entry_price": 98.19
+  },
+  "recognition": {
+    "lines": [
+      {
+        "box": {
+          "height": 10,
+          "width": 1471,
+          "x": 65,
+          "y": 0
+        },
+        "text": "08/18 20:00 08/19 20:00 08/20 20:00 08/21 20:00 08/22 20:00 08/23 20:00 08/24 20:00 08/25 20:00 08/26 20:00 08/27"
+      },
+      {
+        "box": {
+          "height": 9,
+          "width": 100,
+          "x": 1829,
+          "y": 0
+        },
+        "text": "6.00 01:23:29"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 740,
+          "x": 14,
+          "y": 36
+        },
+        "text": "Positions(1) Open Orders(4) Order History Trade History Transaction History Position History Bots Assets"
+      },
+      {
+        "box": {
+          "height": 10,
+          "width": 158,
+          "x": 1775,
+          "y": 40
+        },
+        "text": "Hide Other Symbols ."
+      },
+      {
+        "box": {
+          "height": 15,
+          "width": 1230,
+          "x": 20,
+          "y": 76
+        },
+        "text": "Symbol Size Entry Price Break Even Price Mark Price Liq.Price Margin Ratio Margin PNL(ROI%) MKT Close All"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 431,
+          "x": 1470,
+          "y": 76
+        },
+        "text": "Reverse TP/SL for position TP/SL Est. Funding Fee"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 56,
+          "x": 24,
+          "y": 107
+        },
+        "text": "SOLUSDT"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 205,
+          "x": 874,
+          "y": 107
+        },
+        "text": "0.48 USDT +0.16 USDT"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 56,
+          "x": 1569,
+          "y": 107
+        },
+        "text": "90.0000/"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 642,
+          "x": 161,
+          "y": 116
+        },
+        "text": "-0.10 SOL 98.1900 98.1409 96.5500 11,027.2209 0.00%"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 358,
+          "x": 1171,
+          "y": 116
+        },
+        "text": "Market Limit 96.55 0.10 Reverse"
+      },
+      {
+        "box": {
+          "height": 22,
+          "width": 215,
+          "x": 1655,
+          "y": 112
+        },
+        "text": "E 0 + 0.00 USDT"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 62,
+          "x": 26,
+          "y": 126
+        },
+        "text": "Perp 20x"
+      },
+      {
+        "box": {
+          "height": 14,
+          "width": 191,
+          "x": 873,
+          "y": 125
+        },
+        "text": "(Cross) +33.97%"
+      },
+      {
+        "box": {
+          "height": 13,
+          "width": 56,
+          "x": 1570,
+          "y": 125
+        },
+        "text": "100.0000"
+      }
+    ],
+    "text": "08/18 20:00 08/19 20:00 08/20 20:00 08/21 20:00 08/22 20:00 08/23 20:00 08/24 20:00 08/25 20:00 08/26 20:00 08/27\n6.00 01:23:29\nPositions(1) Open Orders(4) Order History Trade History Transaction History Position History Bots Assets\nHide Other Symbols .\nSymbol Size Entry Price Break Even Price Mark Price Liq.Price Margin Ratio Margin PNL(ROI%) MKT Close All\nReverse TP/SL for position TP/SL Est. Funding Fee\nSOLUSDT\n0.48 USDT +0.16 USDT\n90.0000/\n-0.10 SOL 98.1900 98.1409 96.5500 11,027.2209 0.00%\nMarket Limit 96.55 0.10 Reverse\nE 0 + 0.00 USDT\nPerp 20x\n(Cross) +33.97%\n100.0000"
+  }
+}

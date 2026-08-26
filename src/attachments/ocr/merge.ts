@@ -11,6 +11,22 @@ import type { PositionUpdatePatch } from '../../domains'
 
 export function mergePositionAttachmentOcrResults(results: PositionAttachmentOcrResult[]): PositionAttachmentOcrResult {
 	const merged: PositionAttachmentOcrResult = {}
+	const isPerp = results.some((result) => result.is_perp === true)
+	const notionalAmount = results.find((result) => result.notional_amount !== undefined)?.notional_amount
+	const symbol = results.find((result) => result.symbol !== undefined)?.symbol
+	const side = results.find((result) => result.side !== undefined)?.side
+	if (symbol !== undefined) {
+		merged.symbol = symbol
+	}
+	if (side !== undefined) {
+		merged.side = side
+	}
+	if (isPerp) {
+		merged.is_perp = true
+	}
+	if (notionalAmount !== undefined) {
+		merged.notional_amount = notionalAmount
+	}
 
 	for (const field of POSITION_ATTACHMENT_OCR_FIELDS) {
 		const fieldKey = field.key
@@ -101,7 +117,7 @@ export function buildPositionAttachmentOcrFieldPatch(
 	const patchRecord: Partial<Record<Exclude<keyof PositionAttachmentOcrResult, 'image_url'>, string | number | null>> = patch
 
 	for (const field of POSITION_ATTACHMENT_OCR_FIELDS) {
-		const hasRecognizedValue = result[field.key] !== undefined
+		const hasRecognizedValue = result[field.key] !== undefined || (field.key === 'notional_value' && result.notional_amount !== undefined)
 		const hasUserValue = draft[field.key].trim().length > 0
 		if (!hasRecognizedValue && !hasUserValue) {
 			continue
@@ -130,7 +146,7 @@ function normalizePositionAttachmentOcrNotionalValuePatch(
 
 export function listRecognizedPositionAttachmentOcrValues(result: PositionAttachmentOcrResult) {
 	return POSITION_ATTACHMENT_OCR_FIELDS.flatMap((field) => {
-		const value = result[field.key]
+		const value = field.key === 'notional_value' ? (result.notional_value ?? result.notional_amount) : result[field.key]
 		if (value === undefined || String(value).trim().length === 0) {
 			return []
 		}

@@ -162,6 +162,16 @@
 	--color-lj-overlay-text-strong: var(--lj-overlay-text-strong);
 }
 
+.lj-ocr-root-container {
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	padding: 0;
+	background: none;
+	overflow: visible;
+	z-index: 99;
+}
+
 body {
 	& .workspace-leaf.lucrjournal-dashboard-leaf .view-header {
 		display: none;
@@ -773,6 +783,57 @@ body {
 	color: var(--text-muted);
 	font-size: 13px;
 	line-height: 1.5;
+}
+
+.lj-global-shortcut-control {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	align-items: center;
+	gap: 6px;
+}
+
+.lj-global-shortcut-status {
+	flex-basis: 100%;
+	text-align: end;
+	color: var(--text-error);
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.lj-global-shortcut-record {
+	min-inline-size: 130px;
+	font-family: var(--font-monospace, monospace);
+	font-size: 13px;
+	letter-spacing: 0.5px;
+	transition: all 0.15s ease;
+}
+
+.lj-global-shortcut-record.has-shortcut {
+	font-weight: 600;
+	background: var(--background-modifier-form-field);
+	border-color: var(--background-modifier-border);
+}
+
+.lj-global-shortcut-record.is-recording {
+	border-color: var(--interactive-accent);
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.lj-global-shortcut-record.is-failed {
+	border-color: var(--text-error);
+	color: var(--text-error);
+}
+
+.lj-global-shortcut-remove {
+	padding-inline: 8px;
+	color: var(--text-muted);
+	transition: color 0.15s ease;
+}
+
+.lj-global-shortcut-remove:hover {
+	color: var(--text-error);
 }
 
 @media (max-width: 760px) {

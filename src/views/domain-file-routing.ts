@@ -13,9 +13,20 @@ type DomainMarkdownActionsPlugin = DomainFileRoutingPlugin & {
 	registerEvent: (eventRef: EventRef) => void
 }
 
+type DomainFileRoutingState = {
+	app: App
+	markdownDomainFiles: WeakMap<WorkspaceLeaf, string>
+	owner: DomainFileRoutingPlugin
+	originalDetach: typeof WorkspaceLeaf.prototype.detach
+	originalSetViewState: typeof WorkspaceLeaf.prototype.setViewState
+	patchedDetach: typeof WorkspaceLeaf.prototype.detach
+	patchedSetViewState: typeof WorkspaceLeaf.prototype.setViewState
+}
+
 const MARKDOWN_STATE_RESULT = { history: false } satisfies ViewStateResult
-const markdownDomainFiles = new WeakMap<WorkspaceLeaf, string>()
+const DOMAIN_FILE_ROUTING_STATE = Symbol.for('lucrjournal.domain-file-routing-state')
 const domainMarkdownActions = new WeakMap<MarkdownView, { element: HTMLElement; viewType: string }>()
+const unregisteredMarkdownDomainFiles = new WeakMap<WorkspaceLeaf, string>()
 
 export function createPositionFileViewState(filePath: string): ViewState {
 	return createDomainFileViewState(filePath, LUCR_POSITION_VIEW_TYPE)
@@ -42,11 +53,11 @@ export function createMarkdownFileViewState(filePath: string, mode?: string): Vi
 }
 
 export function markDomainFileOpenAsMarkdown(leaf: WorkspaceLeaf, filePath: string): void {
-	markdownDomainFiles.set(leaf, filePath)
+	getMarkdownDomainFiles().set(leaf, filePath)
 }
 
 function clearDomainFileOpenAsMarkdown(leaf: WorkspaceLeaf): void {
-	markdownDomainFiles.delete(leaf)
+	getMarkdownDomainFiles().delete(leaf)
 }
 
 export async function openDomainFileAsMarkdown(
@@ -58,7 +69,12 @@ export async function openDomainFileAsMarkdown(
 ): Promise<void> {
 	// @story [[lucrjournal/runtime#^domain-to-markdown]] Marks the leaf before switching it to a history-free Markdown state.
 	markDomainFileOpenAsMarkdown(leaf, filePath)
-	await leaf.setViewState(createMarkdownFileViewState(filePath, mode), result)
+	const routingState = findDomainFileRoutingState()
+	if (routingState === undefined) {
+		await leaf.setViewState(createMarkdownFileViewState(filePath, mode), result)
+	} else {
+		await Reflect.apply(routingState.originalSetViewState, leaf, [createMarkdownFileViewState(filePath, mode), result])
+	}
 	if (app !== undefined) {
 		syncDomainMarkdownAction(app, leaf)
 	}
@@ -83,6 +99,7 @@ function shouldOpenDomainFileView(app: App, state: ViewState, viewType: string, 
 	}
 
 	if (leaf !== undefined) {
+		const markdownDomainFiles = getMarkdownDomainFiles()
 		const markdownPath = markdownDomainFiles.get(leaf)
 		if (markdownPath === filePath) {
 			return false
@@ -111,33 +128,74 @@ export function resolveDomainFileViewState(app: App, state: ViewState, leaf?: Wo
 }
 
 export function registerDomainFileRouting(plugin: DomainFileRoutingPlugin): void {
+	const existingState = Reflect.get(WorkspaceLeaf.prototype, DOMAIN_FILE_ROUTING_STATE) as DomainFileRoutingState | undefined
+	if (existingState !== undefined) {
+		// @story [[lucrjournal/runtime#^routing-patch-reload]] Reuses the routing patch across plugin reloads.
+		existingState.app = plugin.app
+		existingState.owner = plugin
+		plugin.register(() => cleanupDomainFileRouting(plugin, existingState))
+		return
+	}
+
 	const originalSetViewState = Reflect.get(WorkspaceLeaf.prototype, 'setViewState')
 	const originalDetach = Reflect.get(WorkspaceLeaf.prototype, 'detach')
+	const state = {
+		app: plugin.app,
+		markdownDomainFiles: new WeakMap<WorkspaceLeaf, string>(),
+		owner: plugin,
+		originalDetach,
+		originalSetViewState,
+	} as DomainFileRoutingState
 
 	const patchedSetViewState = function (
 		this: WorkspaceLeaf,
 		state: ViewState,
 		...rest: [ViewStateResult?]
 	) {
-		return Reflect.apply(originalSetViewState, this, [resolveDomainFileViewState(plugin.app, state, this), ...rest])
+		return Reflect.apply(originalSetViewState, this, [resolveDomainFileViewState(getDomainFileRoutingState().app, state, this), ...rest])
 	}
 	const patchedDetach = function (this: WorkspaceLeaf) {
-		markdownDomainFiles.delete(this)
+		getDomainFileRoutingState().markdownDomainFiles.delete(this)
 		return Reflect.apply(originalDetach, this, [])
 	}
 
+	state.patchedSetViewState = patchedSetViewState
+	state.patchedDetach = patchedDetach
+	Reflect.set(WorkspaceLeaf.prototype, DOMAIN_FILE_ROUTING_STATE, state)
 	WorkspaceLeaf.prototype.setViewState = patchedSetViewState
 	WorkspaceLeaf.prototype.detach = patchedDetach
 
-	plugin.register(() => {
-		// @story [[lucrjournal/runtime#^routing-patch-cleanup]] Restores only prototype methods still owned by this routing patch.
-		if (WorkspaceLeaf.prototype.setViewState === patchedSetViewState) {
-			WorkspaceLeaf.prototype.setViewState = originalSetViewState
-		}
-		if (WorkspaceLeaf.prototype.detach === patchedDetach) {
-			WorkspaceLeaf.prototype.detach = originalDetach
-		}
-	})
+	plugin.register(() => cleanupDomainFileRouting(plugin, state))
+}
+
+function getDomainFileRoutingState(): DomainFileRoutingState {
+	const state = findDomainFileRoutingState()
+	if (state === undefined) {
+		throw new Error('Domain file routing is not registered')
+	}
+	return state
+}
+
+function findDomainFileRoutingState(): DomainFileRoutingState | undefined {
+	return Reflect.get(WorkspaceLeaf.prototype, DOMAIN_FILE_ROUTING_STATE) as DomainFileRoutingState | undefined
+}
+
+function getMarkdownDomainFiles(): WeakMap<WorkspaceLeaf, string> {
+	return findDomainFileRoutingState()?.markdownDomainFiles ?? unregisteredMarkdownDomainFiles
+}
+
+function cleanupDomainFileRouting(plugin: DomainFileRoutingPlugin, state: DomainFileRoutingState): void {
+	if (state.owner !== plugin) {
+		return
+	}
+	// @story [[lucrjournal/runtime#^routing-patch-cleanup]] Restores only prototype methods still owned by this routing patch.
+	if (WorkspaceLeaf.prototype.setViewState === state.patchedSetViewState) {
+		WorkspaceLeaf.prototype.setViewState = state.originalSetViewState
+	}
+	if (WorkspaceLeaf.prototype.detach === state.patchedDetach) {
+		WorkspaceLeaf.prototype.detach = state.originalDetach
+	}
+	Reflect.deleteProperty(WorkspaceLeaf.prototype, DOMAIN_FILE_ROUTING_STATE)
 }
 
 export function registerDomainMarkdownActions(plugin: DomainMarkdownActionsPlugin): void {

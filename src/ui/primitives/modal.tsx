@@ -40,7 +40,7 @@ export function Modal({ isOpen, onClose, title, children, footer, zIndexClassNam
 	}, [isOpen, onClose])
 
 	return isOpen ? (
-		<div className={`lj:fixed lj:inset-0 lj:flex lj:items-center lj:justify-center lj:p-4 lj:sm:p-6 ${zIndexClassName ?? 'lj:z-[100]'}`}>
+		<div className={`lj:fixed lj:inset-0 lj:flex lj:items-center lj:justify-center lj:p-4 lj:sm:p-6 lj:pointer-events-auto ${zIndexClassName ?? 'lj:z-[100]'}`}>
 			<div
 				className="lj:absolute lj:inset-0 lj:bg-lj-overlay-backdrop lj:backdrop-blur-sm"
 				onClick={onClose}

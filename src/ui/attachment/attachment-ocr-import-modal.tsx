@@ -4,22 +4,26 @@ import { t } from '../../lang/helpers'
 import { ObsidianIcon } from '../primitives/obsidian-icon'
 
 type AttachmentOcrImportModalProps = {
+	description?: string
 	isImporting: boolean
 	isOpen: boolean
 	onClose: () => void
 	onImportFiles: (files: FileList | File[] | null, source: 'modal-drop' | 'modal-upload') => Promise<boolean>
 	onImportPasteEvent: (event: ClipboardEvent) => Promise<boolean>
+	progress?: string | null
 }
 
 const OCR_IMPORT_BUTTON_ICON = 'upload'
 const OCR_IMPORT_DROPZONE_ICON = 'image'
 
 export function AttachmentOcrImportModal({
+	description,
 	isImporting,
 	isOpen,
 	onClose,
 	onImportFiles,
 	onImportPasteEvent,
+	progress,
 }: AttachmentOcrImportModalProps) {
 	const fileInputRef = useRef<HTMLInputElement | null>(null)
 	const dropzoneRef = useRef<HTMLDivElement | null>(null)
@@ -130,7 +134,7 @@ export function AttachmentOcrImportModal({
 	}
 
 	return (
-		<div className="lj:fixed lj:inset-0 lj:z-[140] lj:flex lj:items-center lj:justify-center lj:p-4 lj:sm:p-6">
+		<div className="lj:fixed lj:inset-0 lj:z-[140] lj:flex lj:items-center lj:justify-center lj:p-4 lj:sm:p-6 lj:pointer-events-auto">
 			<div
 				className="lj:absolute lj:inset-0 lj:bg-lj-overlay-backdrop lj:backdrop-blur-sm"
 				onClick={onClose}
@@ -162,7 +166,7 @@ export function AttachmentOcrImportModal({
 							: <ObsidianIcon name={OCR_IMPORT_DROPZONE_ICON} className="lj:size-5" />}
 					</div>
 					<div className="lj:max-w-sm lj:text-[14px] lj:leading-6 lj:text-lj-c-strong">
-						{t('POSITION_DETAILS_ATTACHMENT_OCR_IMPORT_MODAL_DESCRIPTION')}
+						{description ?? t('POSITION_DETAILS_ATTACHMENT_OCR_IMPORT_MODAL_DESCRIPTION')}
 					</div>
 					<div className="lj:text-[12px] lj:text-lj-c-muted">
 						{t('POSITION_DETAILS_ATTACHMENT_OCR_IMPORT_MODAL_METHOD_PASTE')}
@@ -171,6 +175,9 @@ export function AttachmentOcrImportModal({
 						{' / '}
 						{t('POSITION_DETAILS_ATTACHMENT_OCR_IMPORT_MODAL_METHOD_DROP')}
 					</div>
+					{isImporting && progress !== null && (
+						<div className="lj:text-[12px] lj:text-lj-c-muted">{progress}</div>
+					)}
 
 					{isDropTargetActive && (
 						<div className="lj:pointer-events-none lj:absolute lj:inset-0 lj:flex lj:items-center lj:justify-center lj:bg-lj-overlay-backdrop/70 lj:p-6">

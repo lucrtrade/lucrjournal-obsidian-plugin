@@ -69,6 +69,33 @@ if (import.meta.vitest) {
 	const { describe, expect, it } = import.meta.vitest
 
 	describe('position attachment OCR helpers', () => {
+		it('does not treat source paths and diff counts as a position', async () => {
+			const png = new Uint8Array([
+				137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82,
+				0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21, 196, 137,
+				0, 0, 0, 13, 73, 68, 65, 84, 8, 29, 99, 248, 207, 192, 240, 31,
+				0, 5, 128, 2, 63, 73, 194, 192, 61, 0, 0, 0, 0, 73, 69, 78, 68,
+				174, 66, 96, 130,
+			])
+			const result = await extractPositionAttachmentOcrResultFromImageRecognition(
+				png.buffer,
+				{
+					confidence: 0.88,
+					lines: [
+						{ confidence: 0.99, text: 'A Edited 4 files' },
+						{ confidence: 0.99, text: 'src/global-screenshot.ts' },
+						{ confidence: 0.99, text: '+128-10' },
+						{ confidence: 0.99, text: '+41 -12' },
+						{ confidence: 0.99, text: 'src/ui/attachment/ocr-position-import-modal.tsx' },
+					],
+					text: 'A Edited 4 files\nsrc/global-screenshot.ts\n+128-10\n+41 -12\nsrc/ui/attachment/ocr-position-import-modal.tsx',
+				},
+			)
+			expect(result.symbol).toBeUndefined()
+			expect(result.side).toBeUndefined()
+			expect(result.notional_amount).toBeUndefined()
+		})
+
 		it('extracts OCR fields from anchored text lines', () => {
 			expect(extractPositionAttachmentOcrResultFromRecognition({
 				confidence: 0.91,

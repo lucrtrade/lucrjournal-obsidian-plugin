@@ -1,6 +1,10 @@
 import type { en } from '../../lang/locale/en'
 
 export type PositionAttachmentOcrResult = {
+	is_perp?: boolean
+	notional_amount?: number
+	symbol?: string
+	side?: 'LONG' | 'SHORT'
 	notional_value?: number
 	entry_price?: number
 	exit_price?: number
@@ -9,7 +13,7 @@ export type PositionAttachmentOcrResult = {
 	image_url?: string
 }
 
-type PositionAttachmentOcrFieldKey = Exclude<keyof PositionAttachmentOcrResult, 'image_url'>
+type PositionAttachmentOcrFieldKey = 'notional_value' | 'entry_price' | 'exit_price' | 'stop_loss' | 'target_price'
 export type PositionAttachmentOcrDraft = Record<PositionAttachmentOcrFieldKey, string>
 
 export type PositionAttachmentOcrPatchContext = {
@@ -32,7 +36,10 @@ export const POSITION_ATTACHMENT_OCR_FIELDS = [
 		labelKey: 'POSITION_DETAILS_AMOUNT',
 		inputMode: 'decimal',
 		inputType: 'number',
-		toDraftValue: (result) => result.notional_value == null ? '' : String(result.notional_value),
+		toDraftValue: (result) => {
+			const value = result.notional_value ?? result.notional_amount
+			return value == null ? '' : String(value)
+		},
 		toFrontmatterValue: (draft) => {
 			const trimmed = draft.trim()
 			if (trimmed === '') {

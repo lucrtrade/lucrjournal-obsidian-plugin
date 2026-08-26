@@ -9,6 +9,7 @@ import type { App } from 'obsidian'
 
 type NewPositionModalProps = {
 	app: App
+	initialValues?: Partial<_PositionFormState>
 	isOpen: boolean
 	preferredAccount?: string
 	selectedTemplate: PositionTemplateSummary | null
@@ -46,6 +47,7 @@ const FIELD_CLASS_NAMES: FormRendererClassNames = {
 
 export function NewPositionModal({
 	app,
+	initialValues,
 	isOpen,
 	preferredAccount,
 	selectedTemplate,
@@ -67,7 +69,10 @@ export function NewPositionModal({
 		app,
 		isOpen,
 		formDefinition: PositionDomain.formDefinition,
-		buildInitialFormValues: () => PositionDomain.buildCreateFormValues(app, preferredAccount),
+		buildInitialFormValues: () => ({
+			...PositionDomain.buildCreateFormValues(app, preferredAccount),
+			...initialValues,
+		}),
 		synchronizeFormValues: (nextValues, context) =>
 			PositionDomain.synchronizeFormValues(nextValues, context),
 		// @story [[lucrjournal/position#^position-template-body-create]] Keeps selected templates inside the normal position creation entrypoint

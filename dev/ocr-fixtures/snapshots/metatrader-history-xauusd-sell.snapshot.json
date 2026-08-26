@@ -6,7 +6,8 @@
     "exit_price": 4519.71,
     "notional_value": 0.01,
     "stop_loss": 4520.73,
-    "target_price": 4516.19
+    "target_price": 4516.19,
+    "side": "SHORT"
   },
   "recognition": {
     "lines": [
