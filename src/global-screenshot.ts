@@ -244,17 +244,17 @@ async function showCard(plugin: LucrJournalPlugin, remote: ElectronRemote, image
 	setCardState(t('OCR_POSITION_COMMAND'), t('POSITION_DETAILS_ATTACHMENT_OCR_PREPARING'), 'progress')
 }
 
-function openCardAction(nextCard: ScreenshotCard, remote: ElectronRemote): void {
+function openCardAction(_nextCard: ScreenshotCard, remote: ElectronRemote): void {
 	const action = cardAction
-	if (action === null) {
-		return
-	}
-	cardAction = null
-	nextCard.on('closed', () => {
+	closeCard()
+	try {
 		remote.getCurrentWindow().focus()
+	} catch {
+		// ignore
+	}
+	if (action !== null) {
 		action()
-	})
-	nextCard.close()
+	}
 }
 
 function closeCard(): void {
