@@ -154,16 +154,22 @@ jobs:
             # @story [[lucrjournal/build#^release-files]] Publishes only the installable plugin file set.
             - name: Create release
               if: steps.check_release.outputs.exists == 'false'
-              uses: softprops/action-gh-release@v3
-              with:
-                  tag_name: ${{ steps.version.outputs.version }}
-                  name: ${{ steps.version.outputs.is_prerelease == 'true' && format('Pre-release {0}', steps.version.outputs.version) || format('Release {0}', steps.version.outputs.version) }}
-                  draft: false
-                  prerelease: ${{ steps.version.outputs.is_prerelease == 'true' }}
-                  files: |
-                      dist/build/main.js
-                      dist/build/manifest.json
-                      dist/build/styles.css
-                  body_path: /tmp/release_notes.md
               env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  VERSION: ${{ steps.version.outputs.version }}
+                  IS_PRERELEASE: ${{ steps.version.outputs.is_prerelease }}
+              run: |
+                  TITLE="Release ${VERSION}"
+                  PRERELEASE_FLAG=()
+                  if [ "$IS_PRERELEASE" = "true" ]; then
+                    TITLE="Pre-release ${VERSION}"
+                    PRERELEASE_FLAG=("--prerelease")
+                  fi
+
+                  gh release create "${VERSION}" \
+                    dist/build/main.js \
+                    dist/build/manifest.json \
+                    dist/build/styles.css \
+                    --title "${TITLE}" \
+                    --notes-file /tmp/release_notes.md \
+                    "${PRERELEASE_FLAG[@]}"

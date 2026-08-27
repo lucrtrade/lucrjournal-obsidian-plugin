@@ -2,9 +2,10 @@
 
 ## [Unreleased]
 
-## [0.1.13-alpha.1]
+## [0.1.13-alpha.2]
 
-- hide `lucrjournal` folder
+- Support pre-release CI publishing with immutable release policy
+- Hide `lucrjournal` folder
 
 ## [0.1.12]
 
