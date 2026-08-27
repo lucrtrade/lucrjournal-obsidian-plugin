@@ -1,4 +1,4 @@
-import { normalizePath, type App, type Plugin } from 'obsidian'
+import { normalizePath, requestUrl, type App, type Plugin } from 'obsidian'
 import * as ort from 'onnxruntime-web'
 import { PaddleOcrService } from 'ppu-paddle-ocr/web'
 
@@ -8,10 +8,17 @@ const logger = createLogger('attachment-ocr')
 
 // @story [[lucrjournal/ocr#^local-ocr-runtime-assets]] Defines the local runtime and model filenames
 const ONNX_RUNTIME_ASSET_DIR = 'onnxruntime-web'
-const ONNX_RUNTIME_MODULE_FILE = 'ort-wasm-simd-threaded.jsep.mjs'
 const ONNX_RUNTIME_WASM_FILE = 'ort-wasm-simd-threaded.jsep.wasm'
 const OCR_MODEL_ASSET_DIR = 'ocr/models'
 const OCR_RECOGNITION_LINE_SEGMENT_MAX_GAP = 120
+// Must match the onnxruntime-web build inlined into this bundle, or the downloaded .wasm mismatches its glue.
+const ONNX_RUNTIME_VERSION = ort.env.versions.web
+// ppu-paddle-ocr-models stores the .onnx models in Git LFS: raw.githubusercontent.com returns pointer
+// files, so they come from the media host (jsDelivr, which resolves LFS, is the fallback). The dict is
+// a plain text file served from raw. Mirrors scripts/sync-ocr-assets.ts.
+const OCR_MODEL_BASE_URL = 'https://media.githubusercontent.com/media/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr-models/main'
+const OCR_DICT_BASE_URL = 'https://raw.githubusercontent.com/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr-models/main'
+const OCR_MODEL_CDN_URL = 'https://cdn.jsdelivr.net/gh/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr-models@main'
 
 type PositionAttachmentOcrRuntimeContext = {
 	app: App
@@ -21,13 +28,12 @@ type PositionAttachmentOcrRuntimeContext = {
 export type PositionAttachmentOcrProgress =
 	| {
 		asset:
-			| 'onnx_runtime_module'
 			| 'onnx_runtime_binary'
 			| 'detection_model'
 			| 'recognition_model'
 			| 'dictionary'
 		kind: 'asset'
-		status: 'cached'
+		status: 'cached' | 'downloading'
 		step: number
 		total: number
 	}
@@ -74,23 +80,35 @@ const OCR_MODEL_RESOURCES = {
 
 const OCR_RUNTIME_ASSET_RESOURCES = [
 	{
-		asset: 'onnx_runtime_module',
-		relativePath: `${ONNX_RUNTIME_ASSET_DIR}/${ONNX_RUNTIME_MODULE_FILE}`,
-	},
-	{
-		asset: 'onnx_runtime_binary',
+		asset: 'onnx_runtime_binary' as const,
+		downloadUrls: [
+			`https://cdn.jsdelivr.net/npm/onnxruntime-web@${ONNX_RUNTIME_VERSION}/dist/${ONNX_RUNTIME_WASM_FILE}`,
+			`https://unpkg.com/onnxruntime-web@${ONNX_RUNTIME_VERSION}/dist/${ONNX_RUNTIME_WASM_FILE}`,
+		],
 		relativePath: `${ONNX_RUNTIME_ASSET_DIR}/${ONNX_RUNTIME_WASM_FILE}`,
 	},
 	{
 		asset: OCR_MODEL_RESOURCES.detection.asset,
+		downloadUrls: [
+			`${OCR_MODEL_BASE_URL}/detection/PP-OCRv5_mobile_det_infer.onnx`,
+			`${OCR_MODEL_CDN_URL}/detection/PP-OCRv5_mobile_det_infer.onnx`,
+		],
 		relativePath: `${OCR_MODEL_ASSET_DIR}/${OCR_MODEL_RESOURCES.detection.fileName}`,
 	},
 	{
 		asset: OCR_MODEL_RESOURCES.recognition.asset,
+		downloadUrls: [
+			`${OCR_MODEL_BASE_URL}/recognition/multi/en/v5/en_PP-OCRv5_mobile_rec_infer.onnx`,
+			`${OCR_MODEL_CDN_URL}/recognition/multi/en/v5/en_PP-OCRv5_mobile_rec_infer.onnx`,
+		],
 		relativePath: `${OCR_MODEL_ASSET_DIR}/${OCR_MODEL_RESOURCES.recognition.fileName}`,
 	},
 	{
 		asset: OCR_MODEL_RESOURCES.dictionary.asset,
+		downloadUrls: [
+			`${OCR_DICT_BASE_URL}/recognition/multi/en/v5/ppocrv5_en_dict.txt`,
+			`${OCR_MODEL_CDN_URL}/recognition/multi/en/v5/ppocrv5_en_dict.txt`,
+		],
 		relativePath: `${OCR_MODEL_ASSET_DIR}/${OCR_MODEL_RESOURCES.dictionary.fileName}`,
 	},
 ] as const
@@ -218,26 +236,24 @@ async function configureOnnxRuntimeWasm(
 	context: PositionAttachmentOcrRuntimeContext,
 	onProgress?: (progress: PositionAttachmentOcrProgress) => void,
 ) {
-	const runtimeAssets = OCR_RUNTIME_ASSET_RESOURCES.slice(0, 2)
-	for (const [index, asset] of runtimeAssets.entries()) {
-		await ensurePluginAssetAvailable(
-			context,
-			asset.relativePath,
-			asset.asset,
-			index + 1,
-			OCR_RUNTIME_ASSET_RESOURCES.length,
-			onProgress,
-		)
-	}
+	const [runtimeBinary] = OCR_RUNTIME_ASSET_RESOURCES
+	const wasmBinaryPath = await ensurePluginAssetAvailable(
+		context,
+		runtimeBinary.relativePath,
+		runtimeBinary.downloadUrls,
+		runtimeBinary.asset,
+		1,
+		OCR_RUNTIME_ASSET_RESOURCES.length,
+		onProgress,
+	)
 
-	const wasmModulePath = buildPluginRuntimePath(context.app, context.pluginId, `${ONNX_RUNTIME_ASSET_DIR}/${ONNX_RUNTIME_MODULE_FILE}`)
-	const wasmBinaryPath = buildPluginRuntimePath(context.app, context.pluginId, `${ONNX_RUNTIME_ASSET_DIR}/${ONNX_RUNTIME_WASM_FILE}`)
-
+	// onnxruntime-web ships two copies of the emscripten glue: the browser-only build inlined into this
+	// bundle, and dist/ort-wasm-simd-threaded.jsep.mjs which still carries a Node `import("worker_threads")`
+	// branch. Setting wasmPaths.mjs forces the standalone file, which the Electron renderer's ESM loader
+	// cannot resolve. Passing only wasmBinary on a single-threaded runtime keeps ORT on the inlined glue
+	// (importWasmModule: `isWasmOverridden && !isMultiThreaded`).
 	ort.env.wasm.numThreads = 1
-	ort.env.wasm.wasmPaths = {
-		mjs: context.app.vault.adapter.getResourcePath(wasmModulePath),
-		wasm: context.app.vault.adapter.getResourcePath(wasmBinaryPath),
-	}
+	ort.env.wasm.wasmBinary = await context.app.vault.adapter.readBinary(wasmBinaryPath)
 }
 
 async function loadCachedOcrModelResource(
@@ -258,6 +274,7 @@ async function loadCachedOcrModelResource(
 	await ensurePluginAssetAvailable(
 		context,
 		runtimeAsset.relativePath,
+		runtimeAsset.downloadUrls,
 		resource.asset,
 		OCR_RUNTIME_ASSET_RESOURCES.findIndex((asset) => asset.asset === resource.asset) + 1,
 		OCR_RUNTIME_ASSET_RESOURCES.length,
@@ -284,10 +301,26 @@ function buildPluginRuntimePath(app: App, pluginId: string, relativePath: string
 	return normalizePath(`${app.vault.configDir}/plugins/${pluginId}/${relativePath}`)
 }
 
-// @story [[lucrjournal/ocr#^local-ocr-runtime-assets]] Fails when a plugin asset is absent without any network fallback
+async function downloadAssetBinary(urls: readonly string[]): Promise<ArrayBuffer> {
+	let lastError: unknown = null
+	for (const url of urls) {
+		try {
+			const response = await requestUrl({ url })
+			if (response.status >= 200 && response.status < 300) {
+				return response.arrayBuffer
+			}
+		} catch (error: unknown) {
+			lastError = error
+		}
+	}
+	throw new Error(`Failed to download OCR asset from ${urls.join(', ')}: ${String(lastError)}`)
+}
+
+// @story [[lucrjournal/ocr#^local-ocr-runtime-assets]] Uses local asset or downloads from upstream when absent
 async function ensurePluginAssetAvailable(
 	context: PositionAttachmentOcrRuntimeContext,
 	relativePath: string,
+	downloadUrls: readonly string[],
 	asset: Extract<PositionAttachmentOcrProgress, { kind: 'asset' }>['asset'],
 	step: number,
 	total: number,
@@ -306,7 +339,26 @@ async function ensurePluginAssetAvailable(
 		return targetPath
 	}
 
-	throw new Error(`Missing OCR runtime asset: ${relativePath}`)
+	onProgress?.({
+		asset,
+		kind: 'asset',
+		status: 'downloading',
+		step,
+		total,
+	})
+
+	const lastSlash = targetPath.lastIndexOf('/')
+	if (lastSlash !== -1) {
+		const parentDir = targetPath.slice(0, lastSlash)
+		if (!(await context.app.vault.adapter.exists(parentDir))) {
+			await context.app.vault.adapter.mkdir(parentDir)
+		}
+	}
+
+	const bytes = await downloadAssetBinary(downloadUrls)
+	await context.app.vault.adapter.writeBinary(targetPath, bytes)
+
+	return targetPath
 }
 
 function toPositionAttachmentOcrRecognitionLines(lines: Array<Array<{
@@ -392,36 +444,72 @@ function buildPositionAttachmentOcrRecognitionLine(segment: Array<{
 }
 
 if (import.meta.vitest) {
-	const { describe, expect, it, vi } = import.meta.vitest
+	const { beforeEach, describe, expect, it, vi } = import.meta.vitest
 
 	describe('ensurePluginAssetAvailable', () => {
-		// @story [[lucrjournal/ocr#^local-ocr-runtime-assets]] Covers missing assets without download or writes
-		it('does not download missing OCR runtime assets', async () => {
+		beforeEach(() => {
+			vi.restoreAllMocks()
+		})
+
+		// @story [[lucrjournal/ocr#^local-ocr-runtime-assets]] Downloads missing OCR runtime assets when absent locally
+		it('downloads and caches missing OCR runtime assets', async () => {
 			const Obsidian = await import('obsidian')
 			const requestUrlSpy = vi.spyOn(Obsidian, 'requestUrl').mockResolvedValue({
-				arrayBuffer: new ArrayBuffer(0),
+				arrayBuffer: new ArrayBuffer(8),
+				status: 200,
 			} as Awaited<ReturnType<typeof Obsidian.requestUrl>>)
-			const writes: string[] = []
+			const writes: Array<{ path: string; data: ArrayBuffer }> = []
 			const app = {
 				vault: {
 					configDir: 'vault-config',
 					adapter: {
 						exists: async () => false,
 						mkdir: async () => undefined,
-						writeBinary: async (path: string) => writes.push(path),
+						writeBinary: async (path: string, data: ArrayBuffer) => {
+							writes.push({ path, data })
+						},
 					},
 				},
 			}
 
-			await expect(ensurePluginAssetAvailable(
+			const result = await ensurePluginAssetAvailable(
 				{ app: app as never, pluginId: 'lucrjournal' },
 				'ocr/models/model.onnx',
+				['https://example.com/model.onnx'],
 				'detection_model',
 				1,
 				1,
-			)).rejects.toThrow('Missing OCR runtime asset')
+			)
+
+			expect(result).toBe('vault-config/plugins/lucrjournal/ocr/models/model.onnx')
+			expect(requestUrlSpy).toHaveBeenCalledWith({ url: 'https://example.com/model.onnx' })
+			expect(writes).toHaveLength(1)
+			expect(writes[0]?.path).toBe('vault-config/plugins/lucrjournal/ocr/models/model.onnx')
+		})
+
+		it('uses cached local asset without downloading when present', async () => {
+			const Obsidian = await import('obsidian')
+			const requestUrlSpy = vi.spyOn(Obsidian, 'requestUrl')
+			const app = {
+				vault: {
+					configDir: 'vault-config',
+					adapter: {
+						exists: async () => true,
+					},
+				},
+			}
+
+			const result = await ensurePluginAssetAvailable(
+				{ app: app as never, pluginId: 'lucrjournal' },
+				'ocr/models/model.onnx',
+				['https://example.com/model.onnx'],
+				'detection_model',
+				1,
+				1,
+			)
+
+			expect(result).toBe('vault-config/plugins/lucrjournal/ocr/models/model.onnx')
 			expect(requestUrlSpy).not.toHaveBeenCalled()
-			expect(writes).toEqual([])
 		})
 	})
 }

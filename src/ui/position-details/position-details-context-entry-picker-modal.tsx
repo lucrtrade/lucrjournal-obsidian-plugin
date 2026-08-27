@@ -4,7 +4,7 @@ import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { hasPersistedEntryBasenameConflict } from '../../domains/core/entry-writer'
 import { t } from '../../lang/helpers'
 import { getCurrentTimeZoneSetting } from '../../settings/plugin-settings'
-import { buildIsoDatetimeInTimeZone, getFileBasename, getPersistedEntryDisplayName, sanitizeObsidianFileName } from '../../utils'
+import { buildIsoDatetimeInTimeZone, getFileBasename, getPersistedEntryCreated, getPersistedEntryDisplayName, sanitizeObsidianFileName } from '../../utils'
 import { ObsidianIcon } from '../primitives/obsidian-icon'
 import { PickerModalShell } from '../primitives/picker-modal-shell'
 
@@ -420,6 +420,11 @@ function getEntryMetadata(app: App, entry: EntryWithName) {
 }
 
 function formatEntryDatetime(entry: EntryWithName) {
+	const persistedCreated = getPersistedEntryCreated(entry.fm)
+	if (persistedCreated !== null) {
+		return persistedCreated.slice(0, 16).replace('T', '  ')
+	}
+
 	const ctime = entry.file.stat?.ctime
 	if (typeof ctime !== 'number') {
 		return null

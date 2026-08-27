@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 import { t } from '../../lang/helpers'
 import { getCurrentTimeZoneSetting } from '../../settings/plugin-settings'
-import { buildIsoDatetimeInTimeZone, getPersistedEntryDisplayName } from '../../utils'
+import { buildIsoDatetimeInTimeZone, getPersistedEntryCreated, getPersistedEntryDisplayName } from '../../utils'
 import { getFileTags } from '../file-tags'
 import { PositionDetailsContextEntryDeleteModal } from '../position-details/position-details-context-entry-delete-modal'
 import { PositionDetailsContextEntryPickerModal } from '../position-details/position-details-context-entry-picker-modal'
@@ -168,8 +168,8 @@ function LinkedSectionListRow<Entry>({
 }) {
 	const [isMenuOpen, setIsMenuOpen] = useState(false)
 	const entryTitle = getPersistedEntryDisplayName(item.entry)
-	const timeZone = getCurrentTimeZoneSetting()
-	const isoDatetime = buildIsoDatetimeInTimeZone(new Date(item.file.stat.ctime), timeZone)
+	const isoDatetime = getPersistedEntryCreated(item.entry.fm)
+		?? buildIsoDatetimeInTimeZone(new Date(item.file.stat.ctime), getCurrentTimeZoneSetting())
 	const tags = getFileTags(app, item.file)
 
 	return (

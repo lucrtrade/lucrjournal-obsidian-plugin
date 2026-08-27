@@ -1,7 +1,9 @@
-import { getCurrentTimeZoneSetting, setCurrentTimeZoneSetting } from '../settings/plugin-settings'
+import { moment } from 'obsidian'
+
+import { setCurrentTimeZoneSetting } from '../settings/plugin-settings'
 
 import { DatetimePattern } from './datetime-pattern'
-import { buildIsoDatetimeInTimeZone, getCurrentTimeZoneOffset } from './relative-time'
+import { getCurrentTimeZoneOffset } from './relative-time'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -111,44 +113,57 @@ export function coerceLowercaseString(value: unknown): unknown {
 	return trimmed === null ? value : trimmed.toLocaleLowerCase()
 }
 
-// @story [[lucrjournal/domain-model#^domain-datetime-repair]] Repairs partial datetime strings to the persisted shape or clamps them to null
+// Formats a person may type by hand or another tool may write, on top of strict ISO-8601.
+const LOOSE_DATETIME_FORMATS = [
+	moment.ISO_8601,
+	'YYYY-MM-DD HH:mm:ss Z',
+	'YYYY-MM-DD HH:mm Z',
+	'YYYY-MM-DD HH:mm:ss',
+	'YYYY-MM-DD HH:mm',
+	'YYYY-MM-DD',
+	'YYYY/MM/DD HH:mm:ss',
+	'YYYY/MM/DD HH:mm',
+	'YYYY/MM/DD',
+	'YYYY.MM.DD HH:mm:ss',
+	'YYYY.MM.DD HH:mm',
+	'YYYY.MM.DD',
+	'YYYYMMDDTHHmmss',
+	'YYYYMMDD',
+]
+const EXPLICIT_ZONE_SUFFIX = /(?:Z|[+-]\d{2}:?\d{2})$/i
+
+// @story [[lucrjournal/domain-model#^domain-datetime-repair]] Parses a wide range of datetime inputs into the persisted shape or clamps them to null
 export function coerceDatetime(value: unknown): unknown {
-	if (value == null) {
-		return null
-	}
-
 	if (value instanceof Date) {
-		return Number.isNaN(value.getTime())
-			? null
-			: buildIsoDatetimeInTimeZone(value, getCurrentTimeZoneSetting())
+		// Obsidian's YAML parser reads an offset-less timestamp as UTC, so the Date's UTC wall
+		// clock is what the user typed; re-normalize it as an offset-less string.
+		return Number.isNaN(value.getTime()) ? null : coerceDatetime(value.toISOString().slice(0, 19))
 	}
 
-	const trimmed = coerceTrimmedString(value)
-	if (trimmed === null) {
+	if (typeof value !== 'string') {
 		return null
 	}
 
-	let normalized = trimmed
-		.replace(/^(\d{4}-\d{2}-\d{2})\s+/, '$1T')
-		.replace(/\s+([+-]\d{2}:?\d{2}|Z)$/i, '$1')
-		.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')
-		.replace(/\.\d+/, '')
-
-	if (/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(normalized)) {
-		normalized = `${normalized}T00:00:00`
+	const trimmed = value.trim()
+	if (trimmed === '') {
+		return null
 	}
 
-	normalized = normalized
-		.replace(/^(\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])T(?:[01]\d|2[0-3]):[0-5]\d)$/, '$1:00')
-		.replace(/^(\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])T(?:[01]\d|2[0-3]):[0-5]\d)(Z|[+-]\d{2}:\d{2})$/, '$1:00$2')
-
-	// A bare wall clock keeps the typed date and time and takes the offset the configured zone
-	// had at that instant, so an off-season edit does not pick up the current DST offset.
-	if (/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):[0-5]\d:[0-5]\d$/.test(normalized)) {
-		normalized = `${normalized}${getCurrentTimeZoneOffset(new Date(`${normalized}Z`))}`
+	const parsed = moment.parseZone(trimmed, LOOSE_DATETIME_FORMATS, true)
+	if (!parsed.isValid()) {
+		return null
 	}
 
-	return DatetimePattern.test(normalized) ? normalized : null
+	if (EXPLICIT_ZONE_SUFFIX.test(trimmed)) {
+		const formatted = parsed.format('YYYY-MM-DDTHH:mm:ssZ')
+		return DatetimePattern.test(formatted) ? formatted : null
+	}
+
+	// An offset-less input keeps the typed date and time and takes the offset the configured
+	// zone had at that instant, so an off-season edit does not pick up the current DST offset.
+	const wallClock = parsed.format('YYYY-MM-DDTHH:mm:ss')
+	const candidate = `${wallClock}${getCurrentTimeZoneOffset(new Date(`${wallClock}Z`))}`
+	return DatetimePattern.test(candidate) ? candidate : null
 }
 
 // @story [[lucrjournal/domain-model#^enum-field-null-coercion]] Clamps unrecognized enumerated values to null so one field never drops the record
@@ -221,7 +236,7 @@ if (import.meta.vitest) {
 			setCurrentTimeZoneSetting(defaultTimeZone)
 		})
 
-		it('returns null for null, undefined, empty, or non-datetime values', () => {
+		it('returns null for null, undefined, empty, or unparseable values', () => {
 			expect(coerceDatetime(null)).toBeNull()
 			expect(coerceDatetime(undefined)).toBeNull()
 			expect(coerceDatetime('')).toBeNull()
@@ -232,35 +247,22 @@ if (import.meta.vitest) {
 			expect(coerceDatetime(1_735_689_600_000)).toBeNull()
 		})
 
-		it('normalizes valid ISO datetime with timezone as-is', () => {
+		it('keeps a datetime that already carries an offset, dropping sub-second precision', () => {
 			expect(coerceDatetime('2026-03-20T16:31:00+08:00')).toBe('2026-03-20T16:31:00+08:00')
-			expect(coerceDatetime('2026-03-20T16:31:00Z')).toBe('2026-03-20T16:31:00Z')
-		})
-
-		it('appends the configured timezone offset to a bare wall clock', () => {
-			expect(coerceDatetime('2026-08-26 20:00:01')).toBe('2026-08-26T20:00:01+08:00')
-			expect(coerceDatetime('2026-08-26T20:00:01')).toBe('2026-08-26T20:00:01+08:00')
-		})
-
-		it('normalizes datetime without seconds', () => {
-			expect(coerceDatetime('2026-08-26 20:00')).toBe('2026-08-26T20:00:00+08:00')
-			expect(coerceDatetime('2026-08-26T20:00')).toBe('2026-08-26T20:00:00+08:00')
-			expect(coerceDatetime('2026-08-26T20:00+08:00')).toBe('2026-08-26T20:00:00+08:00')
-			expect(coerceDatetime('2026-08-26T20:00Z')).toBe('2026-08-26T20:00:00Z')
-		})
-
-		it('normalizes pure date string to midnight', () => {
-			expect(coerceDatetime('2026-08-26')).toBe('2026-08-26T00:00:00+08:00')
-		})
-
-		it('strips milliseconds from timestamps', () => {
-			expect(coerceDatetime('2026-08-26T20:00:01.123+08:00')).toBe('2026-08-26T20:00:01+08:00')
-			expect(coerceDatetime('2026-08-26T20:00:01.123')).toBe('2026-08-26T20:00:01+08:00')
-		})
-
-		it('normalizes space before timezone offset and compact offsets', () => {
+			expect(coerceDatetime('2026-05-21T02:26:16.626+08:00')).toBe('2026-05-21T02:26:16+08:00')
+			expect(coerceDatetime('2026-03-20T16:31:00Z')).toBe('2026-03-20T16:31:00+00:00')
 			expect(coerceDatetime('2026-08-26 20:00:01 +08:00')).toBe('2026-08-26T20:00:01+08:00')
 			expect(coerceDatetime('2026-08-26T20:00:01+0800')).toBe('2026-08-26T20:00:01+08:00')
+		})
+
+		it('attaches the configured zone offset to an offset-less wall clock', () => {
+			expect(coerceDatetime('2026-05-20T06:26:17')).toBe('2026-05-20T06:26:17+08:00')
+			expect(coerceDatetime('2026-08-26 20:00:01')).toBe('2026-08-26T20:00:01+08:00')
+			expect(coerceDatetime('2026-08-26T20:00')).toBe('2026-08-26T20:00:00+08:00')
+			expect(coerceDatetime('2026-08-26 20:00')).toBe('2026-08-26T20:00:00+08:00')
+			expect(coerceDatetime('2026-08-26')).toBe('2026-08-26T00:00:00+08:00')
+			expect(coerceDatetime('2026/05/20 06:26')).toBe('2026-05-20T06:26:00+08:00')
+			expect(coerceDatetime('2026.05.20 06:26:17')).toBe('2026-05-20T06:26:17+08:00')
 		})
 
 		it('takes the offset the configured zone had at the typed instant, not now', () => {
@@ -269,9 +271,8 @@ if (import.meta.vitest) {
 			expect(coerceDatetime('2026-07-15T10:00:00')).toBe('2026-07-15T10:00:00-04:00')
 		})
 
-		it('normalizes Date objects and rejects invalid ones', () => {
-			const date = new Date('2026-08-26T12:00:00Z')
-			expect(coerceDatetime(date)).toBe(buildIsoDatetimeInTimeZone(date, getCurrentTimeZoneSetting()))
+		it('reads a Date object as an offset-less UTC wall clock', () => {
+			expect(coerceDatetime(new Date('2026-05-20T06:26:17Z'))).toBe('2026-05-20T06:26:17+08:00')
 			expect(coerceDatetime(new Date('nope'))).toBeNull()
 		})
 	})

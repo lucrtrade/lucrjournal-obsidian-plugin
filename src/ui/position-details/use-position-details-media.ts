@@ -622,7 +622,6 @@ const OCR_PROGRESS_ASSET_LABEL_KEYS = {
 	detection_model: 'POSITION_DETAILS_ATTACHMENT_OCR_ASSET_DETECTION_MODEL',
 	dictionary: 'POSITION_DETAILS_ATTACHMENT_OCR_ASSET_DICTIONARY',
 	onnx_runtime_binary: 'POSITION_DETAILS_ATTACHMENT_OCR_ASSET_ONNX_RUNTIME_BINARY',
-	onnx_runtime_module: 'POSITION_DETAILS_ATTACHMENT_OCR_ASSET_ONNX_RUNTIME_MODULE',
 	recognition_model: 'POSITION_DETAILS_ATTACHMENT_OCR_ASSET_RECOGNITION_MODEL',
 } as const satisfies Record<
 	Extract<PositionAttachmentOcrProgress, { kind: 'asset' }>['asset'],
@@ -635,7 +634,11 @@ function buildAttachmentOcrProgressMessage(progress: PositionAttachmentOcrProgre
 	}
 
 	const assetLabel = t(OCR_PROGRESS_ASSET_LABEL_KEYS[progress.asset])
-	return t('POSITION_DETAILS_ATTACHMENT_OCR_PROGRESS_CACHED', {
+	const messageKey = progress.status === 'downloading'
+		? 'POSITION_DETAILS_ATTACHMENT_OCR_PROGRESS_DOWNLOADING'
+		: 'POSITION_DETAILS_ATTACHMENT_OCR_PROGRESS_CACHED'
+
+	return t(messageKey, {
 		asset: assetLabel,
 		current: progress.step,
 		total: progress.total,

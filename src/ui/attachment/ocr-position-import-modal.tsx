@@ -154,11 +154,7 @@ export function OcrPositionImportModal({
 
 			// Append mode: always open review form modal so user can review/edit and apply
 			if (existingPosition !== undefined) {
-				const initialValues: Partial<FormValues<typeof PositionDomain.formDefinition>> = {
-					account: effectiveAccountName,
-					symbol: symbol ?? (resolveSymbolName(app, existingPosition.symbol) ?? undefined),
-					side: (result.side ?? existingPosition.side) ?? undefined,
-				}
+				const initialValues = buildInitialPositionFormValuesFromOcr(app, effectiveAccountName, result, symbol, existingPosition)
 				const pending = { image, imageDataUrl, result, initialValues }
 				setPendingManualPosition(pending)
 				return false
@@ -166,11 +162,7 @@ export function OcrPositionImportModal({
 
 			// Create mode:
 			if (symbol === null || result.side === undefined) {
-				const initialValues: Partial<FormValues<typeof PositionDomain.formDefinition>> = {
-					account: effectiveAccountName,
-					...(symbol !== null ? { symbol } : {}),
-					...(result.side !== undefined ? { side: result.side } : {}),
-				}
+				const initialValues = buildInitialPositionFormValuesFromOcr(app, effectiveAccountName, result, symbol)
 				const pending = { image, imageDataUrl, result, initialValues }
 				setPendingManualPosition(pending)
 				onIncomplete?.(pending)
@@ -650,6 +642,30 @@ function validateShortRiskPrices(
 	return null
 }
 
+function buildInitialPositionFormValuesFromOcr(
+	app: App,
+	accountName: string,
+	result: PositionAttachmentOcrResult,
+	symbol: string | null,
+	existingPosition?: Position,
+): Partial<FormValues<typeof PositionDomain.formDefinition>> {
+	const resolvedSymbol = symbol ?? (existingPosition ? (resolveSymbolName(app, existingPosition.symbol) ?? undefined) : undefined)
+	const resolvedSide = (result.side ?? existingPosition?.side) ?? undefined
+
+	return {
+		account: accountName,
+		...(resolvedSymbol !== undefined ? { symbol: resolvedSymbol } : {}),
+		...(resolvedSide !== undefined ? { side: resolvedSide } : {}),
+		...(result.notional_amount !== undefined
+			? { notional_asset: 'native', notional_amount: result.notional_amount }
+			: (result.notional_value !== undefined ? { notional_value: result.notional_value } : {})),
+		...(result.entry_price !== undefined ? { entry_price: result.entry_price } : {}),
+		...(result.stop_loss !== undefined ? { stop_loss: result.stop_loss } : {}),
+		...(result.target_price !== undefined ? { target_price: result.target_price } : {}),
+		...(result.exit_price !== undefined ? { exit_price: result.exit_price } : {}),
+	}
+}
+
 async function createAndPersistOcrPosition(
 	app: App,
 	accountName: string,
@@ -688,10 +704,13 @@ function buildOcrProgressMessage(progress: PositionAttachmentOcrProgress): strin
 		detection_model: 'POSITION_DETAILS_ATTACHMENT_OCR_ASSET_DETECTION_MODEL',
 		dictionary: 'POSITION_DETAILS_ATTACHMENT_OCR_ASSET_DICTIONARY',
 		onnx_runtime_binary: 'POSITION_DETAILS_ATTACHMENT_OCR_ASSET_ONNX_RUNTIME_BINARY',
-		onnx_runtime_module: 'POSITION_DETAILS_ATTACHMENT_OCR_ASSET_ONNX_RUNTIME_MODULE',
 		recognition_model: 'POSITION_DETAILS_ATTACHMENT_OCR_ASSET_RECOGNITION_MODEL',
 	} as const
-	return t('POSITION_DETAILS_ATTACHMENT_OCR_PROGRESS_CACHED', {
+	const messageKey = progress.status === 'downloading'
+		? 'POSITION_DETAILS_ATTACHMENT_OCR_PROGRESS_DOWNLOADING'
+		: 'POSITION_DETAILS_ATTACHMENT_OCR_PROGRESS_CACHED'
+
+	return t(messageKey, {
 		asset: t(assets[progress.asset]),
 		current: progress.step,
 		total: progress.total,
@@ -778,8 +797,8 @@ async function appendOcrAttachment(
 		const effectiveDraft = draft ?? buildPositionAttachmentOcrDraft(result)
 		const patch = {
 			...buildPositionAttachmentOcrFieldPatch(result, effectiveDraft, { notionalAsset: 'native' }),
-			...(effectiveDraft.notional_value.trim() === '' && result.notional_amount !== undefined
-				? { notional_amount: result.notional_amount, notional_asset: 'native' as const }
+			...(result.notional_amount !== undefined || effectiveDraft.notional_value.trim() !== ''
+				? { notional_asset: 'native' as const }
 				: {}),
 		}
 		await PositionDomain.updateFieldsAndAppendAttachments(app, positionFile, patch, [buildAttachmentToken(attachmentPath, fileName)])

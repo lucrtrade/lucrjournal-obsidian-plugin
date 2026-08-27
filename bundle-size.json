@@ -3,7 +3,7 @@
 	"files": [
 		{
 			"path": "main.js",
-			"bytes": 1967156,
+			"bytes": 1968926,
 			"size": "1.88 MiB"
 		},
 		{
@@ -13,7 +13,7 @@
 		}
 	],
 	"total": {
-		"bytes": 3536010,
+		"bytes": 3537780,
 		"size": "3.37 MiB"
 	}
 }

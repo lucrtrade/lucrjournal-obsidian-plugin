@@ -7,6 +7,9 @@ const shouldInstallFromCli = process.argv.includes("--install");
 const SANDBOX_VAULT_NAME = "Obsidian Sandbox";
 // @story [[lucrjournal/tooling#^local-sync-skip]] Bounds every Obsidian CLI probe and sync command
 const CLI_TIMEOUT_MS = 5_000;
+import { fileURLToPath } from "node:url";
+
+const packageDir = fileURLToPath(new URL("..", import.meta.url));
 const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 globalThis.__LUCRJOURNAL_CHART_VERSION__ = packageJson.chart_version;
 globalThis.__LUCRJOURNAL_CHART_IFRAME_URL__ = `https://lucrchart.lucrtrade.com/lc/${packageJson.chart_version}`;
@@ -194,14 +197,15 @@ try {
 	}
 
 	for (const fileName of ["main.js", "manifest.json", "styles.css"]) {
-		if (!existsSync(fileName)) {
+		const srcFile = path.join(packageDir, fileName);
+		if (!existsSync(srcFile)) {
 			throw new Error(`[obsidian-sync] Missing build artifact: ${fileName}.`);
 		}
 
-		cpSync(fileName, path.join(pluginDir, fileName));
+		cpSync(srcFile, path.join(pluginDir, fileName));
 	}
 
-	const ocrAssetDir = path.join(process.cwd(), "assets", "ocr");
+	const ocrAssetDir = path.join(packageDir, "assets", "ocr");
 	if (!existsSync(ocrAssetDir)) {
 		throw new Error(`[obsidian-sync] Missing OCR assets: ${ocrAssetDir}. Run bun run ocr:assets.`);
 	}
