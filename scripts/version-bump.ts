@@ -9,8 +9,25 @@ const { minAppVersion } = manifest;
 manifest.version = targetVersion;
 writeFileSync("manifest.json", JSON.stringify(manifest, null, "\t"));
 
-const versions = JSON.parse(readFileSync("versions.json", "utf8"));
-if (versions[targetVersion] !== minAppVersion) {
-	versions[targetVersion] = minAppVersion;
-	writeFileSync("versions.json", JSON.stringify(versions, null, "\t"));
+const isPrerelease = targetVersion.includes("-");
+if (!isPrerelease) {
+	const versions = JSON.parse(readFileSync("versions.json", "utf8"));
+	if (versions[targetVersion] !== minAppVersion) {
+		versions[targetVersion] = minAppVersion;
+		writeFileSync("versions.json", JSON.stringify(versions, null, "\t"));
+	}
+}
+
+const changelog = readFileSync("CHANGELOG.md", "utf8");
+const escapedVersion = targetVersion.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const sectionPattern = new RegExp(`^## \\[${escapedVersion}\\]`, "m");
+if (!sectionPattern.test(changelog)) {
+	const unreleasedPattern = /^## \[Unreleased\]/m;
+	if (unreleasedPattern.test(changelog)) {
+		const updatedChangelog = changelog.replace(
+			unreleasedPattern,
+			`## [Unreleased]\n\n## [${targetVersion}]`,
+		);
+		writeFileSync("CHANGELOG.md", updatedChangelog);
+	}
 }

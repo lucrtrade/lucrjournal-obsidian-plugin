@@ -67,6 +67,8 @@ export const zhCN: Partial<Record<keyof typeof en, string>> = {
 	SETTINGS_TIMEZONE_OPTION_SYDNEY: '悉尼',
 	SETTINGS_TIMEZONE_OPTION_AUCKLAND: '奥克兰',
 	SETTINGS_ADVANCED: '高级',
+	SETTINGS_SHOW_FOLDER_IN_EXPLORER: '在文件列表中显示 LucrJournal 文件夹',
+	SETTINGS_SHOW_FOLDER_IN_EXPLORER_DESC: '在左侧文件列表中显示 LucrJournal 文件夹。默认隐藏。',
 	SETTINGS_DEBUG_MODE: '调试模式',
 	SETTINGS_DEBUG_MODE_DESC: '开启后输出调试日志，并启用开发环境请求日志。',
 	SETTINGS_MODIFIED_UPDATE: '修改时间戳',

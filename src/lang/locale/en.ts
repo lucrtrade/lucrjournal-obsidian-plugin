@@ -65,6 +65,8 @@ export const en = {
 	SETTINGS_TIMEZONE_OPTION_SYDNEY: 'Sydney',
 	SETTINGS_TIMEZONE_OPTION_AUCKLAND: 'Auckland',
 	SETTINGS_ADVANCED: 'Advanced',
+	SETTINGS_SHOW_FOLDER_IN_EXPLORER: 'Show LucrJournal folder in file explorer',
+	SETTINGS_SHOW_FOLDER_IN_EXPLORER_DESC: 'Show the LucrJournal folder in the left sidebar file explorer. Hidden by default.',
 	SETTINGS_DEBUG_MODE: 'Debug mode',
 	SETTINGS_DEBUG_MODE_DESC: 'Enable troubleshooting logs and development request logging.',
 	SETTINGS_MODIFIED_UPDATE: 'Modified Timestamp',

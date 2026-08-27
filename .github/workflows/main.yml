@@ -70,8 +70,10 @@ jobs:
               id: version
               run: |
                   VERSION=$(bun -p "require('./package.json').version")
+                  IS_PRERELEASE=$(bun -p "Boolean(require('./package.json').version.includes('-'))")
                   echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-                  echo "Version from package.json: ${VERSION}"
+                  echo "is_prerelease=${IS_PRERELEASE}" >> "$GITHUB_OUTPUT"
+                  echo "Version from package.json: ${VERSION} (prerelease: ${IS_PRERELEASE})"
 
             # @story [[lucrjournal/build#^release-changelog-required]] Fails before release lookup when the package version has no release notes.
             - name: Extract release notes from CHANGELOG.md
@@ -155,9 +157,9 @@ jobs:
               uses: softprops/action-gh-release@v3
               with:
                   tag_name: ${{ steps.version.outputs.version }}
-                  name: Release ${{ steps.version.outputs.version }}
+                  name: ${{ steps.version.outputs.is_prerelease == 'true' && format('Pre-release {0}', steps.version.outputs.version) || format('Release {0}', steps.version.outputs.version) }}
                   draft: false
-                  prerelease: false
+                  prerelease: ${{ steps.version.outputs.is_prerelease == 'true' }}
                   files: |
                       dist/build/main.js
                       dist/build/manifest.json

@@ -23,6 +23,7 @@ type PluginSettingsControlKey =
 	| 'enableAutoModifiedUpdate'
 	| 'modifiedUpdateMode'
 	| 'showReleaseNotes'
+	| 'showFolderInExplorer'
 
 export class PluginSettingsTab extends PluginSettingTab {
 	private accountSectionEl: HTMLElement | null = null
@@ -109,6 +110,14 @@ export class PluginSettingsTab extends PluginSettingTab {
 				heading: t('SETTINGS_ADVANCED'),
 				items: [
 					{
+						name: t('SETTINGS_SHOW_FOLDER_IN_EXPLORER'),
+						desc: t('SETTINGS_SHOW_FOLDER_IN_EXPLORER_DESC'),
+						control: {
+							type: 'toggle',
+							key: 'showFolderInExplorer',
+						},
+					},
+					{
 						name: t('SETTINGS_RELEASE_NOTES_ENABLE'),
 						desc: t('SETTINGS_RELEASE_NOTES_ENABLE_DESC'),
 						control: {
@@ -155,6 +164,9 @@ export class PluginSettingsTab extends PluginSettingTab {
 				case 'showReleaseNotes':
 					settings.showReleaseNotes = value as typeof settings.showReleaseNotes
 					break
+				case 'showFolderInExplorer':
+					settings.showFolderInExplorer = value as typeof settings.showFolderInExplorer
+					break
 				default:
 					throw new Error(`unknown settings key: ${String(key)}`)
 			}
@@ -167,6 +179,10 @@ export class PluginSettingsTab extends PluginSettingTab {
 
 		if (settingsKey === 'debugMode') {
 			this.plugin.applyDebugMode()
+		}
+
+		if (settingsKey === 'showFolderInExplorer') {
+			this.plugin.applyFolderVisibility()
 		}
 	}
 
@@ -295,6 +311,21 @@ export class PluginSettingsTab extends PluginSettingTab {
 
 		new SettingGroup(containerEl)
 			.setHeading(t('SETTINGS_ADVANCED'))
+			.addSetting((setting) => {
+				setting
+					.setName(t('SETTINGS_SHOW_FOLDER_IN_EXPLORER'))
+					.setDesc(t('SETTINGS_SHOW_FOLDER_IN_EXPLORER_DESC'))
+					.addToggle((toggle) => {
+						toggle.setValue(this.plugin.settings.showFolderInExplorer).onChange((value) => {
+							void this.plugin.settingsManager.editAndSave((settings) => {
+								settings.showFolderInExplorer = value
+							}, true).then(() => {
+								this.plugin.applyFolderVisibility()
+								this.renderLegacy()
+							})
+						})
+					})
+			})
 			.addSetting((setting) => {
 				setting
 					.setName(t('SETTINGS_RELEASE_NOTES_ENABLE'))

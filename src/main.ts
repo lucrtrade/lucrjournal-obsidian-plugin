@@ -64,6 +64,7 @@ export default class LucrJournalPlugin extends Plugin {
 		setCurrentLocaleSetting(this.settings.lang)
 		setCurrentTimeZoneSetting(this.settings.timeZone)
 		this.applyDebugMode()
+		this.applyFolderVisibility()
 		this.settingsTab = new PluginSettingsTab(this)
 		this.addSettingTab(this.settingsTab)
 
@@ -300,6 +301,10 @@ export default class LucrJournalPlugin extends Plugin {
 	public applyDebugMode(): void {
 		// @story [[lucrjournal/runtime#^debug-ipc-gate]] Cleans the previous runtime before applying the current debug setting.
 		setDebugLoggingEnabled(this.settings.debugMode)
+	}
+
+	public applyFolderVisibility(): void {
+		document.body.toggleClass('lj-show-folder-in-explorer', this.settings.showFolderInExplorer)
 	}
 
 	public requestJournalViewsRender(): void {

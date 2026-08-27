@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.1.13-alpha.1]
+
+- hide `lucrjournal` folder
+
 ## [0.1.12]
 
 - Fix time

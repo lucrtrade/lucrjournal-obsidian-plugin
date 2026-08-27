@@ -213,6 +213,13 @@ body {
 	block-size: 0;
 }
 
+/* Hide LucrJournal root folder from the file explorer unless the setting is enabled. */
+body:not(.lj-show-folder-in-explorer) {
+	.nav-folder:has(> .nav-folder-title[data-path="LucrJournal"]) {
+		display: none;
+	}
+}
+
 .lucrjournal-view {
 	padding: 16px;
 	background-color: var(--lj-bg);

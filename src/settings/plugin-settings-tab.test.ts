@@ -166,12 +166,14 @@ describe('PluginSettingsTab', () => {
 			'timeZone',
 			'enableAutoModifiedUpdate',
 			'modifiedUpdateMode',
+			'showFolderInExplorer',
 			'showReleaseNotes',
 			'debugMode',
 		])
 		const lastGroup = groups[groups.length - 1]
 		expect(lastGroup?.heading).toBe('Advanced')
 		expect(lastGroup?.items.map((item) => item.control?.key)).toEqual([
+			'showFolderInExplorer',
 			'showReleaseNotes',
 			'debugMode',
 		])
