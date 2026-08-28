@@ -357,7 +357,7 @@ function PlaybookChecklistCard({
 											}`}>
 												<ObsidianIcon name="check" className="lj:size-3.5" />
 											</span>
-											<span className={`lj:min-w-0 lj:max-w-full lj:text-[1.05rem] lj:leading-[1.65] lj:sm:text-[1.1rem] ${
+											<span className={`lj:min-w-0 lj:flex-1 lj:break-words lj:text-[1.05rem] lj:leading-[1.65] lj:sm:text-[1.1rem] ${
 												isChecked ? 'lj:text-lj-c-strong' : 'lj:text-lj-c-muted'
 											}`}>
 												{getPlaybookDisplayName(confluence.name)}

@@ -20,6 +20,7 @@ import { globalScreenshot } from './global-screenshot'
 import { IconsSvg } from './icons'
 import { setCurrentLocaleSetting, t } from './lang/helpers'
 import { createLogger, setDebugLoggingEnabled } from './logger'
+import { registerDatetimePropertyFormat } from './metadata/datetime-property-format'
 import { registerReadonlyLucrTypeProperty } from './metadata/readonly-lucr-type-property'
 import { registerPropertyTypes } from './metadata/register-property-types'
 import { maybeShowReleaseNotes, openReleaseNotes } from './release-notes/release-notes-runtime'
@@ -203,6 +204,7 @@ export default class LucrJournalPlugin extends Plugin {
 
 	private async onLayoutReady(): Promise<void> {
 		registerPropertyTypes(this.app)
+		this.register(registerDatetimePropertyFormat(this.app, () => this.settings.timeZone))
 
 		await sleep(100)
 
