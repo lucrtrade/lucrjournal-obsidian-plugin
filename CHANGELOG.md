@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.15]
+
 - Keep the dry-run preview's position frontmatter keys identical to the written note (`profit:`, `risk:` are no longer dropped)
 - macOS opener asks macOS to focus Obsidian without letting a missing or renamed `Obsidian.app` break the verification step
 - Skill: explain spot vs perpetual symbol alignment, timestamps in the plugin's own time zone, `error.field` / `error.received`, and why `plugin.api.version` (agent API, `1`) is not `plugin.manifest.version`
