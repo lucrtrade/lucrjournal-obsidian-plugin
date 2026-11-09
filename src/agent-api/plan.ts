@@ -215,7 +215,9 @@ export async function planPosition(app: App, input: CreatePositionInput, now: Da
 	if (playbook !== null) {
 		preview.playbook = `[[${playbook.basename}]]`
 	}
-	const positionFrontmatter = dropNullish(preview)
+	// The written file keeps the payload keys even when their value is empty (`profit:`, `risk:`),
+	// so the preview must keep the same key set instead of dropping nulls.
+	const positionFrontmatter: Record<string, unknown> = { ...preview }
 
 	const baseBody = template === null ? buildDefaultPositionBody() : stripFrontmatter(await readTemplate(app, template.path))
 	const body = applyPositionBodyAdditions(baseBody, {

@@ -5,7 +5,7 @@ description: Record a trading position in the user's LucrJournal Obsidian vault 
 
 # LucrJournal: create a position
 
-The LucrJournal plugin does all resolution inside Obsidian: it aligns the symbol to the account's existing format (`sol` → `SOLUSDT.P`), creates missing accounts, symbols and analysis notes, infers account and side, validates everything, and rolls back on failure. Your job is to **extract** what the user gave and pass it through **raw**.
+The LucrJournal plugin does all resolution inside Obsidian: it aligns the symbol to the account's existing format (`sol` → `SOLUSDT` on a spot account, `SOLUSDT.P` on a perpetual account), creates missing accounts, symbols and analysis notes, infers account and side, validates everything, and rolls back on failure. Your job is to **extract** what the user gave and pass it through **raw**.
 
 The happy path is two shell calls and zero questions: create, then open. Every command works in bash/zsh (macOS, Linux, Git Bash on Windows) and has a PowerShell form for Windows.
 
@@ -24,7 +24,7 @@ Read the conversation and any screenshot or pasted text. Fill only fields with e
 | `amount` / `notional_value` | Crypto size: `amount` = coin quantity (0.5 BTC), `notional_value` = size in USD. One of the two. |
 | `lots` | CFD / MetaTrader size (0.01–20). |
 | `contract` | Futures contracts (whole number). |
-| `opened_at` `closed_at` | Times exactly as shown, seconds included: `YYYY-MM-DD HH:mm[:ss]` (read in the plugin time zone) or ISO 8601 with offset. `opened_at` defaults to now; `closed_at` stays empty unless shown. |
+| `opened_at` `closed_at` | Times exactly as shown, seconds included: `YYYY-MM-DD HH:mm[:ss]` (read in the plugin's configured time zone from LucrJournal settings, which may differ from your machine's) or ISO 8601 with offset. `opened_at` defaults to now; `closed_at` stays empty unless shown. |
 | `confidence` | Integer 1–5. |
 | `playbook` `template` | Names of existing ones, only when the user names them. |
 | `links` | `{ "key_levels": [], "confluence": [], "market_analysis": [], "news": [] }` — names mentioned as reasons; missing ones are created. |
@@ -77,7 +77,7 @@ The output is `=> ` followed by JSON. The exit code is always 0, so judge only b
 - `ok: true`, `dryRun: true` → show the user `data.files` (paths, key frontmatter, body) and `data.resolved`, then stop. `data.files[].bodyNote` is a caveat to repeat when present.
 - `ok: true` → go to step 4.
 - `ok: false`, `JOURNAL_LOCKED` → nothing was written. Ask the user to sign in to LucrJournal (or restore access) in Obsidian, then rerun the same call. Never switch vaults and never retry without the sign-in.
-- `ok: false` → follow `error.fix`. Retry once without asking only when a candidate is the same thing the user said in another spelling or language (`Binanse` → `Binance`, 币安 → `Binance`). Otherwise ask the user one question built from `error.message` and `error.candidates`. `error.details.additionalErrors` lists further independent problems with the same shape: settle all of them in that same retry or question.
+- `ok: false` → follow `error.fix`. Retry once without asking only when a candidate is the same thing the user said in another spelling or language (`Binanse` → `Binance`, 币安 → `Binance`). Otherwise ask the user one question built from `error.message` and `error.candidates`. `error.field` names the offending field and `error.received` echoes the value you passed. `error.details.additionalErrors` lists further independent problems with the same shape: settle all of them in that same retry or question.
 - Anything else → see Troubleshooting.
 
 ## 4. Open (one call)
@@ -119,7 +119,8 @@ Run each `obsidian` call with a 60 s timeout. Stop after one failed retry and te
 | `INVALID_VALUE` mentioning base64 | The PowerShell input was not base64 of UTF-8 JSON. | Encode exactly as in step 2 (`[Text.Encoding]::UTF8.GetBytes`). |
 | `METADATA_TIMEOUT` | Obsidian was busy indexing or syncing. | The written notes were **kept** (nothing was trashed). Wait a few seconds, check them in Obsidian, and retry only if a note is incomplete. |
 | `POST_WRITE_VERIFY_FAILED` / `ROLLBACK_FAILED` | The write did not read back as planned; files were trashed (or, for ROLLBACK_FAILED, some were left behind). | Report `error.message` to the user, including any leftover paths; retry at most once. |
-| Open printed `ok: true` but Obsidian stayed in the background | The OS blocked focus stealing (Windows) or no handler is registered for `obsidian://` (Linux). | The position is open; tell the user to switch to Obsidian. |
+| Open printed `ok: true` but Obsidian stayed in the background | The OS blocked focus stealing (Windows), no handler is registered for `obsidian://` (Linux), or the macOS `open -a Obsidian` activation was blocked by another app grabbing focus. | The position is open; tell the user to switch to Obsidian. |
+| Times are expressed in an offset you did not expect (e.g. `+05:30`) | LucrJournal formats `opened_at` / `created` in the time zone set in LucrJournal settings, not your machine's. | This is expected. Pass explicit ISO 8601 with the source offset when the user's wording depends on their own clock. |
 | Times look shifted by a few hours | The source shows another time zone (e.g. MetaTrader server time). | Pass `opened_at` / `closed_at` as ISO 8601 with the source offset. |
 
 ## 7. References (参考文档)

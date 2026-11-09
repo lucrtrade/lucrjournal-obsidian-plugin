@@ -291,6 +291,7 @@ describe('agent api createPosition', () => {
 		expect(result.data.open).toEqual({
 			uri: 'obsidian://lucrjournal-open-position?vault=test-vault-id&file=LucrJournal%2Fpositions%2FPOS-00001.md',
 			bash: 'open "obsidian://lucrjournal-open-position?vault=test-vault-id&file=LucrJournal%2Fpositions%2FPOS-00001.md"'
+				+ ' && open -a Obsidian'
 				+ ' && obsidian vault=test-vault-id eval code="app.plugins.plugins.lucrjournal.api.openPosition({ path: \'LucrJournal/positions/POS-00001.md\' })"',
 			powershell: 'Start-Process \'obsidian://lucrjournal-open-position?vault=test-vault-id&file=LucrJournal%2Fpositions%2FPOS-00001.md\';'
 				+ ' obsidian vault=test-vault-id eval "code=app.plugins.plugins.lucrjournal.api.openPosition({ path: \'LucrJournal/positions/POS-00001.md\' })"',
@@ -639,6 +640,7 @@ describe('agent api createPosition', () => {
 		expect(windows.bash).toContain('powershell.exe -NoProfile -Command "Start-Process ')
 		expect(windows.bash).not.toContain('start ""')
 		expect(mac.bash).toContain('open "obsidian://')
+		expect(mac.bash).toContain('&& open -a Obsidian &&')
 		expect(windows.powershell).toBe(mac.powershell)
 	})
 
@@ -647,6 +649,24 @@ describe('agent api createPosition', () => {
 
 		expect(commands.uri).toContain('%27')
 		expect(commands.bash).toContain('\\u{27}')
+	})
+
+	it('previews the same frontmatter keys that the written file will have', async () => {
+		const vault = baseVault(symbolFile('Binance', 'BTCUSDT', 'Crypto_Spot'))
+		const api = createAgentApi({ app: vault.app, manifest: { id: 'lucrjournal' } })
+		const input = { symbol: 'BTCUSDT', side: 'LONG', entry_price: 100, stop_loss: 90 }
+
+		const dry = await api.createPosition({ ...input, dryRun: true })
+		if (!dry.ok) {
+			throw new Error('expected a dry run')
+		}
+		const planned = (dry.data.files ?? []).find((file) => file.kind === 'position')
+		const real = await api.createPosition(input)
+		if (!real.ok) {
+			throw new Error('expected a created position')
+		}
+
+		expect(Object.keys(planned?.frontmatter ?? {}).sort()).toEqual(Object.keys(vault.frontmatter(real.data.path)).sort())
 	})
 
 	it('opens an existing position once and rejects a link for another vault', async () => {

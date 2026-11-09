@@ -36,7 +36,10 @@ export function buildOpenPositionCommands(
 	// Git Bash on Windows has no reliable `start`; PowerShell's Start-Process is always there.
 	const bashActivate = platform.isWin
 		? `powershell.exe -NoProfile -Command "Start-Process '${uri}'"`
-		: `${platform.isMacOS ? 'open' : 'xdg-open'} "${uri}"`
+		: platform.isMacOS
+			// `open <uri>` hands the link to Obsidian but does not focus it; `open -a` activates the app window.
+			? `open "${uri}" && open -a Obsidian`
+			: `xdg-open "${uri}"`
 	return {
 		uri,
 		bash: `${bashActivate} && obsidian vault=${vaultId} eval code="${code}"`,
