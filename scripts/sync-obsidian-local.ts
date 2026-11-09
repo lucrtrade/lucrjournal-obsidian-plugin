@@ -143,6 +143,46 @@ function resetSandboxTradeRoot(vaultPath) {
 	console.log(`[obsidian-sync] Reset ${LUCR_TRADE_ROOT_DIR} in ${SANDBOX_VAULT_NAME} from ${examplesDir}.`);
 }
 
+// @story [[lucrjournal/tooling#^target-vault-sync]] Copies the built plugin into an existing user vault without resetting its data
+function syncIntoTargetVault(vaultName) {
+	const targetManifest = JSON.parse(readFileSync(path.join(packageDir, "manifest.json"), "utf8"));
+	const evalInVault = (code) => {
+		const output = runObsidianCommand(["eval", `code=${code}`], { vaultName });
+
+		if (!output.startsWith("=> ")) {
+			throw new Error(`[obsidian-sync] Obsidian CLI eval failed in vault ${vaultName}: ${output}`);
+		}
+
+		return output.slice(3).trim();
+	};
+
+	const vaultPath = evalInVault("app.vault.adapter.basePath");
+	if (!path.isAbsolute(vaultPath)) {
+		throw new Error(`[obsidian-sync] Unable to resolve the path of vault ${vaultName}: ${vaultPath}`);
+	}
+
+	if (!getEnabledCommunityPluginIds(vaultPath).includes(targetManifest.id)) {
+		throw new Error(`[obsidian-sync] Plugin ${targetManifest.id} is not enabled in vault ${vaultName} (${vaultPath}); enable it once in Obsidian first.`);
+	}
+
+	const targetPluginDir = path.join(vaultPath, ".obsidian", "plugins", targetManifest.id);
+	mkdirSync(targetPluginDir, { recursive: true });
+
+	for (const fileName of ["main.js", "manifest.json", "styles.css"]) {
+		const srcFile = path.join(packageDir, fileName);
+		if (!existsSync(srcFile)) {
+			throw new Error(`[obsidian-sync] Missing build artifact: ${fileName}.`);
+		}
+
+		cpSync(srcFile, path.join(targetPluginDir, fileName));
+	}
+
+	runObsidianCommand(["plugin:reload", `id=${targetManifest.id}`], { vaultName });
+
+	const loadedVersion = evalInVault(`app.plugins.plugins['${targetManifest.id}']?.manifest.version ?? 'not loaded'`);
+	console.log(`[obsidian-sync] Synced ${targetManifest.id} ${loadedVersion} into ${targetPluginDir} and reloaded it (vault data untouched).`);
+}
+
 if (isCiEnvironment()) {
 	console.log("[obsidian-sync] Skipping local vault sync in CI.");
 	process.exit(0);
@@ -150,6 +190,27 @@ if (isCiEnvironment()) {
 
 if (!hasObsidianCli()) {
 	console.log("[obsidian-sync] Skipping local vault sync because obsidian CLI is unavailable.");
+	process.exit(0);
+}
+
+// @story [[lucrjournal/tooling#^target-vault-sync]] `LUCRJOURNAL_VAULT=<name|id>` or `--vault=<name|id>` targets one chosen vault instead of the sandbox
+const targetVaultArg = process.argv.find((argument) => argument.startsWith("--vault="));
+const targetVault = targetVaultArg === undefined
+	? process.env.LUCRJOURNAL_VAULT
+	: targetVaultArg.slice("--vault=".length);
+
+if (targetVault !== undefined && targetVault !== "") {
+	try {
+		syncIntoTargetVault(targetVault);
+	} catch (error) {
+		if (isCliTimeoutError(error)) {
+			console.warn(`[obsidian-sync] Obsidian CLI stopped responding (timed out after ${CLI_TIMEOUT_MS}ms); skipping local vault sync.`);
+			process.exit(0);
+		}
+
+		throw error;
+	}
+
 	process.exit(0);
 }
 

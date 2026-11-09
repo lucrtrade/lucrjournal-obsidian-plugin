@@ -58,7 +58,7 @@ type BuiltinPropertiesForSchema<TSchema extends type.Any> = Partial<{
 
 type BeforeSaveArgs<Patch extends Record<string, unknown>> = {
 	app: App
-	file: TFile
+	file: TFile | null
 	previousRecord: Record<string, unknown>
 	record: Record<string, unknown>
 	patch: Patch
@@ -174,31 +174,9 @@ export abstract class DomainBase<
 
 		await app.fileManager.processFrontMatter(file, (frontmatter) => {
 			const previousRecord = isRecord(frontmatter) ? { ...frontmatter } : {}
-			const nextRecord = {
-				...previousRecord,
-				...patch,
-			}
-
-			const coercedRecord = this.applyCoerce(nextRecord)
-			if (isRecord(coercedRecord)) {
-				assignRecord(nextRecord, coercedRecord)
-			}
-
-			this.beforeSave?.({
-				app,
-				file,
-				previousRecord,
-				record: nextRecord,
-				patch,
-			})
-
-			const refined = this.refine(nextRecord)
-			if (refined === null) {
-				throw new Error(`Invalid ${this.name} frontmatter after update`)
-			}
-
-			replaceRecord(frontmatter as Record<string, unknown>, nextRecord)
-			nextValue = refined
+			const { record, value } = this.applyPatchToRecord(app, file, previousRecord, patch)
+			replaceRecord(frontmatter as Record<string, unknown>, record)
+			nextValue = value
 		})
 
 		if (nextValue === null) {
@@ -206,6 +184,50 @@ export abstract class DomainBase<
 		}
 
 		return nextValue
+	}
+
+	/**
+	 * Run the same coerce + beforeSave + refine pipeline as `updateFields`
+	 * against an in-memory record, without touching any file.
+	 */
+	previewPatch<Patch extends Record<string, unknown>>(
+		app: App,
+		previousRecord: Record<string, unknown>,
+		patch: Patch,
+	): { record: Record<string, unknown>; value: Schema['infer'] } {
+		return this.applyPatchToRecord(app, null, { ...previousRecord }, this.normalizePatch(patch))
+	}
+
+	private applyPatchToRecord<Patch extends Record<string, unknown>>(
+		app: App,
+		file: TFile | null,
+		previousRecord: Record<string, unknown>,
+		patch: Patch,
+	): { record: Record<string, unknown>; value: Schema['infer'] } {
+		const nextRecord: Record<string, unknown> = {
+			...previousRecord,
+			...patch,
+		}
+
+		const coercedRecord = this.applyCoerce(nextRecord)
+		if (isRecord(coercedRecord)) {
+			assignRecord(nextRecord, coercedRecord)
+		}
+
+		this.beforeSave?.({
+			app,
+			file,
+			previousRecord,
+			record: nextRecord,
+			patch,
+		})
+
+		const refined = (this.schema as unknown as (value: unknown) => Schema['infer'] | ArkErrors)(this.applyCoerce(nextRecord))
+		if (refined instanceof ArkErrors) {
+			throw new Error(`Invalid ${this.name} frontmatter after update: ${refined.summary}`)
+		}
+
+		return { record: nextRecord, value: refined }
 	}
 }
 

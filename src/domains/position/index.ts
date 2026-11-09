@@ -521,7 +521,7 @@ class PositionDomainDefinition extends DomainBase<'position', typeof PositionTyp
 		patch,
 	}: {
 		app: App
-		file: TFile
+		file: TFile | null
 		previousRecord: Record<string, unknown>
 		record: Record<string, unknown>
 		patch: PositionUpdatePatch

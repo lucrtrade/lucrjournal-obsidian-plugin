@@ -19,6 +19,13 @@ export class Notice {
 	hide() {}
 }
 
+export const Platform = {
+	isDesktopApp: true,
+	isMacOS: true,
+	isWin: false,
+	isLinux: false,
+}
+
 export class Plugin {}
 
 export class Component {
@@ -149,6 +156,12 @@ export class TFile {
 		size: 0,
 		mtime: 0,
 	}
+}
+
+export class TFolder {
+	path = ''
+	name = ''
+	children = []
 }
 
 export class Modal {

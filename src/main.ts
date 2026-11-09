@@ -1,7 +1,8 @@
-import { addIcon, normalizePath, Plugin } from 'obsidian'
+import { addIcon, normalizePath, Notice, Plugin } from 'obsidian'
 import { createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 
+import { createAgentApi, OPEN_POSITION_URI_ACTION } from './agent-api'
 import { registerPositionAttachmentOcrRuntime } from './attachments/ocr-runtime'
 import { bindCacheRuntime } from './cache'
 import { CacheRegistry } from './charts/ohlcv-cache'
@@ -57,6 +58,8 @@ export default class LucrJournalPlugin extends Plugin {
 	private currentAccountName: string | null = null
 	private ocrPositionImportRoot: { container: HTMLElement; root: Root } | null = null
 	private settingsTab: PluginSettingsTab | null = null
+	// @story [[lucrjournal/agent-api#^agent-api-facade]] Exposes the agent API used by the create-position skill through `obsidian eval`
+	public readonly api = createAgentApi(this)
 
 	public override async onload(): Promise<void> {
 		const persistedSettings = await this.loadData() as unknown
@@ -118,6 +121,13 @@ export default class LucrJournalPlugin extends Plugin {
 			(leaf: WorkspaceLeaf) => new PlaybookFileView(leaf, this),
 		)
 		registerDomainFileRouting(this)
+		// @story [[lucrjournal/agent-api#^agent-api-open-uri]] Opens (and focuses) a position from an `obsidian://` URI
+		this.registerObsidianProtocolHandler(OPEN_POSITION_URI_ACTION, async (params) => {
+			const failure = await this.api.handleOpenPositionUri(params)
+			if (failure !== null) {
+				new Notice(failure)
+			}
+		})
 
 		addIcon('lucrtrade', IconsSvg.LucrTrade)
 		registerDomainMarkdownActions(this)

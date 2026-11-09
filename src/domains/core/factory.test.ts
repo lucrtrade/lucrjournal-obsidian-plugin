@@ -57,7 +57,7 @@ class DemoDomainDefinition extends DomainBase<'demo', typeof DemoEntryType, type
 		patch,
 	}: {
 		app: App
-		file: TFile
+		file: TFile | null
 		previousRecord: Record<string, unknown>
 		record: Record<string, unknown>
 		patch: Record<string, unknown>

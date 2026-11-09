@@ -35,6 +35,44 @@ export function buildDefaultPositionBody() {
 	return `\n# ${POSITION_NOTES_SECTION}\n`
 }
 
+export type PositionBodyLinkAddition = {
+	sectionTitle: string
+	basename: string
+}
+
+// @story [[lucrjournal/position-body#^position-body-reserialization]] Applies notes and linked H2 sections in one pure pass for the agent preview
+export function applyPositionBodyAdditions(
+	content: string,
+	additions: { notes: string | null; links: PositionBodyLinkAddition[] },
+): string {
+	let nextContent = content
+	const notes = additions.notes?.trim() ?? ''
+	if (notes.length > 0) {
+		const currentNotes = extractSectionBody(nextContent, POSITION_NOTES_SECTION).trim()
+		nextContent = upsertTopLevelSection(
+			nextContent,
+			POSITION_NOTES_SECTION,
+			currentNotes.length === 0 ? notes : `${currentNotes}\n\n${notes}`,
+		)
+	}
+
+	for (const link of additions.links) {
+		const sectionBody = extractSectionBody(nextContent, link.sectionTitle)
+		const alreadyLinked = extractSections(sectionBody, 2)
+			.some((section) => parseWikilinkHeading(section.title)?.linkpath === link.basename)
+		if (alreadyLinked) {
+			continue
+		}
+		nextContent = upsertTopLevelSection(
+			nextContent,
+			link.sectionTitle,
+			appendLinkedSection(sectionBody, toWikilink(link.basename)),
+		)
+	}
+
+	return nextContent
+}
+
 // @story [[lucrjournal/position-body#^position-section-contract]] Maps every linked context kind to its canonical H1 title
 export function getPositionSectionTitle(kind: PositionSectionKind) {
 	switch (kind) {

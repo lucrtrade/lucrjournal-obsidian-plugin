@@ -19,6 +19,10 @@ type EmbeddedEditorProps = {
 	section: string
 }
 
+function isStillInVault(app: App, file: TFile): boolean {
+	return app.vault.getAbstractFileByPath(file.path) === file
+}
+
 export function EmbeddedEditor({ app, file, section }: EmbeddedEditorProps) {
 	// Track whether the component is currently mounted so that async callbacks
 	// (e.g. post-save H1 reload) do not run after unmount.
@@ -46,9 +50,23 @@ export function EmbeddedEditor({ app, file, section }: EmbeddedEditorProps) {
 		async (rawBody: string) => {
 			const foundTopLevelH1 = hasTopLevelH1(rawBody)
 			const editedBody = normalizeSectionBody(rawBody)
+			// The editor flushes on every unmount: skip unchanged sections, and use
+			// vault.process so a file deleted while open is never recreated.
+			if (!isStillInVault(app, file)) {
+				return
+			}
 			const currentFull = await app.vault.read(file)
-			const updated = spliceSection(currentFull, section, editedBody)
-			await app.vault.adapter.write(file.path, updated)
+			if (normalizeSectionBody(extractSection(currentFull, section).body) === editedBody) {
+				return
+			}
+			try {
+				await app.vault.process(file, (latest) => spliceSection(latest, section, editedBody))
+			} catch (error: unknown) {
+				if (isStillInVault(app, file)) {
+					throw error
+				}
+				return
+			}
 
 			if (foundTopLevelH1 && !disposedRef.current) {
 				new Notice(t('EMBEDDED_EDITOR_H1_SAVE_NORMALIZED'))
