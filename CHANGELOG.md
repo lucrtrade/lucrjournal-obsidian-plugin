@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- Keep the dry-run preview's position frontmatter keys identical to the written note (`profit:`, `risk:` are no longer dropped)
+- macOS opener asks macOS to focus Obsidian without letting a missing or renamed `Obsidian.app` break the verification step
+- Skill: explain spot vs perpetual symbol alignment, timestamps in the plugin's own time zone, `error.field` / `error.received`, and why `plugin.api.version` (agent API, `1`) is not `plugin.manifest.version`
+- Skill: describe macOS window activation as best-effort instead of promising it
+
 ## [0.1.14]
 
 - Add the `lucrjournal-create-position` agent skill and the plugin API it drives

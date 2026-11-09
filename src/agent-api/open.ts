@@ -37,8 +37,10 @@ export function buildOpenPositionCommands(
 	const bashActivate = platform.isWin
 		? `powershell.exe -NoProfile -Command "Start-Process '${uri}'"`
 		: platform.isMacOS
-			// `open <uri>` hands the link to Obsidian but does not focus it; `open -a` activates the app window.
-			? `open "${uri}" && open -a Obsidian`
+			// `open <uri>` dispatches the link but leaves focus to macOS; `open -a` only helps when the
+			// bundle is named exactly "Obsidian", so it is best-effort and must never break the
+			// `obsidian eval` verification that follows.
+			? `open "${uri}" && (open -a Obsidian 2>/dev/null || true)`
 			: `xdg-open "${uri}"`
 	return {
 		uri,

@@ -291,7 +291,7 @@ describe('agent api createPosition', () => {
 		expect(result.data.open).toEqual({
 			uri: 'obsidian://lucrjournal-open-position?vault=test-vault-id&file=LucrJournal%2Fpositions%2FPOS-00001.md',
 			bash: 'open "obsidian://lucrjournal-open-position?vault=test-vault-id&file=LucrJournal%2Fpositions%2FPOS-00001.md"'
-				+ ' && open -a Obsidian'
+				+ ' && (open -a Obsidian 2>/dev/null || true)'
 				+ ' && obsidian vault=test-vault-id eval code="app.plugins.plugins.lucrjournal.api.openPosition({ path: \'LucrJournal/positions/POS-00001.md\' })"',
 			powershell: 'Start-Process \'obsidian://lucrjournal-open-position?vault=test-vault-id&file=LucrJournal%2Fpositions%2FPOS-00001.md\';'
 				+ ' obsidian vault=test-vault-id eval "code=app.plugins.plugins.lucrjournal.api.openPosition({ path: \'LucrJournal/positions/POS-00001.md\' })"',
@@ -640,7 +640,8 @@ describe('agent api createPosition', () => {
 		expect(windows.bash).toContain('powershell.exe -NoProfile -Command "Start-Process ')
 		expect(windows.bash).not.toContain('start ""')
 		expect(mac.bash).toContain('open "obsidian://')
-		expect(mac.bash).toContain('&& open -a Obsidian &&')
+		// Focus is best-effort: a missing/renamed bundle must not break the verification step.
+		expect(mac.bash).toContain('(open -a Obsidian 2>/dev/null || true) && obsidian vault=')
 		expect(windows.powershell).toBe(mac.powershell)
 	})
 

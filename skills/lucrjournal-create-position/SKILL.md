@@ -74,6 +74,8 @@ The wrapper answers two different failures: `LUCRJOURNAL_NOT_LOADED_HERE` means 
 
 The output is `=> ` followed by JSON. The exit code is always 0, so judge only by `ok`.
 
+- `plugin.api.version` is the agent-API version (a number, currently `1`), **not** the plugin version. Gate on it, or simply on `createPosition` being present; never gate on `plugin.manifest.version`, which Obsidian pins at plugin load and can lag the installed release (a vault can report `0.1.0` while the files on disk are already `0.1.14`).
+
 - `ok: true`, `dryRun: true` → show the user `data.files` (paths, key frontmatter, body) and `data.resolved`, then stop. `data.files[].bodyNote` is a caveat to repeat when present.
 - `ok: true` → go to step 4.
 - `ok: false`, `JOURNAL_LOCKED` → nothing was written. Ask the user to sign in to LucrJournal (or restore access) in Obsidian, then rerun the same call. Never switch vaults and never retry without the sign-in.
@@ -82,12 +84,12 @@ The output is `=> ` followed by JSON. The exit code is always 0, so judge only b
 
 ## 4. Open (one call)
 
-Run the command for your shell from `data.open` exactly as given: `data.open.bash` (bash / zsh / Git Bash) or `data.open.powershell`. The plugin builds them for the OS it runs on. The `obsidian://lucrjournal-open-position` URI brings Obsidian to the foreground on the position, and the chained `obsidian eval` confirms it.
+Run the command for your shell from `data.open` exactly as given: `data.open.bash` (bash / zsh / Git Bash) or `data.open.powershell`. The plugin builds them for the OS it runs on. The `obsidian://lucrjournal-open-position` URI makes Obsidian show the position, and the chained `obsidian eval` confirms it. Focus is best-effort: macOS decides whether a window may be raised, so an agent running in the background may leave Obsidian behind other apps — `ok: true` with `viewType` is what proves the position is open.
 
 macOS (`data.open.bash`; Linux uses `xdg-open`; Git Bash on Windows runs `powershell.exe -NoProfile -Command "Start-Process '<uri>'"`, because Git Bash has no reliable `start`):
 
 ```bash
-open "obsidian://lucrjournal-open-position?vault=2b770fde7df4a65c&file=LucrJournal%2Fpositions%2FPOS-00012.md" && obsidian vault=2b770fde7df4a65c eval code="app.plugins.plugins.lucrjournal.api.openPosition({ path: 'LucrJournal/positions/POS-00012.md' })"
+open "obsidian://lucrjournal-open-position?vault=2b770fde7df4a65c&file=LucrJournal%2Fpositions%2FPOS-00012.md" && (open -a Obsidian 2>/dev/null || true) && obsidian vault=2b770fde7df4a65c eval code="app.plugins.plugins.lucrjournal.api.openPosition({ path: 'LucrJournal/positions/POS-00012.md' })"
 ```
 
 Windows PowerShell (`data.open.powershell`):
@@ -119,7 +121,7 @@ Run each `obsidian` call with a 60 s timeout. Stop after one failed retry and te
 | `INVALID_VALUE` mentioning base64 | The PowerShell input was not base64 of UTF-8 JSON. | Encode exactly as in step 2 (`[Text.Encoding]::UTF8.GetBytes`). |
 | `METADATA_TIMEOUT` | Obsidian was busy indexing or syncing. | The written notes were **kept** (nothing was trashed). Wait a few seconds, check them in Obsidian, and retry only if a note is incomplete. |
 | `POST_WRITE_VERIFY_FAILED` / `ROLLBACK_FAILED` | The write did not read back as planned; files were trashed (or, for ROLLBACK_FAILED, some were left behind). | Report `error.message` to the user, including any leftover paths; retry at most once. |
-| Open printed `ok: true` but Obsidian stayed in the background | The OS blocked focus stealing (Windows), no handler is registered for `obsidian://` (Linux), or the macOS `open -a Obsidian` activation was blocked by another app grabbing focus. | The position is open; tell the user to switch to Obsidian. |
+| Open printed `ok: true` but Obsidian stayed in the background | The OS blocked focus stealing (Windows), no handler is registered for `obsidian://` (Linux), or the command ran from a background/automation process, which macOS never lets raise another app's window. | Nothing is wrong with the note: `ok: true` with `viewType` means the position is open. Tell the user to switch to Obsidian. |
 | Times are expressed in an offset you did not expect (e.g. `+05:30`) | LucrJournal formats `opened_at` / `created` in the time zone set in LucrJournal settings, not your machine's. | This is expected. Pass explicit ISO 8601 with the source offset when the user's wording depends on their own clock. |
 | Times look shifted by a few hours | The source shows another time zone (e.g. MetaTrader server time). | Pass `opened_at` / `closed_at` as ISO 8601 with the source offset. |
 
