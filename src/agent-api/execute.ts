@@ -1,4 +1,4 @@
-import { TFile, TFolder, normalizePath, type App, type TAbstractFile } from 'obsidian'
+import { TFile, TFolder, normalizePath, type App } from 'obsidian'
 
 import { AccountDomain, PositionDomain, SymbolDomain } from '../domains'
 import { PERSISTED_ENTRY_BASENAME_CONFLICT_ERROR } from '../domains/core/entry-writer'
@@ -13,7 +13,9 @@ import { waitForValue } from './wait'
 
 import type { PositionPlan } from './plan'
 
-const METADATA_TIMEOUT_MS = 5000
+const METADATA_TIMEOUT_MS = 20_000
+/** Codes where the notes are already written and only the read-back is late. */
+const KEEP_WRITTEN_CODES = new Set<string>(['METADATA_TIMEOUT'])
 
 export type PositionExecutionResult = {
 	path: string
@@ -21,25 +23,36 @@ export type PositionExecutionResult = {
 	frontmatter: Record<string, unknown>
 }
 
+type ExecutionScope = {
+	/** Paths that existed before this call started; they are never rolled back. */
+	preexisting: ReadonlySet<string>
+	createdFolders: string[]
+}
+
 /**
  * Write a plan produced by `planPosition`, reusing the same domain functions as
- * the UI, then read everything back. Any failure trashes every file created by
- * this call so the vault is left untouched.
+ * the UI, then read everything back. Any failure trashes every file this call
+ * created so the vault is left untouched — including files a domain cascaded
+ * before it threw, which a per-call "created" list would miss.
  */
 export async function executePositionPlan(app: App, plan: PositionPlan): Promise<PositionExecutionResult> {
 	const execution = plan.execution
-	const createdFiles: TAbstractFile[] = []
-	const track = (path: string) => {
-		const file = app.vault.getAbstractFileByPath(path)
-		if (file !== null && !createdFiles.includes(file)) {
-			createdFiles.push(file)
+	const scope: ExecutionScope = {
+		preexisting: new Set(plan.files.map((file) => normalizePath(file.path)).filter((path) => app.vault.getAbstractFileByPath(path) !== null)),
+		createdFolders: [],
+	}
+	const created: string[] = []
+	const record = (paths: readonly string[]) => {
+		for (const path of paths) {
+			if (!created.includes(path)) {
+				created.push(path)
+			}
 		}
-		return file
 	}
 
 	try {
 		for (const plannedFile of plan.files) {
-			await ensureParentFolder(app, plannedFile.path, track)
+			await ensureParentFolder(app, plannedFile.path, scope)
 		}
 
 		if (execution.createAccount !== null) {
@@ -47,9 +60,7 @@ export async function executePositionPlan(app: App, plan: PositionPlan): Promise
 				platform: execution.createAccount.platformName ?? '',
 				name: execution.accountDisplayName,
 			})
-			for (const file of result.files) {
-				track(file.path)
-			}
+			record(result.files.map((file) => file.path))
 			expectPath('account', result.file.path, execution.createAccount.accountPath)
 			if (execution.createAccount.platformPath !== null) {
 				await waitForFrontmatter(app, execution.createAccount.platformPath, 'platform')
@@ -59,7 +70,10 @@ export async function executePositionPlan(app: App, plan: PositionPlan): Promise
 
 		if (execution.createSymbol) {
 			const result = await SymbolDomain.ensureEntry(app, { account: execution.accountDisplayName, name: execution.symbolName })
-			track(result.entry.file.path)
+			// Adopting a symbol another writer created in the meantime must never make it rollback-eligible.
+			if (result.created) {
+				record([result.entry.file.path])
+			}
 			expectPath('symbol', result.entry.file.path, execution.symbolPath)
 			await waitForFrontmatter(app, execution.symbolPath, 'symbol')
 		}
@@ -69,14 +83,14 @@ export async function executePositionPlan(app: App, plan: PositionPlan): Promise
 			const formValue: Record<string, string> = link.kind === 'news' ? { name: link.basename, source: '' } : { name: link.basename, description: '' }
 			const createEntry = config.domain.createEntry.bind(config.domain) as unknown as (runtimeApp: App, value: Record<string, string>) => Promise<{ file: { path: string } }>
 			const result = await createEntry(app, formValue)
-			track(result.file.path)
+			record([result.file.path])
 			expectPath(`links.${link.kind}`, result.file.path, link.path)
 			await waitForFrontmatter(app, link.path, config.entityKind)
 		}
 
 		for (const attachment of execution.attachments) {
 			await app.vault.createBinary(attachment.path, readAttachmentBytes(attachment.source))
-			track(attachment.path)
+			record([attachment.path])
 		}
 
 		const positionResult = await PositionDomain.createEntry(
@@ -84,9 +98,7 @@ export async function executePositionPlan(app: App, plan: PositionPlan): Promise
 			{ account: execution.accountDisplayName, side: execution.side, symbol: execution.symbolName },
 			execution.template === null ? undefined : { templateFilePath: execution.template.path, templateName: execution.template.name },
 		)
-		for (const file of positionResult.files) {
-			track(file.path)
-		}
+		record(positionResult.files.map((file) => file.path))
 		expectPath('position', positionResult.file.path, execution.positionPath)
 		const positionFile = await waitForFrontmatter(app, execution.positionPath, 'position')
 
@@ -112,21 +124,21 @@ export async function executePositionPlan(app: App, plan: PositionPlan): Promise
 		const frontmatter = await verifyPosition(app, plan, positionFile)
 		return {
 			path: positionFile.path,
-			created: createdFiles.filter((file): file is TFile => file instanceof TFile).map((file) => file.path),
+			created: created.filter((path) => app.vault.getAbstractFileByPath(path) instanceof TFile),
 			frontmatter,
 		}
 	} catch (error: unknown) {
-		throw await rollback(app, createdFiles, error)
+		throw await rollback(app, plan, scope, error)
 	}
 }
 
-async function ensureParentFolder(app: App, filePath: string, track: (path: string) => unknown) {
+async function ensureParentFolder(app: App, filePath: string, scope: ExecutionScope) {
 	const segments = normalizePath(filePath).split('/').slice(0, -1)
 	for (let index = 1; index <= segments.length; index += 1) {
 		const folderPath = segments.slice(0, index).join('/')
 		if (app.vault.getAbstractFileByPath(folderPath) === null) {
 			await app.vault.createFolder(folderPath)
-			track(folderPath)
+			scope.createdFolders.push(folderPath)
 		}
 	}
 }
@@ -164,21 +176,31 @@ async function waitForFrontmatter(app: App, path: string, lucrType: string): Pro
 		throw agentError(
 			'METADATA_TIMEOUT',
 			`Obsidian did not index ${path} as a ${lucrType} note within ${METADATA_TIMEOUT_MS / 1000}s.`,
-			'Obsidian may be busy (large vault or sync in progress). Wait a few seconds and retry the same call.',
+			'Obsidian may be busy (large vault or sync in progress). The written notes are kept; wait a few seconds and check them in Obsidian before retrying.',
 			{ details: { path } },
 		)
 	}
 	return file
 }
 
+type VerificationState = {
+	indexed: boolean
+	mismatches: string[]
+	frontmatter: Record<string, unknown>
+}
+
 async function verifyPosition(app: App, plan: PositionPlan, positionFile: TFile): Promise<Record<string, unknown>> {
 	const execution = plan.execution
-	const mismatchesNow = (): { mismatches: string[]; frontmatter: Record<string, unknown> } => {
-		const raw = (app.metadataCache.getFileCache(positionFile)?.frontmatter ?? {}) as Record<string, unknown>
-		const refined = PositionDomain.refine(raw) as Record<string, unknown> | null
-		if (refined === null) {
-			return { mismatches: ['frontmatter does not pass the position schema'], frontmatter: raw }
+	const readState = (): VerificationState => {
+		const raw = app.metadataCache.getFileCache(positionFile)?.frontmatter
+		if (raw === undefined) {
+			return { indexed: false, mismatches: ['frontmatter is not indexed yet'], frontmatter: {} }
 		}
+		const refinedValue = PositionDomain.refine(raw)
+		if (refinedValue === null) {
+			return { indexed: true, mismatches: ['frontmatter does not pass the position schema'], frontmatter: { ...raw } }
+		}
+		const refined: Record<string, unknown> = { ...refinedValue }
 		const mismatches = Object.entries(execution.expectedFrontmatter).flatMap(([field, expected]) => {
 			const actual = refined[field] ?? null
 			return JSON.stringify(actual) === JSON.stringify(expected)
@@ -189,14 +211,22 @@ async function verifyPosition(app: App, plan: PositionPlan, positionFile: TFile)
 		if (symbolEntry?.fm.name !== execution.symbolName) {
 			mismatches.push(`symbol link does not resolve to ${execution.symbolName}`)
 		}
-		return { mismatches, frontmatter: refined }
+		return { indexed: true, mismatches, frontmatter: refined }
 	}
 
 	const settled = await waitForValue(() => {
-		const state = mismatchesNow()
-		return state.mismatches.length === 0 ? state : null
+		const state = readState()
+		return state.indexed && state.mismatches.length === 0 ? state : null
 	}, METADATA_TIMEOUT_MS)
-	const state = settled ?? mismatchesNow()
+	const state = settled ?? readState()
+	if (!state.indexed) {
+		throw agentError(
+			'METADATA_TIMEOUT',
+			`Obsidian did not index ${positionFile.path} within ${METADATA_TIMEOUT_MS / 1000}s, so the written position could not be read back.`,
+			'Obsidian may be busy (large vault or sync in progress). The written notes are kept; wait a few seconds and check them in Obsidian before retrying.',
+			{ details: { path: positionFile.path } },
+		)
+	}
 
 	const content = await app.vault.read(positionFile)
 	const bodyMismatches = execution.links.flatMap((link) => {
@@ -225,20 +255,40 @@ async function verifyPosition(app: App, plan: PositionPlan, positionFile: TFile)
 	return state.frontmatter
 }
 
-async function rollback(app: App, createdFiles: TAbstractFile[], cause: unknown): Promise<AgentApiError> {
+async function rollback(app: App, plan: PositionPlan, scope: ExecutionScope, cause: unknown): Promise<AgentApiError> {
+	const causeError = toAgentApiError(cause)
+	if (KEEP_WRITTEN_CODES.has(causeError.payload.code)) {
+		// The notes are on disk; deleting them because indexing is slow would destroy a good record.
+		return new AgentApiError({
+			...causeError.payload,
+			message: `${causeError.payload.message} The written files were kept in the vault; nothing was deleted.`,
+			fix: 'Wait for Obsidian to finish indexing, then check the created notes before retrying; retry only if a note is incomplete.',
+			details: { ...causeError.payload.details, keptPaths: plan.files.map((file) => file.path) },
+		})
+	}
+
+	// Deepest paths first so a created folder is empty by the time it is trashed.
+	const targets = [...new Set([...plan.files.map((file) => file.path), ...scope.createdFolders])]
+		.filter((path) => !scope.preexisting.has(path))
+		.sort((left, right) => right.split('/').length - left.split('/').length)
 	const leftovers: string[] = []
-	for (const file of [...createdFiles].reverse()) {
+	let removed = 0
+	for (const path of targets) {
+		const file = app.vault.getAbstractFileByPath(path)
+		if (file === null) {
+			continue
+		}
+		if (file instanceof TFolder && file.children.length > 0) {
+			continue
+		}
 		try {
-			if (file instanceof TFolder && file.children.length > 0) {
-				continue
-			}
 			await app.fileManager.trashFile(file)
+			removed += 1
 		} catch {
-			leftovers.push(file.path)
+			leftovers.push(path)
 		}
 	}
 
-	const causeError = toAgentApiError(cause, createdFiles.length)
 	if (leftovers.length > 0) {
 		return agentError(
 			'ROLLBACK_FAILED',
@@ -247,21 +297,24 @@ async function rollback(app: App, createdFiles: TAbstractFile[], cause: unknown)
 			{ details: { cause: causeError.payload, leftovers } },
 		)
 	}
-	return causeError
+
+	return new AgentApiError({
+		...causeError.payload,
+		message: `${causeError.payload.message} ${removed === 0 ? 'Nothing was written.' : `All ${removed} file(s) created by this call were moved to trash.`}`,
+	})
 }
 
-function toAgentApiError(cause: unknown, createdCount: number): AgentApiError {
-	const rolledBack = createdCount === 0 ? 'Nothing was written.' : `All ${createdCount} file(s) created by this call were moved to trash.`
+function toAgentApiError(cause: unknown): AgentApiError {
 	if (cause instanceof AgentApiError) {
-		return new AgentApiError({ ...cause.payload, message: `${cause.payload.message} ${rolledBack}` })
+		return new AgentApiError({ ...cause.payload })
 	}
 	const message = cause instanceof Error ? cause.message : String(cause)
 	if (message === PERSISTED_ENTRY_BASENAME_CONFLICT_ERROR) {
-		return agentError('NAME_CONFLICT', `A note with the same file name was created while writing. ${rolledBack}`, 'Retry the same call once; the plan is recomputed from the current vault.')
+		return agentError('NAME_CONFLICT', 'A note with the same file name was created while writing.', 'Retry the same call once; the plan is recomputed from the current vault.')
 	}
 	return agentError(
 		'INTERNAL_ERROR',
-		`Writing the position failed unexpectedly: ${message}. ${rolledBack}`,
+		`Writing the position failed unexpectedly: ${message}.`,
 		'Report this to the user; run `obsidian dev:errors` in the same vault for the stack trace.',
 		{ details: { stack: cause instanceof Error ? cause.stack?.split('\n').slice(0, 6).join('\n') : undefined } },
 	)

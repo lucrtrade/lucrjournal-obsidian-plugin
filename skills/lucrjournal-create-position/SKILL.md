@@ -38,11 +38,22 @@ Ask the user only when there is no symbol hint at all.
 
 ## 2. Create (one call)
 
+The vault must be signed in to LucrJournal. If it is not, the call returns `JOURNAL_LOCKED` and **nothing is written** — ask the user to sign in, then run the same call again.
+
 **bash / zsh / Git Bash.** Put the input object into the quoted heredoc verbatim — it passes quotes, Chinese and newlines through untouched:
 
 ```bash
 obsidian eval code="$(cat <<'EOF'
-app.plugins.plugins.lucrjournal?.api?.createPosition({ "symbol": "sol", "entry_price": 142, "stop_loss": 138 }) ?? { ok: false, error: { code: 'LUCRJOURNAL_NOT_LOADED_HERE', message: 'LucrJournal is not enabled in vault ' + app.vault.getName() + '.', fix: 'Ask the user to switch Obsidian to the vault that uses LucrJournal, or to name it; then rerun with vault=<name> right after obsidian.' } }
+(function () {
+	const plugin = app.plugins.plugins.lucrjournal;
+	if (!plugin) {
+		return { ok: false, error: { code: 'LUCRJOURNAL_NOT_LOADED_HERE', message: 'LucrJournal is not enabled in vault ' + app.vault.getName() + '.', fix: 'Ask the user to switch Obsidian to the vault that uses LucrJournal, or to name it; then rerun with vault=<name> right after obsidian.' } };
+	}
+	if (!plugin.api || typeof plugin.api.createPosition !== 'function') {
+		return { ok: false, error: { code: 'LUCRJOURNAL_API_MISSING', message: 'LucrJournal is installed in vault ' + app.vault.getName() + ' but this plugin build has no agent API (it is older than this skill).', fix: 'Ask the user to update the LucrJournal plugin in Obsidian (Settings -> Community plugins -> Check for updates), then retry. Do not switch vaults.' } };
+	}
+	return plugin.api.createPosition({ "symbol": "sol", "entry_price": 142, "stop_loss": 138 });
+})()
 EOF
 )"
 ```
@@ -54,17 +65,18 @@ $json = @'
 { "symbol": "sol", "entry_price": 142, "stop_loss": 138 }
 '@
 $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json))
-obsidian eval "code=app.plugins.plugins.lucrjournal?.api?.createPosition('$b64') ?? { ok: false, error: { code: 'LUCRJOURNAL_NOT_LOADED_HERE', message: 'LucrJournal is not enabled in vault ' + app.vault.getName() + '.', fix: 'Ask the user to switch Obsidian to the vault that uses LucrJournal, or to name it; then rerun with vault=<name> right after obsidian.' } }"
+obsidian eval "code=(function () { const plugin = app.plugins.plugins.lucrjournal; if (!plugin) { return { ok: false, error: { code: 'LUCRJOURNAL_NOT_LOADED_HERE', message: 'LucrJournal is not enabled in vault ' + app.vault.getName() + '.', fix: 'Ask the user to switch Obsidian to the vault that uses LucrJournal, or to name it; then rerun with vault=<name> right after obsidian.' } }; } if (!plugin.api || typeof plugin.api.createPosition !== 'function') { return { ok: false, error: { code: 'LUCRJOURNAL_API_MISSING', message: 'LucrJournal is installed in vault ' + app.vault.getName() + ' but this plugin build has no agent API (it is older than this skill).', fix: 'Ask the user to update the LucrJournal plugin in Obsidian, then retry. Do not switch vaults.' } }; } return plugin.api.createPosition('$b64'); })()"
 ```
 
-The part after `??` answers when the vault has no LucrJournal.
+The wrapper answers two different failures: `LUCRJOURNAL_NOT_LOADED_HERE` means the vault does not run LucrJournal (switch or name the vault); `LUCRJOURNAL_API_MISSING` means the installed build is too old (update the plugin, stay in this vault).
 
 ## 3. Read the result
 
 The output is `=> ` followed by JSON. The exit code is always 0, so judge only by `ok`.
 
-- `ok: true`, `dryRun: true` → show the user `data.files` (paths, key frontmatter, body) and `data.resolved`, then stop.
+- `ok: true`, `dryRun: true` → show the user `data.files` (paths, key frontmatter, body) and `data.resolved`, then stop. `data.files[].bodyNote` is a caveat to repeat when present.
 - `ok: true` → go to step 4.
+- `ok: false`, `JOURNAL_LOCKED` → nothing was written. Ask the user to sign in to LucrJournal (or restore access) in Obsidian, then rerun the same call. Never switch vaults and never retry without the sign-in.
 - `ok: false` → follow `error.fix`. Retry once without asking only when a candidate is the same thing the user said in another spelling or language (`Binanse` → `Binance`, 币安 → `Binance`). Otherwise ask the user one question built from `error.message` and `error.candidates`. `error.details.additionalErrors` lists further independent problems with the same shape: settle all of them in that same retry or question.
 - Anything else → see Troubleshooting.
 
@@ -72,7 +84,7 @@ The output is `=> ` followed by JSON. The exit code is always 0, so judge only b
 
 Run the command for your shell from `data.open` exactly as given: `data.open.bash` (bash / zsh / Git Bash) or `data.open.powershell`. The plugin builds them for the OS it runs on. The `obsidian://lucrjournal-open-position` URI brings Obsidian to the foreground on the position, and the chained `obsidian eval` confirms it.
 
-macOS (`data.open.bash`; Linux uses `xdg-open`, Git Bash on Windows uses `start ""`):
+macOS (`data.open.bash`; Linux uses `xdg-open`; Git Bash on Windows runs `powershell.exe -NoProfile -Command "Start-Process '<uri>'"`, because Git Bash has no reliable `start`):
 
 ```bash
 open "obsidian://lucrjournal-open-position?vault=2b770fde7df4a65c&file=LucrJournal%2Fpositions%2FPOS-00012.md" && obsidian vault=2b770fde7df4a65c eval code="app.plugins.plugins.lucrjournal.api.openPosition({ path: 'LucrJournal/positions/POS-00012.md' })"
@@ -100,10 +112,12 @@ Run each `obsidian` call with a 60 s timeout. Stop after one failed retry and te
 | The command hangs with no output | Obsidian is showing a modal dialog (e.g. "Vault not found"), which blocks every CLI call, or Obsidian is still starting. | Stop and ask the user to look at Obsidian and close the dialog. Leave the window alone: no keystrokes, no retry loop. |
 | `vault=<name>` started a vault the user did not mean | Any `vault=` command launches that vault if it is closed. | Use `vault=` only with the name the user gave or the id from `data.vault.id`; never loop over `obsidian vaults`. |
 | `LUCRJOURNAL_NOT_LOADED_HERE` | The active vault does not have LucrJournal enabled. | Follow `error.fix`: ask which vault, rerun with `vault=<name>`. |
+| `LUCRJOURNAL_API_MISSING` | LucrJournal runs here, but the installed build is older than this skill (no agent API). | Ask the user to update LucrJournal (Settings → Community plugins → Check for updates), then retry **in the same vault**. Do not switch vaults. |
+| `JOURNAL_LOCKED` | LucrJournal is not signed in in this vault, or the account's journal access is denied. | Nothing was written. Ask the user to sign in / restore access in Obsidian, then rerun the same call. Do not switch vaults and do not retry without signing in. |
 | `Error: TypeError: … createPosition is not a function` or `api` is undefined | The installed LucrJournal is older than this skill. | Ask the user to update LucrJournal (Settings → Community plugins) and retry. |
 | `Error: SyntaxError …` | The object literal is malformed — usually quotes lost on the way. | Recheck the JSON; in PowerShell use the base64 form from step 2. |
 | `INVALID_VALUE` mentioning base64 | The PowerShell input was not base64 of UTF-8 JSON. | Encode exactly as in step 2 (`[Text.Encoding]::UTF8.GetBytes`). |
-| `METADATA_TIMEOUT` | Obsidian was busy indexing or syncing. | Wait a few seconds and retry the same call once. |
+| `METADATA_TIMEOUT` | Obsidian was busy indexing or syncing. | The written notes were **kept** (nothing was trashed). Wait a few seconds, check them in Obsidian, and retry only if a note is incomplete. |
 | `POST_WRITE_VERIFY_FAILED` / `ROLLBACK_FAILED` | The write did not read back as planned; files were trashed (or, for ROLLBACK_FAILED, some were left behind). | Report `error.message` to the user, including any leftover paths; retry at most once. |
 | Open printed `ok: true` but Obsidian stayed in the background | The OS blocked focus stealing (Windows) or no handler is registered for `obsidian://` (Linux). | The position is open; tell the user to switch to Obsidian. |
 | Times look shifted by a few hours | The source shows another time zone (e.g. MetaTrader server time). | Pass `opened_at` / `closed_at` as ISO 8601 with the source offset. |

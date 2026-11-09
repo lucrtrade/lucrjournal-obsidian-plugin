@@ -4,6 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setTradingViewRequesterForTests } from '../domains/symbol/metadata'
 import { setCurrentTimeZoneSetting } from '../settings/plugin-settings'
 
+import { executePositionPlan } from './execute'
+import { parseCreatePositionInput } from './input'
+import { buildOpenPositionCommands } from './open'
+import { planPosition } from './plan'
+
 import { createAgentApi } from './index'
 
 type FakeEntry = { kind: 'file'; file: TFile; content: string } | { kind: 'folder'; folder: TFolder }
@@ -12,6 +17,10 @@ type FakeEntry = { kind: 'file'; file: TFile; content: string } | { kind: 'folde
 function createFakeVault(initialFiles: Record<string, string>) {
 	const entries = new Map<string, FakeEntry>()
 	const trashed: string[] = []
+	let sessionToken = 'test-token'
+	let accessDenied = false
+	let failingCreatePath: string | null = null
+	let failNextSetViewState = false
 
 	const makeFile = (path: string) => {
 		const name = path.split('/').pop() ?? path
@@ -80,14 +89,58 @@ function createFakeVault(initialFiles: Record<string, string>) {
 		return entry === undefined ? null : entry.kind === 'file' ? entry.file : entry.folder
 	}
 
+	type FakeLeaf = {
+		view: { file: TFile | null; viewType: string; getViewType: () => string }
+		setViewState: (state: { type: string; state: { file: string } }) => Promise<void>
+		detach: () => void
+		detached: boolean
+	}
+	const leaves: FakeLeaf[] = []
+	const createLeaf = (): FakeLeaf => {
+		const leaf: FakeLeaf = {
+			view: { file: null, viewType: '', getViewType: () => leaf.view.viewType },
+			detached: false,
+			async setViewState(state) {
+				if (failNextSetViewState) {
+					failNextSetViewState = false
+					throw new Error('setViewState failed')
+				}
+				const target = lookup(state.state.file)
+				leaf.view.viewType = state.type
+				leaf.view.file = target instanceof TFile ? target : null
+			},
+			detach() {
+				leaf.detached = true
+			},
+		}
+		return leaf
+	}
+
 	const app = {
 		appId: 'test-vault-id',
+		secretStorage: {
+			getSecret: (id: string) => (id === 'lucrjournal-session' ? sessionToken : ''),
+			setSecret: (id: string, value: string) => {
+				if (id === 'lucrjournal-session') {
+					sessionToken = value
+				}
+			},
+		},
+		loadLocalStorage: (key: string) => (key === 'lucrjournal-access-denied' ? accessDenied : null),
+		saveLocalStorage: (key: string, value: unknown) => {
+			if (key === 'lucrjournal-access-denied') {
+				accessDenied = value === true
+			}
+		},
 		vault: {
 			getName: () => 'test-vault',
 			getMarkdownFiles: () => files().filter((file) => file.extension === 'md'),
 			getAbstractFileByPath: lookup,
 			read: async (file: TFile) => readContent(file),
 			create: async (path: string, content: string) => {
+				if (path === failingCreatePath) {
+					throw new Error(`disk full: ${path}`)
+				}
 				if (entries.has(path)) {
 					throw new Error(`File already exists: ${path}`)
 				}
@@ -128,15 +181,43 @@ function createFakeVault(initialFiles: Record<string, string>) {
 				entries.delete(file.path)
 			},
 		},
-		workspace: {},
+		workspace: {
+			getLeavesOfType: (type: string) => leaves.filter((leaf) => leaf.view.getViewType() === type && !leaf.detached),
+			getLeaf: () => {
+				const leaf = createLeaf()
+				leaves.push(leaf)
+				return leaf
+			},
+			setActiveLeaf: () => {},
+			revealLeaf: async () => {},
+		},
 	} as unknown as App
 
 	return {
 		app,
 		trashed,
+		leaves,
 		paths: () => files().map((file) => file.path).sort(),
 		content: (path: string) => readContent({ path }),
 		frontmatter: (path: string) => parseFrontmatter(readContent({ path })) ?? {},
+		signOut: () => {
+			sessionToken = ''
+		},
+		signIn: () => {
+			sessionToken = 'test-token'
+		},
+		denyAccess: () => {
+			accessDenied = true
+		},
+		allowAccess: () => {
+			accessDenied = false
+		},
+		failOnCreate: (path: string) => {
+			failingCreatePath = path
+		},
+		failNextSetViewState: () => {
+			failNextSetViewState = true
+		},
 		failNextProcess: () => {
 			const vault = app.vault as unknown as { process: unknown }
 			vault.process = async () => {
@@ -368,9 +449,9 @@ describe('agent api createPosition', () => {
 			ok: true,
 			data: { resolved: { side: { value: 'LONG', reason: expect.stringContaining('defaulted to LONG') as unknown } } },
 		})
-		await expect(api.createPosition({ symbol: 'NEWCOIN', side: 'LONG' })).resolves.toMatchObject({
-			ok: false,
-			error: { code: 'ACCOUNT_REQUIRED', candidates: ['Binance', 'FTMO'] },
+		await expect(api.createPosition({ symbol: 'NEWCOIN', side: 'LONG', dryRun: true })).resolves.toMatchObject({
+			ok: true,
+			data: { resolved: { account: { value: 'Binance' } } },
 		})
 		await expect(api.createPosition({ symbol: 'BTC', confirmVault: 'other' })).resolves.toMatchObject({
 			ok: false,
@@ -476,5 +557,129 @@ describe('agent api createPosition', () => {
 			`${ROOT}/analyses/Trend.md`,
 			`${ROOT}/symbols/SBL-Binance-SOLUSDT.P.md`,
 		]))
+	})
+
+	it('refuses to write or preview anything while the journal is locked', async () => {
+		const vault = baseVault()
+		const api = createAgentApi({ app: vault.app, manifest: { id: 'lucrjournal' } })
+		const before = vault.paths()
+
+		vault.signOut()
+		await expect(api.createPosition({ symbol: 'sol', side: 'LONG' })).resolves.toMatchObject({
+			ok: false,
+			error: { code: 'JOURNAL_LOCKED' },
+		})
+		await expect(api.createPosition({ symbol: 'sol', side: 'LONG', dryRun: true })).resolves.toMatchObject({
+			ok: false,
+			error: { code: 'JOURNAL_LOCKED' },
+		})
+		expect(vault.paths()).toEqual(before)
+
+		vault.signIn()
+		vault.denyAccess()
+		await expect(api.createPosition({ symbol: 'sol', side: 'LONG' })).resolves.toMatchObject({
+			ok: false,
+			error: { code: 'JOURNAL_LOCKED' },
+		})
+		expect(vault.paths()).toEqual(before)
+	})
+
+	it('keeps a symbol that another writer created between planning and writing', async () => {
+		const vault = baseVault()
+		const input = parseCreatePositionInput({ symbol: 'sol', side: 'LONG', notes: 'retry safety' })
+		const plan = await planPosition(vault.app, input)
+		const symbolPath = `${ROOT}/symbols/SBL-Binance-SOLUSDT.P.md`
+		expect(plan.execution.createSymbol).toBe(true)
+
+		await vault.app.vault.create(symbolPath, fm({ lucr_type: 'symbol', name: 'SOLUSDT.P', account: '[[ACC-Binance]]', type: 'Crypto_Perp' }))
+		vault.failNextProcess()
+
+		await expect(executePositionPlan(vault.app, plan)).rejects.toMatchObject({ payload: { code: 'INTERNAL_ERROR' } })
+		expect(vault.paths()).toContain(symbolPath)
+		expect(vault.paths()).not.toContain(`${ROOT}/positions/POS-00001.md`)
+	})
+
+	it('rolls back the platform that a failed account creation cascaded', async () => {
+		const vault = baseVault()
+		const api = createAgentApi({ app: vault.app, manifest: { id: 'lucrjournal' } })
+		vault.failOnCreate(`${ROOT}/accounts/ACC-Desk.md`)
+
+		const result = await api.createPosition({ account: 'Desk', platform: 'MetaTrader', symbol: 'XAUUSD', side: 'LONG' })
+
+		expect(result.ok).toBe(false)
+		expect(vault.paths()).not.toContain(`${ROOT}/platforms/MetaTrader.md`)
+		expect(vault.paths()).not.toContain(`${ROOT}/accounts/ACC-Desk.md`)
+	})
+
+	it('rejects a platform that contradicts the resolved account', async () => {
+		const vault = baseVault()
+		const api = createAgentApi({ app: vault.app, manifest: { id: 'lucrjournal' } })
+
+		await expect(api.createPosition({ account: 'Binance', platform: 'Bybit', symbol: 'BTCUSDT', side: 'LONG' })).resolves.toMatchObject({
+			ok: false,
+			error: { code: 'INVALID_VALUE', field: 'platform' },
+		})
+	})
+
+	it('asks which market a short belongs to when the account only traded spot', async () => {
+		const vault = baseVault({ ...symbolFile('Binance', 'SOLUSDT', 'Crypto_Spot') })
+		const api = createAgentApi({ app: vault.app, manifest: { id: 'lucrjournal' } })
+
+		await expect(api.createPosition({ symbol: 'sol', side: 'SHORT', dryRun: true })).resolves.toMatchObject({
+			ok: false,
+			error: { code: 'SYMBOL_AMBIGUOUS', candidates: ['SOLUSDT', 'SOLUSDT.P'] },
+		})
+	})
+
+	it('builds an open command that works from Git Bash on Windows', () => {
+		const path = `${ROOT}/positions/POS-00012.md`
+		const windows = buildOpenPositionCommands('2b770fde7df4a65c', path, 'lucrjournal', { isWin: true, isMacOS: false })
+		const mac = buildOpenPositionCommands('2b770fde7df4a65c', path, 'lucrjournal', { isWin: false, isMacOS: true })
+
+		expect(windows.bash).toContain('powershell.exe -NoProfile -Command "Start-Process ')
+		expect(windows.bash).not.toContain('start ""')
+		expect(mac.bash).toContain('open "obsidian://')
+		expect(windows.powershell).toBe(mac.powershell)
+	})
+
+	it('escapes the open path for both the URI and the eval code', () => {
+		const commands = buildOpenPositionCommands('vault', `${ROOT}/positions/POS-'1.md`, 'lucrjournal', { isWin: false, isMacOS: true })
+
+		expect(commands.uri).toContain('%27')
+		expect(commands.bash).toContain('\\u{27}')
+	})
+
+	it('opens an existing position once and rejects a link for another vault', async () => {
+		const vault = baseVault()
+		const api = createAgentApi({ app: vault.app, manifest: { id: 'lucrjournal' } })
+		const created = await api.createPosition({ symbol: 'sol', side: 'LONG' })
+		if (!created.ok) {
+			throw new Error('expected a created position')
+		}
+		const path = created.data.path
+
+		await expect(api.openPosition({ path: `/${path}` })).resolves.toMatchObject({
+			ok: false,
+			error: { code: 'INVALID_VALUE', field: 'path' },
+		})
+		await expect(api.handleOpenPositionUri({ vault: 'other-vault', file: path })).resolves.toContain('targets vault')
+		await expect(api.openPosition({ path })).resolves.toMatchObject({ ok: true, data: { path, reusedTab: false } })
+		await expect(api.openPosition({ path })).resolves.toMatchObject({ ok: true, data: { path, reusedTab: true } })
+	})
+
+	it('closes its own tab when the position view cannot be created', async () => {
+		const vault = baseVault()
+		const api = createAgentApi({ app: vault.app, manifest: { id: 'lucrjournal' } })
+		const created = await api.createPosition({ symbol: 'sol', side: 'LONG' })
+		if (!created.ok) {
+			throw new Error('expected a created position')
+		}
+		vault.failNextSetViewState()
+
+		const result = await api.openPosition({ path: created.data.path })
+
+		expect(result.ok).toBe(false)
+		expect(vault.leaves).toHaveLength(1)
+		expect(vault.leaves[0]?.detached).toBe(true)
 	})
 })

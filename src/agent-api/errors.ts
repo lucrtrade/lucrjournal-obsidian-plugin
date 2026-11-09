@@ -28,6 +28,7 @@ export type AgentErrorCode =
 	| 'POST_WRITE_VERIFY_FAILED'
 	| 'ROLLBACK_FAILED'
 	| 'OPEN_FAILED'
+	| 'JOURNAL_LOCKED'
 	| 'INTERNAL_ERROR'
 
 export type AgentErrorPayload = {
@@ -72,7 +73,7 @@ function toAgentFailure(error: unknown): AgentFailure {
 		error: {
 			code: 'INTERNAL_ERROR',
 			message: `LucrJournal hit an unexpected internal error: ${message}`,
-			fix: 'Do not retry blindly. Report this message to the user; run `obsidian dev:errors` and `obsidian dev:console level=error` in the same vault for the stack trace.',
+			fix: 'Report this message to the user exactly as written and stop; do not retry blindly. Optional diagnostics: run `obsidian dev:errors` and `obsidian dev:console level=error` in the same vault.',
 			details: error instanceof Error && typeof error.stack === 'string'
 				? { stack: error.stack.split('\n').slice(0, 6).join('\n') }
 				: undefined,

@@ -7,8 +7,11 @@ export type AgentVault = { id: string; name: string }
  * the active vault by default, or `obsidian vault=<name>` when the user names one.
  */
 export function describeCurrentVault(app: App): AgentVault {
+	const name = app.vault.getName()
+	// appId is not part of the public API; the CLI and obsidian:// URIs accept the vault name as well.
+	const appId = (app as App & { appId?: unknown }).appId
 	return {
-		id: (app as App & { appId?: string }).appId ?? '',
-		name: app.vault.getName(),
+		id: typeof appId === 'string' && appId !== '' ? appId : name,
+		name,
 	}
 }

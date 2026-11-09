@@ -58,6 +58,7 @@ type BuiltinPropertiesForSchema<TSchema extends type.Any> = Partial<{
 
 type BeforeSaveArgs<Patch extends Record<string, unknown>> = {
 	app: App
+	/** null when called from `previewPatch` (agent dry-run): implementations must not touch the file. */
 	file: TFile | null
 	previousRecord: Record<string, unknown>
 	record: Record<string, unknown>

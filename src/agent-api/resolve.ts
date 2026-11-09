@@ -80,6 +80,7 @@ export function resolveAccount(app: App, request: AccountRequest, rawSymbol: str
 		const key = normalizeKey(request.account)
 		const matches = accounts.filter((account) => accountKeys(account).includes(key))
 		if (matches.length === 1) {
+			assertPlatformMatches(matches[0]!, request.platform)
 			return { value: matches[0]!, reason: `matched requested account ${JSON.stringify(request.account)}` }
 		}
 		if (matches.length > 1) {
@@ -111,14 +112,21 @@ export function resolveAccount(app: App, request: AccountRequest, rawSymbol: str
 		return { value: holders[0]!, reason: `only account that already trades ${JSON.stringify(rawSymbol)}` }
 	}
 
-	const recent = findMostRecentPositionAccount(app, holders.length > 1 ? holders : accounts)
+	const assetClass = symbolAssetClass(rawSymbol)
+	const pool = (holders.length > 1 ? holders : accounts).filter((account) =>
+		assetClass === null || isCryptoAccount(account, SymbolDomain.listForAccount(app, account.wikilink)) === (assetClass === 'crypto'),
+	)
+	if (holders.length <= 1 && pool.length === 1) {
+		return { value: pool[0]!, reason: `only ${assetClass ?? ''} account that fits ${JSON.stringify(rawSymbol)}`.replace('  ', ' ') }
+	}
+	const recent = findMostRecentPositionAccount(app, pool)
 	if (recent !== null) {
-		return { value: recent, reason: 'account of the most recently opened position' }
+		return { value: recent, reason: `account of the most recently opened position${assetClass === null ? '' : ` among ${assetClass} accounts`}` }
 	}
 
 	throw agentError(
 		'ACCOUNT_REQUIRED',
-		`Cannot infer the account: the vault has ${accounts.length} accounts and none of the inference rules picked exactly one.`,
+		`Cannot infer the account: the vault has ${accounts.length} accounts and none of the inference rules picked exactly one${assetClass === null ? '' : ` ${assetClass} account`}.`,
 		'Ask the user which account to use, then retry with `account` set to one of candidates.',
 		{ field: 'account', candidates: names },
 	)
@@ -213,6 +221,36 @@ function editDistance(left: string, right: string): number {
 	return previous[right.length]!
 }
 
+function assertPlatformMatches(account: ResolvedAccount, platform: string | null) {
+	if (platform === null) {
+		return
+	}
+	const requested = toPresetPlatformName(sanitizeObsidianFileName(platform).trim())
+	if (normalizeKey(requested) === normalizeKey(account.platformName ?? '')) {
+		return
+	}
+	throw agentError(
+		'INVALID_VALUE',
+		`Account ${JSON.stringify(account.displayName)} already exists ${account.platformName === null ? 'without a platform' : `on platform ${account.platformName}`}, so \`platform\` ${JSON.stringify(requested)} does not apply.`,
+		`Drop \`platform\` to record into the existing account, or use a different \`account\` name to create a new account on ${requested}.`,
+		{ field: 'platform', received: platform, candidates: account.platformName === null ? [] : [account.platformName] },
+	)
+}
+
+/** Crypto vs exchange-traded instrument, used to keep account inference within the right kind of account. */
+function symbolAssetClass(rawSymbol: string): 'crypto' | 'traditional' | null {
+	const parsed = parseSymbolIntent(cleanSymbolInput(rawSymbol))
+	if (parsed.kind === 'full') {
+		const symbolType = resolveSymbolInfo(parsed.symbol).type
+		if (symbolType === null) {
+			return null
+		}
+		return symbolType.startsWith('Crypto_') ? 'crypto' : 'traditional'
+	}
+	const traditional = BuiltinSymbolList.some((symbol) => !symbol.type.startsWith('Crypto_') && symbolBase(symbol.symbol_name) === parsed.base)
+	return traditional ? 'traditional' : 'crypto'
+}
+
 function listAccounts(app: App): ResolvedAccount[] {
 	return AccountDomain.totalEntries(app)
 		.filter((entry): entry is AccountEntry => entry.file instanceof TFile)
@@ -298,6 +336,9 @@ export function resolveSymbol(app: App, account: ResolvedAccount, rawSymbol: str
 		)
 	}
 
+	if (shortNeedsPerp && !parsed.perp) {
+		assertShortFitsConvention(account, accountSymbols, parsed.base, rawSymbol)
+	}
 	const name = buildSymbolForBase(account, accountSymbols, parsed.base, parsed.perp ? 'the perpetual suffix in the input' : shortNeedsPerp ? 'a short needs a perpetual' : null)
 	assertValidSymbolName(name.symbol, rawSymbol)
 	const info = resolveSymbolInfo(name.symbol)
@@ -372,9 +413,7 @@ function buildSymbolForBase(
 		return { symbol: base, reason: `kept ${base} as-is for non-crypto account ${account.displayName}` }
 	}
 
-	const cryptoSymbols = accountSymbols.filter((entry) => entry.fm.type?.startsWith('Crypto_') === true)
-	const quote = mostCommon(cryptoSymbols.map((entry) => resolveSymbolQuote(entry.fm.name)).filter((value): value is string => value !== null)) ?? 'USDT'
-	const perpCount = cryptoSymbols.filter((entry) => entry.fm.name.endsWith('.P')).length
+	const { cryptoSymbols, quote, perpCount } = cryptoConvention(accountSymbols)
 	const perp = forcePerp || cryptoSymbols.length === 0 || perpCount * 2 >= cryptoSymbols.length
 	const symbol = `${base}${quote}${perp ? '.P' : ''}`
 	const convention = cryptoSymbols.length === 0
@@ -383,9 +422,37 @@ function buildSymbolForBase(
 	return { symbol, reason: `expanded ${base} to ${symbol} ${forcePerpReason === null ? `using ${convention}` : `because ${forcePerpReason}`}` }
 }
 
+function cryptoConvention(accountSymbols: SymbolEntry[]) {
+	const cryptoSymbols = accountSymbols.filter((entry) => entry.fm.type?.startsWith('Crypto_') === true)
+	const quote = mostCommon(cryptoSymbols.map((entry) => resolveSymbolQuote(entry.fm.name)).filter((value): value is string => value !== null)) ?? 'USDT'
+	const perpCount = cryptoSymbols.filter((entry) => entry.fm.name.endsWith('.P')).length
+	return { cryptoSymbols, quote, perpCount }
+}
+
+/**
+ * A short usually means a perpetual, but an account that only ever traded spot may be
+ * shorting on margin: that is a real ambiguity, so ask instead of inventing a perpetual.
+ */
+function assertShortFitsConvention(account: ResolvedAccount, accountSymbols: SymbolEntry[], base: string, rawSymbol: string) {
+	const { cryptoSymbols, quote, perpCount } = cryptoConvention(accountSymbols)
+	if (cryptoSymbols.length === 0 || perpCount > 0) {
+		return
+	}
+	const candidates = [`${base}${quote}`, `${base}${quote}.P`]
+	throw agentError(
+		'SYMBOL_AMBIGUOUS',
+		`${JSON.stringify(rawSymbol)} is a short, but account ${account.displayName} has only traded spot so far, so it is unclear whether this is a spot margin short or a perpetual.`,
+		'If the conversation says margin/spot or perpetual/contract, retry with that symbol from candidates; otherwise ask the user which one.',
+		{ field: 'symbol', received: rawSymbol, candidates },
+	)
+}
+
+const CRYPTO_PLATFORMS_WITHOUT_EXCHANGE_ID = ['bitget']
+
 function isCryptoAccount(account: ResolvedAccount, accountSymbols: SymbolEntry[]): boolean {
 	if (account.platformName !== null) {
-		const known = Object.keys(PLATFORM_TO_EXCHANGE_ID).some((name) => normalizeKey(name) === normalizeKey(account.platformName ?? ''))
+		const known = [...Object.keys(PLATFORM_TO_EXCHANGE_ID), ...CRYPTO_PLATFORMS_WITHOUT_EXCHANGE_ID]
+			.some((name) => normalizeKey(name) === normalizeKey(account.platformName ?? ''))
 		if (known) {
 			return true
 		}

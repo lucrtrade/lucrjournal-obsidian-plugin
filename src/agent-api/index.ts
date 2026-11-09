@@ -3,6 +3,7 @@ import { executePositionPlan } from './execute'
 import { parseCreatePositionInput } from './input'
 import { buildOpenPositionCommands, OPEN_POSITION_URI_ACTION, openPositionView } from './open'
 import { planPosition } from './plan'
+import { assertAgentSession } from './session-guard'
 import { describeCurrentVault } from './vault-guard'
 
 import type { App } from 'obsidian'
@@ -21,6 +22,8 @@ export function createAgentApi(plugin: { app: App; manifest: { id: string } }) {
 		version: AGENT_API_VERSION,
 		createPosition: (rawInput: unknown) => runAgentCall(async () => {
 			const input = parseCreatePositionInput(rawInput)
+			// @story [[lucrjournal/agent-api#^agent-api-session-gate]] Refuses to write positions the user could not see
+			assertAgentSession(app)
 			const vault = describeCurrentVault(app)
 			const plan = await planPosition(app, input)
 			const path = plan.execution.positionPath
@@ -44,13 +47,24 @@ export function createAgentApi(plugin: { app: App; manifest: { id: string } }) {
 				},
 			}
 		}),
-		openPosition: (rawInput: unknown) => runAgentCall(async () => ({
-			vault: describeCurrentVault(app),
-			...(await openPositionView(app, rawInput)),
-		})),
+		openPosition: (rawInput: unknown) => runAgentCall(async () => {
+			assertAgentSession(app)
+			return {
+				vault: describeCurrentVault(app),
+				...(await openPositionView(app, rawInput)),
+			}
+		}),
 		/** Handler for `obsidian://lucrjournal-open-position?vault=<id>&file=<vault-relative path>`. */
 		handleOpenPositionUri: async (params: Record<string, string>) => {
-			const result = await runAgentCall(async () => await openPositionView(app, { path: params.file }))
+			const currentVault = describeCurrentVault(app)
+			const requestedVault = (params.vault ?? '').trim()
+			if (requestedVault !== '' && currentVault.id !== '' && requestedVault !== currentVault.id) {
+				return `This link targets vault ${JSON.stringify(requestedVault)}, but LucrJournal is running in vault ${JSON.stringify(currentVault.name)} (${currentVault.id}); nothing was opened. Enable LucrJournal in the vault the link names and use that vault's link.`
+			}
+			const result = await runAgentCall(async () => {
+				assertAgentSession(app)
+				return await openPositionView(app, { path: params.file })
+			})
 			return result.ok ? null : result.error.message
 		},
 	}

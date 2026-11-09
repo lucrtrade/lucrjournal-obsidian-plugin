@@ -2,6 +2,7 @@ import { Platform, TFile, normalizePath, type App, type WorkspaceLeaf } from 'ob
 
 import { LUCR_POSITION_VIEW_TYPE } from '../constant'
 import { PositionDomain } from '../domains'
+import { getToken, requiresJournalUpgrade } from '../session/storage'
 import { createPositionFileViewState } from '../views/domain-file-routing'
 
 import { agentError, formatCandidates } from './errors'
@@ -22,15 +23,35 @@ type OpenPositionResult = { data: { path: string; viewType: string; reusedTab: b
  * The URI carries the vault-relative path as `file`: Obsidian reserves `path` for
  * absolute filesystem paths and shows a blocking "Vault not found" dialog otherwise.
  */
-export function buildOpenPositionCommands(vaultId: string, path: string, pluginId: string) {
-	const uri = `obsidian://${OPEN_POSITION_URI_ACTION}?vault=${encodeURIComponent(vaultId)}&file=${encodeURIComponent(path)}`
-	const code = `app.plugins.plugins.${pluginId}.api.openPosition({ path: ${JSON.stringify(path).replace(/"/g, '\'')} })`
-	const bashOpener = Platform.isWin ? 'start ""' : Platform.isMacOS ? 'open' : 'xdg-open'
+type OpenerPlatform = { isWin: boolean; isMacOS: boolean }
+
+export function buildOpenPositionCommands(
+	vaultId: string,
+	path: string,
+	pluginId: string,
+	platform: OpenerPlatform = Platform,
+) {
+	const uri = `obsidian://${OPEN_POSITION_URI_ACTION}?vault=${encodeUriParam(vaultId)}&file=${encodeUriParam(path)}`
+	const code = `app.plugins.plugins.${pluginId}.api.openPosition({ path: '${toShellSafeJsString(path)}' })`
+	// Git Bash on Windows has no reliable `start`; PowerShell's Start-Process is always there.
+	const bashActivate = platform.isWin
+		? `powershell.exe -NoProfile -Command "Start-Process '${uri}'"`
+		: `${platform.isMacOS ? 'open' : 'xdg-open'} "${uri}"`
 	return {
 		uri,
-		bash: `${bashOpener} "${uri}" && obsidian vault=${vaultId} eval code="${code}"`,
+		bash: `${bashActivate} && obsidian vault=${vaultId} eval code="${code}"`,
 		powershell: `Start-Process '${uri}'; obsidian vault=${vaultId} eval "code=${code}"`,
 	}
+}
+
+/** encodeURIComponent leaves `'` and other sub-delims as-is; the URI is wrapped in single quotes in shells. */
+function encodeUriParam(value: string): string {
+	return encodeURIComponent(value).replace(/[!'()*]/g, (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`)
+}
+
+/** Single-quoted JS string content that also survives double-quoted shell and PowerShell strings. */
+function toShellSafeJsString(value: string): string {
+	return [...value].map((character) => (/[\w./ -]/.test(character) ? character : `\\u{${(character.codePointAt(0) ?? 0).toString(16)}}`)).join('')
 }
 
 const ALLOWED_FIELDS = ['path'] as const
@@ -73,19 +94,41 @@ async function openPositionViewOnce(app: App, path: string): Promise<OpenPositio
 	}
 
 	const existingLeaf = app.workspace.getLeavesOfType(LUCR_POSITION_VIEW_TYPE).find((leaf) => leafFilePath(leaf) === path)
+	const createdLeaf = existingLeaf === undefined
 	const leaf = existingLeaf ?? app.workspace.getLeaf('tab')
-	if (existingLeaf === undefined) {
-		await leaf.setViewState(createPositionFileViewState(path))
+	try {
+		if (createdLeaf) {
+			await leaf.setViewState(createPositionFileViewState(path))
+		}
+		app.workspace.setActiveLeaf(leaf, { focus: true })
+		await app.workspace.revealLeaf(leaf)
+	} catch (error: unknown) {
+		// A tab we opened ourselves must not survive as an empty editor.
+		if (createdLeaf) {
+			leaf.detach()
+		}
+		throw error
 	}
-	app.workspace.setActiveLeaf(leaf, { focus: true })
-	await app.workspace.revealLeaf(leaf)
 
 	const ready = await waitForValue(() => (leaf.view.getViewType() === LUCR_POSITION_VIEW_TYPE && leafFilePath(leaf) === path ? true : null), OPEN_TIMEOUT_MS)
 	if (ready === null) {
+		if (createdLeaf) {
+			leaf.detach()
+		}
 		throw agentError(
 			'OPEN_FAILED',
 			`Obsidian did not show ${path} in the position view (the tab shows view type ${JSON.stringify(leaf.view.getViewType())} for ${JSON.stringify(leafFilePath(leaf))}).`,
 			'Make sure the LucrJournal plugin is enabled and the Obsidian window is not showing a modal, then retry openPosition once.',
+			{ field: 'path', received: path },
+		)
+	}
+
+	// The domain views render a sign-in / upgrade screen instead of the position when access is gated.
+	if (getToken(app) === null || requiresJournalUpgrade(app)) {
+		throw agentError(
+			'JOURNAL_LOCKED',
+			`${path} is saved and its tab is open, but LucrJournal shows its sign-in / upgrade screen instead of the position because the journal is not unlocked in this vault.`,
+			'Tell the user the position was recorded and that they need to sign in to LucrJournal (or upgrade) to view it. Do not create the position again.',
 			{ field: 'path', received: path },
 		)
 	}
@@ -105,7 +148,17 @@ function readPath(rawInput: unknown): string {
 	if (typeof record.path !== 'string' || record.path.trim() === '') {
 		throw agentError('INVALID_VALUE', '`path` must be a non-empty string.', 'Pass `{ path: data.path }` from the createPosition result.', { field: 'path', received: record.path })
 	}
-	return normalizePath(record.path.trim())
+	const trimmedPath = record.path.trim()
+	// A leading slash or `..` means the caller is not passing a vault-relative path; normalizePath would hide that.
+	if (trimmedPath.startsWith('/') || /^[A-Za-z]:[\\/]/.test(trimmedPath) || trimmedPath.split(/[\\/]/).includes('..')) {
+		throw agentError(
+			'INVALID_VALUE',
+			`\`path\` must be vault-relative, received ${JSON.stringify(trimmedPath)}.`,
+			'Pass `{ path: data.path }` exactly as createPosition returned it (e.g. "LucrJournal/positions/POS-00012.md"), with no leading slash and no "..".',
+			{ field: 'path', received: trimmedPath },
+		)
+	}
+	return normalizePath(trimmedPath)
 }
 
 function leafFilePath(leaf: WorkspaceLeaf): string | null {

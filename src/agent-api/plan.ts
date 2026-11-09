@@ -42,6 +42,7 @@ type PlannedFile = {
 	path: string
 	frontmatter?: Record<string, unknown>
 	body?: string
+	bodyNote?: string
 	source?: string
 }
 
@@ -221,7 +222,9 @@ export async function planPosition(app: App, input: CreatePositionInput, now: Da
 		notes: input.notes,
 		links: links.map((link) => ({ sectionTitle: LINK_KIND_CONFIG[link.kind].sectionTitle, basename: link.basename })),
 	})
-	plannedFiles.push({ action: 'create', kind: 'position', path: positionPath, frontmatter: positionFrontmatter, body })
+	// Templater runs when the file is written; executing it during a dry run could open its prompts.
+	const bodyNote = templaterBodyNote(app, template !== null, baseBody)
+	plannedFiles.push(buildPlannedPosition({ path: positionPath, frontmatter: positionFrontmatter, body, bodyNote }))
 
 	const expectedFrontmatter = Object.fromEntries(
 		VERIFIED_FIELDS.map((field) => [field, positionFrontmatter[field] ?? null]),
@@ -401,6 +404,33 @@ async function readTemplate(app: App, path: string): Promise<string> {
 		throw agentError('TEMPLATE_NOT_FOUND', `Template file ${path} disappeared while planning.`, 'Retry once; if it persists, drop `template`.', { field: 'template', received: path })
 	}
 	return await app.vault.read(file)
+}
+
+function buildPlannedPosition(input: {
+	path: string
+	frontmatter: Record<string, unknown>
+	body: string
+	bodyNote: string | undefined
+}): PlannedFile {
+	return {
+		action: 'create',
+		kind: 'position',
+		path: input.path,
+		frontmatter: input.frontmatter,
+		body: input.body,
+		...(input.bodyNote === undefined ? {} : { bodyNote: input.bodyNote }),
+	}
+}
+
+function templaterBodyNote(app: App, usesTemplate: boolean, body: string): string | undefined {
+	return usesTemplate && body.includes('<%') && isTemplaterEnabled(app)
+		? 'Body shows the raw template: Templater expands its <% %> expressions when the file is written.'
+		: undefined
+}
+
+function isTemplaterEnabled(app: App): boolean {
+	const plugins = (app as App & { plugins?: { enabledPlugins?: Set<string> } }).plugins
+	return plugins?.enabledPlugins?.has('templater-obsidian') === true
 }
 
 function stripFrontmatter(markdown: string): string {
