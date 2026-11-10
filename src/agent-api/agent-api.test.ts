@@ -4,11 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setTradingViewRequesterForTests } from '../domains/symbol/metadata'
 import { setCurrentTimeZoneSetting } from '../settings/plugin-settings'
 
+import { persistAttachment } from './attachments'
 import { executePositionPlan } from './execute'
 import { parseCreatePositionInput } from './input'
 import { buildOpenPositionCommands } from './open'
 import { planPosition } from './plan'
-import { persistAttachment, parseSaveAttachmentInput } from './save-attachment'
 
 import { createAgentApi } from './index'
 
@@ -726,7 +726,7 @@ describe('agent api createPosition', () => {
 	it('adds a suffix instead of overwriting an attachment saved in the same millisecond', async () => {
 		const vault = baseVault()
 		const now = new Date('2026-11-10T12:00:00+08:00')
-		const input = parseSaveAttachmentInput({ base64: PNG_BASE64, fileName: 'chart.png' })
+		const input = { base64: PNG_BASE64, fileName: 'chart.png' }
 
 		const first = await persistAttachment(vault.app, input, now)
 		const second = await persistAttachment(vault.app, input, now)
@@ -779,8 +779,27 @@ describe('agent api createPosition', () => {
 		})
 		await expect(api.saveAttachment({ base64: PNG_BASE64 })).resolves.toMatchObject({
 			ok: false,
-			error: { code: 'INVALID_VALUE', field: 'fileName' },
+			error: { code: 'INVALID_VALUE', field: 'attachment.fileName' },
 		})
+	})
+
+	it('accepts a base64 attachment through createPosition and links it in the note', async () => {
+		const vault = baseVault()
+		const api = createAgentApi({ app: vault.app, manifest: { id: 'lucrjournal' } })
+
+		const result = await api.createPosition({
+			symbol: 'sol',
+			side: 'LONG',
+			attachments: [{ base64: PNG_BASE64, fileName: 'chart.png' }],
+		})
+
+		expect(result.ok).toBe(true)
+		if (!result.ok) {
+			return
+		}
+		const attachmentPath = (result.data.created ?? []).find((path) => path.includes('/attachments/'))
+		expect(attachmentPath).toMatch(new RegExp(`^${ROOT}/attachments/\\d{4}-\\d{2}/.*_chart\\.png$`))
+		expect(vault.frontmatter(result.data.path).attachments).toEqual([`[[${attachmentPath?.split('/').pop()}]]`])
 	})
 
 	it('refuses to save an attachment while the journal is locked', async () => {

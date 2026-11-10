@@ -1,12 +1,6 @@
 import { TFile, normalizePath, type App } from 'obsidian'
 
-import {
-	applyAttachmentTokensToFrontmatter,
-	buildAttachmentTimestamp,
-	buildAttachmentToken,
-	buildPositionAttachmentFileName,
-	buildPositionAttachmentPath,
-} from '../attachments/position-attachments'
+import { applyAttachmentTokensToFrontmatter } from '../attachments/position-attachments'
 import { LUCR_TRADE_ROOT_DIR } from '../constant'
 import { buildSymbolFileBaseName, PositionDomain, SymbolDomain } from '../domains'
 import { buildDomainTimestamps } from '../domains/core/domain-timestamps'
@@ -17,10 +11,14 @@ import { resolvePositionSymbolModel } from '../domains/symbol/position-model'
 import { getCurrentTimeZoneSetting } from '../settings/plugin-settings'
 import { buildIsoDatetimeInTimeZone } from '../utils/relative-time'
 
+import {
+	parseAttachmentSource,
+	planAttachment,
+	type AttachmentPlan,
+} from './attachments'
 import { datetimeToEpoch, normalizeAgentDatetime } from './datetime'
 import { AgentApiError, agentError } from './errors'
 import { LINK_KINDS, type CreatePositionInput } from './input'
-import { loadDesktopModule, type NodeFs } from './node-runtime'
 import { createPlanningApp, type VirtualMarkdownFile } from './planning-app'
 import {
 	assertRiskDirection,
@@ -43,10 +41,9 @@ type PlannedFile = {
 	frontmatter?: Record<string, unknown>
 	body?: string
 	bodyNote?: string
-	source?: string
 }
 
-type PlannedAttachment = { source: string; path: string; token: string }
+type PlannedAttachment = AttachmentPlan
 
 type PositionExecution = {
 	accountDisplayName: string
@@ -89,8 +86,6 @@ const VERIFIED_FIELDS = [
 	'playbook',
 	'attachments',
 ] as const
-
-const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif'] as const
 
 export async function planPosition(app: App, input: CreatePositionInput, now: Date = new Date()): Promise<PositionPlan> {
 	const timeZone = getCurrentTimeZoneSetting()
@@ -172,7 +167,7 @@ export async function planPosition(app: App, input: CreatePositionInput, now: Da
 	}
 
 	for (const attachment of attachments) {
-		plannedFiles.push({ action: 'create', kind: 'attachment', path: attachment.path, source: attachment.source })
+		plannedFiles.push({ action: 'create', kind: 'attachment', path: attachment.path })
 	}
 
 	const planningApp = createPlanningApp(app, virtualFiles)
@@ -360,43 +355,16 @@ function resolveQuantityPatch(input: CreatePositionInput, symbolName: string, sy
 	return { [config.field]: value }
 }
 
-function planAttachments(app: App, sources: string[], now: Date): PlannedAttachment[] {
-	if (sources.length === 0) {
+function planAttachments(app: App, inputs: CreatePositionInput['attachments'], now: Date): PlannedAttachment[] {
+	if (inputs.length === 0) {
 		return []
 	}
-	const fs = loadDesktopModule<NodeFs>('fs')
-	if (fs === null) {
-		throw agentError(
-			'ATTACHMENT_UNSUPPORTED',
-			'Attachments can only be imported on Obsidian desktop.',
-			'Drop `attachments` and tell the user to paste the screenshot into the position view instead.',
-			{ field: 'attachments' },
-		)
-	}
-
-	const usedPaths = new Set<string>()
-	return sources.map((source, index) => {
-		const field = `attachments[${index}]`
-		if (!source.startsWith('/') && !/^[A-Za-z]:[\\/]/.test(source)) {
-			throw agentError('INVALID_VALUE', `${field} must be an absolute file path, received ${JSON.stringify(source)}.`, 'Pass the absolute path of the image file on this computer.', { field, received: source })
-		}
-		if (!fs.existsSync(source) || !fs.statSync(source).isFile()) {
-			throw agentError('ATTACHMENT_NOT_FOUND', `${field} file ${JSON.stringify(source)} does not exist or is not a file.`, 'Check the path (it must be readable by Obsidian on this computer) or drop the attachment.', { field, received: source })
-		}
-		const fileName = source.split(/[\\/]/).pop() ?? source
-		const dotIndex = fileName.lastIndexOf('.')
-		const extension = dotIndex === -1 ? '' : fileName.slice(dotIndex + 1).toLowerCase()
-		if (!(IMAGE_EXTENSIONS as readonly string[]).includes(extension)) {
-			throw agentError('ATTACHMENT_UNSUPPORTED', `${field} ${JSON.stringify(fileName)} is not a supported image (${IMAGE_EXTENSIONS.join(', ')}).`, 'Only attach chart/screenshot images; put other information into `notes`.', { field, received: source })
-		}
-		const baseName = dotIndex === -1 ? fileName : fileName.slice(0, dotIndex)
-		const timestamp = buildAttachmentTimestamp(now.getTime())
-		let path = buildPositionAttachmentPath(buildPositionAttachmentFileName(timestamp, extension, baseName), now.getTime())
-		for (let suffix = 2; usedPaths.has(path) || app.vault.getAbstractFileByPath(path) !== null; suffix += 1) {
-			path = buildPositionAttachmentPath(buildPositionAttachmentFileName(timestamp, extension, `${baseName}-${suffix}`), now.getTime())
-		}
-		usedPaths.add(path)
-		return { source, path, token: buildAttachmentToken(path, '') }
+	const reserved = new Set<string>()
+	return inputs.map((raw, index) => {
+		const source = parseAttachmentSource(raw, `attachments[${index}]`)
+		const planned = planAttachment(app, source, now, reserved)
+		reserved.add(planned.path)
+		return planned
 	})
 }
 

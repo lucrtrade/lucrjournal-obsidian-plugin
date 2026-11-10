@@ -2,6 +2,8 @@
 
 import { agentError, formatCandidates } from './errors'
 
+import type { AttachmentSourceInput } from './attachments'
+
 export const LINK_KINDS = ['key_levels', 'confluence', 'market_analysis', 'news'] as const
 export type LinkKind = (typeof LINK_KINDS)[number]
 
@@ -26,7 +28,7 @@ export type CreatePositionInput = {
 	template: string | null
 	links: Record<LinkKind, string[]>
 	notes: string | null
-	attachments: string[]
+	attachments: AttachmentSourceInput[]
 	dryRun: boolean
 }
 
@@ -105,7 +107,7 @@ export function parseCreatePositionInput(input: unknown): CreatePositionInput {
 		template: readOptionalText(record, 'template'),
 		links: readLinks(record),
 		notes: readNotes(record),
-		attachments: readStringList(record.attachments, 'attachments'),
+		attachments: readAttachments(record.attachments),
 		dryRun: readBoolean(record, 'dryRun'),
 	}
 }
@@ -218,6 +220,38 @@ function readLinks(record: Record<string, unknown>): Record<LinkKind, string[]> 
 		empty[kind] = names
 	}
 	return empty
+}
+
+function readAttachments(value: unknown): AttachmentSourceInput[] {
+	if (value === undefined || value === null) {
+		return []
+	}
+	if (!Array.isArray(value)) {
+		throw agentError(
+			'INVALID_VALUE',
+			`\`attachments\` must be an array of image paths or \`{ sourcePath | base64 + fileName }\` objects, received ${describeValue(value)}.`,
+			'Pass e.g. ["/Users/me/shot.png"] or [{ "base64": "...", "fileName": "shot.png" }].',
+			{ field: 'attachments', received: value },
+		)
+	}
+	return value.map((item, index) => {
+		if (typeof item === 'string') {
+			const trimmed = item.trim()
+			if (trimmed === '') {
+				throw agentError('INVALID_VALUE', `\`attachments[${index}]\` is an empty path.`, 'Pass an absolute image path or remove the entry.', { field: `attachments[${index}]` })
+			}
+			return trimmed
+		}
+		if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
+			return item as { sourcePath?: string; base64?: string; fileName?: string }
+		}
+		throw agentError(
+			'INVALID_VALUE',
+			`\`attachments[${index}]\` must be a path string or an object with \`sourcePath\` / \`base64\` + \`fileName\`, received ${describeValue(item)}.`,
+			'Pass e.g. "/Users/me/shot.png" or { "sourcePath": "/Users/me/shot.png" }.',
+			{ field: `attachments[${index}]`, received: item },
+		)
+	})
 }
 
 function readNotes(record: Record<string, unknown>): string | null {

@@ -1,9 +1,9 @@
+import { persistAttachment } from './attachments'
 import { runAgentCall } from './errors'
 import { executePositionPlan } from './execute'
 import { parseCreatePositionInput } from './input'
 import { buildOpenPositionCommands, OPEN_POSITION_URI_ACTION, openPositionView } from './open'
 import { planPosition } from './plan'
-import { parseSaveAttachmentInput, persistAttachment } from './save-attachment'
 import { assertAgentSession } from './session-guard'
 import { describeCurrentVault } from './vault-guard'
 
@@ -58,8 +58,7 @@ export function createAgentApi(plugin: { app: App; manifest: { id: string } }) {
 		/** Store an agent-supplied image in `LucrJournal/attachments/YYYY-MM/` and return its wikilink. */
 		saveAttachment: (rawInput: unknown) => runAgentCall(async () => {
 			assertAgentSession(app)
-			const input = parseSaveAttachmentInput(rawInput)
-			return { data: await persistAttachment(app, input) }
+			return { data: await persistAttachment(app, rawInput) }
 		}),
 		/** Handler for `obsidian://lucrjournal-open-position?vault=<id>&file=<vault-relative path>`. */
 		handleOpenPositionUri: async (params: Record<string, string>) => {

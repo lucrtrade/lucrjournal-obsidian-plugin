@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.1.17]
+
+- Unify attachments: `createPosition({ attachments })` and `api.saveAttachment` now share one pipeline, so a position also accepts `{ base64, fileName }` entries and both use the same dated path, timestamped name and `-2` collision rule
+- Skill: document that positions and notes use the same attachment pipeline
+
 ## [0.1.16]
 
 - Add `api.saveAttachment({ sourcePath | base64 + fileName })`: stores an image in `LucrJournal/attachments/YYYY-MM/` with the same timestamped naming and `-2` collision rule as the editor, and returns the `token` / `embed` wikilink for any note

@@ -29,7 +29,7 @@ Read the conversation and any screenshot or pasted text. Fill only fields with e
 | `playbook` `template` | Names of existing ones, only when the user names them. |
 | `links` | `{ "key_levels": [], "confluence": [], "market_analysis": [], "news": [] }` — names mentioned as reasons; missing ones are created. |
 | `notes` | The user's rationale or observations as Markdown body text; it lands under the position's own `# Notes` heading, so start with the content and use `##` or deeper for sub-headings. |
-| `attachments` | Absolute paths of screenshot image files the user referenced on disk (`/Users/...` or `C:\...`). |
+| `attachments` | Images for the position: absolute paths (`"/Users/..."`) or `{ "base64": "...", "fileName": "shot.png" }` objects. Same pipeline as `saveAttachment`. |
 | `dryRun` | `true` when the user says dry run / 预览 / 试运行 / 先看看 / 别真的创建. |
 
 Also extract the **vault**: when the user names an Obsidian vault ("在 lucrjournal 库里", "in my Trading vault"), the command in step 2 gets `vault="<that name>"` right after `obsidian`. Otherwise the CLI uses the active vault.
@@ -104,9 +104,11 @@ Done when it prints `ok: true` with `viewType: "lucrjournal-position-view"`.
 
 One line: the position path plus what was inferred or created, from `data.resolved` (account and why, final symbol and whether it was created, side and why, linked or created notes). Example: `已记录 POS-00012：Binance / SOLUSDT.P（新建，按账户惯例补全为永续）LONG，关联 Key Level "Range high"。`
 
-## 6. Save an image before writing a note (`saveAttachment`)
+## 6. Images: one attachment pipeline (`saveAttachment` / `createPosition.attachments`)
 
-When the user hands you an image (screenshot, chart export) and it must appear in a note, **never invent a path under `LucrJournal/attachments/`**. Call `api.saveAttachment` and paste the returned wikilink; the plugin owns the `attachments/YYYY-MM/` layout, the timestamped name and the collision suffix.
+Positions and plain notes share one attachment pipeline. For a position, pass the image in `createPosition({ attachments: [...] })` — a path string or a `{ base64, fileName }` object — and the plugin writes it, names it, links it in the frontmatter and dedupes the name. For any other note, call `api.saveAttachment` first and paste the returned wikilink.
+
+Either way, **never invent a path under `LucrJournal/attachments/`**: the plugin owns the `attachments/YYYY-MM/` layout, the timestamped name and the `-2` collision suffix.
 
 **bash / zsh / Git Bash** (a local file the user pointed at):
 

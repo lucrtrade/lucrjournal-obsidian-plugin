@@ -6,8 +6,8 @@ import { applyPositionBodyAdditions, POSITION_NOTES_SECTION } from '../domains/p
 import { parseWikilinkHeading } from '../utils'
 import { extractSection, extractSections } from '../utils/markdown-sections'
 
+import { writeAttachment } from './attachments'
 import { AgentApiError, agentError } from './errors'
-import { loadDesktopModule, type NodeFs } from './node-runtime'
 import { LINK_KIND_CONFIG } from './resolve'
 import { waitForValue } from './wait'
 
@@ -89,7 +89,7 @@ export async function executePositionPlan(app: App, plan: PositionPlan): Promise
 		}
 
 		for (const attachment of execution.attachments) {
-			await app.vault.createBinary(attachment.path, readAttachmentBytes(attachment.source))
+			await writeAttachment(app, attachment)
 			record([attachment.path])
 		}
 
@@ -141,15 +141,6 @@ async function ensureParentFolder(app: App, filePath: string, scope: ExecutionSc
 			scope.createdFolders.push(folderPath)
 		}
 	}
-}
-
-function readAttachmentBytes(source: string): ArrayBuffer {
-	const fs = loadDesktopModule<NodeFs>('fs')
-	if (fs === null) {
-		throw agentError('ATTACHMENT_UNSUPPORTED', 'Attachments can only be imported on Obsidian desktop.', 'Drop `attachments` and retry.', { field: 'attachments' })
-	}
-	const bytes = fs.readFileSync(source) as Uint8Array
-	return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer
 }
 
 function expectPath(what: string, actual: string, expected: string) {
