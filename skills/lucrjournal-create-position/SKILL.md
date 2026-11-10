@@ -1,13 +1,13 @@
 ---
 name: lucrjournal-create-position
-description: Record a trading position in the user's LucrJournal Obsidian vault and open it. Use when the user asks to log, record or open a trade/position (e.g. "帮我记这个仓位", "新开一个 SOLUSDT 仓位", a pasted chart or broker screenshot, a short description of an entry), including a dry run / preview of what would be created.
+description: Record a trading position in the user's LucrJournal Obsidian vault, open it, or store a screenshot/chart image into the vault's dated attachments folder. Use when the user asks to log, record or open a trade/position (e.g. "帮我记这个仓位", "新开一个 SOLUSDT 仓位", a pasted chart or broker screenshot, a short description of an entry), including a dry run / preview of what would be created, and when a note needs an image saved next to it.
 ---
 
 # LucrJournal: create a position
 
 The LucrJournal plugin does all resolution inside Obsidian: it aligns the symbol to the account's existing format (`sol` → `SOLUSDT` on a spot account, `SOLUSDT.P` on a perpetual account), creates missing accounts, symbols and analysis notes, infers account and side, validates everything, and rolls back on failure. Your job is to **extract** what the user gave and pass it through **raw**.
 
-The happy path is two shell calls and zero questions: create, then open. Every command works in bash/zsh (macOS, Linux, Git Bash on Windows) and has a PowerShell form for Windows.
+The happy path is two shell calls and zero questions: create, then open. Every command works in bash/zsh (macOS, Linux, Git Bash on Windows) and has a PowerShell form for Windows. When a note also needs an image, add one `saveAttachment` call (section 6) and paste the wikilink it returns.
 
 ## 1. Extract
 
@@ -104,7 +104,31 @@ Done when it prints `ok: true` with `viewType: "lucrjournal-position-view"`.
 
 One line: the position path plus what was inferred or created, from `data.resolved` (account and why, final symbol and whether it was created, side and why, linked or created notes). Example: `已记录 POS-00012：Binance / SOLUSDT.P（新建，按账户惯例补全为永续）LONG，关联 Key Level "Range high"。`
 
-## 6. Troubleshooting (常见问题)
+## 6. Save an image before writing a note (`saveAttachment`)
+
+When the user hands you an image (screenshot, chart export) and it must appear in a note, **never invent a path under `LucrJournal/attachments/`**. Call `api.saveAttachment` and paste the returned wikilink; the plugin owns the `attachments/YYYY-MM/` layout, the timestamped name and the collision suffix.
+
+**bash / zsh / Git Bash** (a local file the user pointed at):
+
+```bash
+obsidian vault=lucrjournal eval code="$(cat <<'EOF'
+app.plugins.plugins.lucrjournal.api.saveAttachment({ "sourcePath": "/Users/me/Desktop/shot.png" })
+EOF
+)"
+```
+
+**PowerShell** (only the bytes are available — e.g. a chat attachment):
+
+```powershell
+$b64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\Users\me\shot.png"))
+obsidian vault=lucrjournal eval "code=app.plugins.plugins.lucrjournal.api.saveAttachment({ base64: '$b64', fileName: 'shot.png' })"
+```
+
+Result: `{ ok: true, data: { path, token, embed, bytes } }` — `path` is `LucrJournal/attachments/<YYYY-MM>/<timestamp>_<name>.<ext>`, `token` is `[[<file>]]`, `embed` is `![[<file>]]`. Put `data.embed` into the note body as-is (`obsidian append path="<note>" content="..."` or `obsidian create ... content="..."`), or `data.token` into a `position`'s `attachments` property.
+
+Inputs: exactly one of `sourcePath` (absolute path, desktop app only) or `base64` (needs `fileName`). Images only (`png`, `jpg`, `jpeg`, `webp`, `gif`), up to 20 MB. Same-name collisions get `-2`, `-3`. Saving requires the journal to be unlocked, like every other call.
+
+## 7. Troubleshooting (常见问题)
 
 Run each `obsidian` call with a 60 s timeout. Stop after one failed retry and tell the user what you saw.
 
@@ -125,7 +149,7 @@ Run each `obsidian` call with a 60 s timeout. Stop after one failed retry and te
 | Times are expressed in an offset you did not expect (e.g. `+05:30`) | LucrJournal formats `opened_at` / `created` in the time zone set in LucrJournal settings, not your machine's. | This is expected. Pass explicit ISO 8601 with the source offset when the user's wording depends on their own clock. |
 | Times look shifted by a few hours | The source shows another time zone (e.g. MetaTrader server time). | Pass `opened_at` / `closed_at` as ISO 8601 with the source offset. |
 
-## 7. References (参考文档)
+## 8. References (参考文档)
 
 - Obsidian CLI — commands, `vault=` targeting, default vault rule: https://obsidian.md/help/cli
 - Obsidian URI — `vault` / `file` parameters, and why `path` (absolute filesystem path) must not be used: https://obsidian.md/help/uri

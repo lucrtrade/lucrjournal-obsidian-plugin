@@ -8,6 +8,7 @@ import { executePositionPlan } from './execute'
 import { parseCreatePositionInput } from './input'
 import { buildOpenPositionCommands } from './open'
 import { planPosition } from './plan'
+import { persistAttachment, parseSaveAttachmentInput } from './save-attachment'
 
 import { createAgentApi } from './index'
 
@@ -228,6 +229,8 @@ function createFakeVault(initialFiles: Record<string, string>) {
 }
 
 const ROOT = 'LucrJournal'
+/** 1x1 transparent PNG, enough to exercise the real attachment pipeline. */
+const PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
 
 function fm(fields: Record<string, unknown>, body = '') {
 	return `---\n${Object.entries(fields).map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join('\n')}\n---\n${body}`
@@ -702,5 +705,94 @@ describe('agent api createPosition', () => {
 		expect(result.ok).toBe(false)
 		expect(vault.leaves).toHaveLength(1)
 		expect(vault.leaves[0]?.detached).toBe(true)
+	})
+
+	it('saves a base64 image into the dated attachment folder and returns a pasteable token', async () => {
+		const vault = baseVault()
+		const api = createAgentApi({ app: vault.app, manifest: { id: 'lucrjournal' } })
+
+		const result = await api.saveAttachment({ base64: PNG_BASE64, fileName: 'chart.png' })
+
+		expect(result.ok).toBe(true)
+		if (!result.ok) {
+			return
+		}
+		expect(result.data.path).toMatch(new RegExp(`^${ROOT}/attachments/\\d{4}-\\d{2}/\\d{4}-\\d{2}-\\d{2}_[\\d-]+_chart\\.png$`))
+		expect(result.data.embed).toBe(`!${result.data.token}`)
+		expect(result.data.bytes).toBeGreaterThan(0)
+		expect(vault.paths()).toContain(result.data.path)
+	})
+
+	it('adds a suffix instead of overwriting an attachment saved in the same millisecond', async () => {
+		const vault = baseVault()
+		const now = new Date('2026-11-10T12:00:00+08:00')
+		const input = parseSaveAttachmentInput({ base64: PNG_BASE64, fileName: 'chart.png' })
+
+		const first = await persistAttachment(vault.app, input, now)
+		const second = await persistAttachment(vault.app, input, now)
+
+		expect(second.path).toBe(first.path.replace('_chart.png', '_chart-2.png'))
+		expect(vault.paths()).toContain(second.path)
+	})
+
+	it('reads a local image path when the desktop fs is available', async () => {
+		const vault = baseVault()
+		const api = createAgentApi({ app: vault.app, manifest: { id: 'lucrjournal' } })
+		const bytes = Uint8Array.from(atob(PNG_BASE64), (character) => character.charCodeAt(0))
+		vi.stubGlobal('window', {
+			setTimeout: (callback: () => void) => {
+				queueMicrotask(callback)
+				return 0
+			},
+			require: (id: string) => (id === 'fs'
+				? {
+					existsSync: () => true,
+					statSync: () => ({ isFile: () => true, size: bytes.byteLength }),
+					readFileSync: () => bytes,
+				}
+				: undefined),
+		})
+
+		const result = await api.saveAttachment({ sourcePath: '/tmp/lucrjournal-agent-api-probe.png' })
+
+		expect(result.ok).toBe(true)
+		if (result.ok) {
+			expect(result.data.path).toMatch(new RegExp(`^${ROOT}/attachments/\\d{4}-\\d{2}/\\d{4}-\\d{2}-\\d{2}_[\\d-]+_lucrjournal-agent-api-probe\\.png$`))
+		}
+	})
+
+	it('rejects a non-image, a missing payload and unknown fields', async () => {
+		const vault = baseVault()
+		const api = createAgentApi({ app: vault.app, manifest: { id: 'lucrjournal' } })
+
+		await expect(api.saveAttachment({ base64: 'aGk=', fileName: 'notes.txt' })).resolves.toMatchObject({
+			ok: false,
+			error: { code: 'ATTACHMENT_UNSUPPORTED' },
+		})
+		await expect(api.saveAttachment({ fileName: 'chart.png' })).resolves.toMatchObject({
+			ok: false,
+			error: { code: 'INVALID_VALUE' },
+		})
+		await expect(api.saveAttachment({ base64: PNG_BASE64, fileName: 'chart.png', path: 'x' })).resolves.toMatchObject({
+			ok: false,
+			error: { code: 'UNKNOWN_FIELD' },
+		})
+		await expect(api.saveAttachment({ base64: PNG_BASE64 })).resolves.toMatchObject({
+			ok: false,
+			error: { code: 'INVALID_VALUE', field: 'fileName' },
+		})
+	})
+
+	it('refuses to save an attachment while the journal is locked', async () => {
+		const vault = baseVault()
+		const api = createAgentApi({ app: vault.app, manifest: { id: 'lucrjournal' } })
+		const before = vault.paths()
+		vault.signOut()
+
+		await expect(api.saveAttachment({ base64: PNG_BASE64, fileName: 'chart.png' })).resolves.toMatchObject({
+			ok: false,
+			error: { code: 'JOURNAL_LOCKED' },
+		})
+		expect(vault.paths()).toEqual(before)
 	})
 })

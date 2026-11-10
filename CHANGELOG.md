@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.1.16]
+
+- Add `api.saveAttachment({ sourcePath | base64 + fileName })`: stores an image in `LucrJournal/attachments/YYYY-MM/` with the same timestamped naming and `-2` collision rule as the editor, and returns the `token` / `embed` wikilink for any note
+- Skill: document `saveAttachment` so an agent never invents an attachment path and never drops images in the attachments root
+
 ## [0.1.15]
 
 - Keep the dry-run preview's position frontmatter keys identical to the written note (`profit:`, `risk:` are no longer dropped)
