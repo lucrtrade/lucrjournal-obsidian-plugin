@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- Agent API v2: `describe()` plus read operations (`listPositions`, `getPosition`, `listEntries`, `checkHealth`, `listAgentActivity`)
+- Agent API v2: edit existing positions (`updatePosition`, `addAttachments`, `removeAttachment`, `linkContext`, `unlinkContext`, `setPlaybook`, `removePlaybook`)
+- Agent API v2: manage context notes, playbooks, templates and symbols (`createEntry`, `updateEntry`, `createPlaybook`, `updatePlaybook`, `createTemplate`, `updateSymbol`), open any entry (`open`)
+- Agent API v2: `renameEntry` and `deleteEntry` run as preview then confirm; every write is rolled back on failure, logged for the session and revertible with `undo`
+
 ## [0.1.17]
 
 - Unify attachments: `createPosition({ attachments })` and `api.saveAttachment` now share one pipeline, so a position also accepts `{ base64, fileName }` entries and both use the same dated path, timestamped name and `-2` collision rule

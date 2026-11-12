@@ -308,7 +308,7 @@ function previewPositionFrontmatter(app: App, record: Record<string, unknown>, p
 	}
 }
 
-function resolveQuantityPatch(input: CreatePositionInput, symbolName: string, symbolType: string | null): Record<string, unknown> {
+export function resolveQuantityPatch(input: Pick<CreatePositionInput, 'lots' | 'contract' | 'notional_value' | 'amount'>, symbolName: string, symbolType: string | null): Record<string, unknown> {
 	const model = resolvePositionSymbolModel(symbolType as Parameters<typeof resolvePositionSymbolModel>[0])
 	const config = model.quantityFieldConfig
 	const typeLabel = symbolType ?? 'unknown (treated as crypto)'

@@ -31,6 +31,7 @@ function createFakeVault(initialFiles: Record<string, string>) {
 			name,
 			basename: dot === -1 ? name : name.slice(0, dot),
 			extension: dot === -1 ? '' : name.slice(dot + 1),
+			parent: { path: path.split('/').slice(0, -1).join('/') },
 		})
 	}
 	const ensureFolders = (path: string) => {
@@ -137,7 +138,12 @@ function createFakeVault(initialFiles: Record<string, string>) {
 			getName: () => 'test-vault',
 			getMarkdownFiles: () => files().filter((file) => file.extension === 'md'),
 			getAbstractFileByPath: lookup,
+			getFiles: () => files(),
 			read: async (file: TFile) => readContent(file),
+			cachedRead: async (file: TFile) => readContent(file),
+			modify: async (file: TFile, content: string) => {
+				writeFile(file.path, content)
+			},
 			create: async (path: string, content: string) => {
 				if (path === failingCreatePath) {
 					throw new Error(`disk full: ${path}`)
@@ -168,7 +174,19 @@ function createFakeVault(initialFiles: Record<string, string>) {
 				const entry = entries.get(file.path)
 				return entry?.kind === 'file' ? { frontmatter: parseFrontmatter(entry.content) } : null
 			},
-			getFirstLinkpathDest: (linkpath: string) => files().find((file) => file.basename === linkpath) ?? null,
+			getFirstLinkpathDest: (linkpath: string) => files().find((file) => file.basename === linkpath || file.name === linkpath) ?? null,
+			get resolvedLinks() {
+				const links: Record<string, Record<string, number>> = {}
+				for (const source of files().filter((file) => file.extension === 'md')) {
+					for (const match of readContent(source).matchAll(/\[\[([^\]|]+)/g)) {
+						const target = files().find((file) => file.basename === match[1] || file.name === match[1])
+						if (target !== undefined) {
+							links[source.path] = { ...links[source.path], [target.path]: 1 }
+						}
+					}
+				}
+				return links
+			},
 		},
 		fileManager: {
 			processFrontMatter: async (file: TFile, fn: (frontmatter: Record<string, unknown>) => void) => {
@@ -180,6 +198,20 @@ function createFakeVault(initialFiles: Record<string, string>) {
 			trashFile: async (file: { path: string }) => {
 				trashed.push(file.path)
 				entries.delete(file.path)
+			},
+			// Like Obsidian: move the note and rewrite every wikilink that pointed at it.
+			renameFile: async (file: TFile, nextPath: string) => {
+				const previousBasename = file.basename
+				const content = readContent(file)
+				entries.delete(file.path)
+				const nextName = nextPath.split('/').pop() ?? nextPath
+				Object.assign(file, { path: nextPath, name: nextName, basename: nextName.replace(/\.md$/, '') })
+				entries.set(nextPath, { kind: 'file', file, content })
+				for (const other of files()) {
+					if (other.extension === 'md') {
+						writeFile(other.path, readContent(other).split(`[[${previousBasename}]]`).join(`[[${file.basename}]]`))
+					}
+				}
 			},
 		},
 		workspace: {
@@ -813,5 +845,282 @@ describe('agent api createPosition', () => {
 			error: { code: 'JOURNAL_LOCKED' },
 		})
 		expect(vault.paths()).toEqual(before)
+	})
+})
+
+describe('agent api operations beyond createPosition', () => {
+	beforeEach(() => {
+		vi.stubGlobal('window', {
+			setTimeout: (callback: () => void) => {
+				queueMicrotask(callback)
+				return 0
+			},
+		})
+		setCurrentTimeZoneSetting('Asia/Shanghai')
+		setTradingViewRequesterForTests(async () => ({ status: 200, json: { symbols: [] } }))
+	})
+	afterEach(() => {
+		vi.unstubAllGlobals()
+		setTradingViewRequesterForTests(null)
+	})
+
+	const POSITION = `${ROOT}/positions/POS-00001.md`
+	async function seeded() {
+		const vault = baseVault()
+		const api = createAgentApi({ app: vault.app, manifest: { id: 'lucrjournal' } })
+		const created = await api.createPosition({ symbol: 'sol', side: 'LONG', entry_price: 142, stop_loss: 138, amount: 10, opened_at: '2026-11-09 10:00', links: { key_levels: ['Range high'] }, notes: 'First note.' })
+		expect(created.ok).toBe(true)
+		return { vault, api }
+	}
+	/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument -- results are JSON payloads read loosely on purpose */
+	function data<T extends { ok: boolean }>(result: T): Record<string, any> {
+		expect(result).toMatchObject({ ok: true })
+		return (result as unknown as { data: Record<string, any> }).data
+	}
+	function fileAt(app: App, path: string): TFile {
+		const file = app.vault.getAbstractFileByPath(path)
+		if (!(file instanceof TFile)) {
+			throw new Error(`missing test file ${path}`)
+		}
+		return file
+	}
+
+	it('describes exactly the operations the api exposes', async () => {
+		const api = createAgentApi({ app: baseVault().app, manifest: { id: 'lucrjournal' } })
+		const described = data(await api.describe())
+		const names = (described.operations as Array<{ name: string }>).map((operation) => operation.name).sort()
+		const exposed = Object.keys(api).filter((key) => key !== 'version' && key !== 'handleOpenPositionUri').sort()
+		expect(names).toEqual(exposed)
+		expect(described.version).toBe(api.version)
+	})
+
+	it('refuses every guarded operation while the journal is locked', async () => {
+		const { vault, api } = await seeded()
+		vault.signOut()
+		for (const call of [api.listPositions({}), api.getPosition({ position: 'POS-00001' }), api.updatePosition({ position: 'POS-00001', exit_price: 150 }), api.checkHealth()]) {
+			expect(await call).toMatchObject({ ok: false, error: { code: 'JOURNAL_LOCKED' } })
+		}
+		expect(vault.frontmatter(POSITION).status).toBe('open')
+	})
+
+	it('lists and reads positions', async () => {
+		const { api } = await seeded()
+		const listed = data(await api.listPositions({ symbol: 'SOL', status: 'open', from: '2026-11-01', to: '2026-11-30' }))
+		expect(listed.positions).toMatchObject([{ id: 'POS-00001', symbol: 'SOLUSDT.P', account: 'Binance', side: 'LONG', status: 'open', entry_price: 142 }])
+		expect(data(await api.listPositions({ status: 'closed' })).total).toBe(0)
+		expect(data(await api.listPositions({ from: '2026-12-01' })).total).toBe(0)
+
+		const position = data(await api.getPosition({ position: '1' }))
+		expect(position).toMatchObject({ path: POSITION, links: { key_level: ['Range high'], news: [] }, notes: 'First note.' })
+		expect(position.rev).toMatch(/^[0-9a-f]{8}$/)
+		expect(await api.getPosition({ position: 'POS-00099' })).toMatchObject({ ok: false, error: { code: 'POSITION_NOT_FOUND' } })
+		expect(data(await api.listEntries({ kind: 'key_level' })).entries).toMatchObject([{ name: 'Range high', kind: 'key_level' }])
+		expect(await api.listEntries({ kind: 'nope' })).toMatchObject({ ok: false, error: { code: 'INVALID_VALUE', field: 'kind' } })
+	})
+
+	it('closes a position, appends notes and keeps the earlier notes', async () => {
+		const { vault, api } = await seeded()
+		const preview = data(await api.updatePosition({ position: 'POS-00001', exit_price: 150, dryRun: true }))
+		expect(preview.changes).toMatchObject({ exit_price: { from: null, to: 150 }, status: { from: 'open', to: 'close' } })
+		expect(vault.frontmatter(POSITION).status).toBe('open')
+
+		const updated = data(await api.updatePosition({ position: 'POS-00001', exit_price: 150, closed_at: '2026-11-10 09:00', notes: 'Closed at the range high.' }))
+		expect(updated.changes.profit.to).toBeGreaterThan(0)
+		expect(vault.frontmatter(POSITION)).toMatchObject({ status: 'close', exit_price: 150, closed_at: '2026-11-10T09:00:00+08:00' })
+		expect(vault.content(POSITION)).toContain('First note.\n\nClosed at the range high.')
+		expect(data(await api.listPositions({ status: 'closed' })).total).toBe(1)
+
+		data(await api.updatePosition({ position: 'POS-00001', status: 'open' }))
+		expect(vault.frontmatter(POSITION)).toMatchObject({ status: 'open', exit_price: null, closed_at: null })
+	})
+
+	it('rejects invalid position changes without writing', async () => {
+		const { vault, api } = await seeded()
+		const before = vault.content(POSITION)
+		expect(await api.updatePosition({ position: 'POS-00001', stop_loss: 160 })).toMatchObject({ ok: false, error: { code: 'INVALID_VALUE' } })
+		expect(await api.updatePosition({ position: 'POS-00001', lots: 1 })).toMatchObject({ ok: false, error: { code: 'QUANTITY_CONFLICT' } })
+		expect(await api.updatePosition({ position: 'POS-00001', profit: 5 })).toMatchObject({ ok: false, error: { code: 'UNKNOWN_FIELD', field: 'profit' } })
+		expect(await api.updatePosition({ position: 'POS-00001', notes: '# Title' })).toMatchObject({ ok: false, error: { code: 'INVALID_VALUE', field: 'notes' } })
+		expect(await api.updatePosition({ position: 'POS-00001' })).toMatchObject({ ok: false, error: { code: 'INVALID_VALUE' } })
+		expect(vault.content(POSITION)).toBe(before)
+	})
+
+	it('detects a note the user changed after the agent read it', async () => {
+		const { vault, api } = await seeded()
+		const { rev } = data(await api.getPosition({ position: 'POS-00001' }))
+		await vault.app.vault.process(fileAt(vault.app, POSITION), (content) => `${content}\nuser typed this\n`)
+		expect(await api.updatePosition({ position: 'POS-00001', target_price: 160, ifRev: rev })).toMatchObject({ ok: false, error: { code: 'CONFLICT' } })
+		expect(vault.frontmatter(POSITION).target_price ?? null).toBeNull()
+		const fresh = data(await api.getPosition({ position: 'POS-00001' }))
+		data(await api.updatePosition({ position: 'POS-00001', target_price: 160, ifRev: fresh.rev }))
+		expect(vault.content(POSITION)).toContain('user typed this')
+	})
+
+	it('restores the position when a write fails half way', async () => {
+		const { vault, api } = await seeded()
+		const before = vault.content(POSITION)
+		const fakeVault = vault.app.vault as unknown as { process: (file: TFile, fn: (content: string) => string) => Promise<string> }
+		const realProcess = fakeVault.process
+		let failed = false
+		fakeVault.process = async (file, fn) => {
+			if (!failed) {
+				failed = true
+				throw new Error('disk full')
+			}
+			return await realProcess(file, fn)
+		}
+		const result = await api.updatePosition({ position: 'POS-00001', target_price: 160, notes: 'will fail' })
+		expect(result).toMatchObject({ ok: false, error: { code: 'INTERNAL_ERROR' } })
+		expect(vault.content(POSITION)).toBe(before)
+	})
+
+	it('adds and removes attachments on an existing position', async () => {
+		const { vault, api } = await seeded()
+		const added = data(await api.addAttachments({ position: 'POS-00001', attachments: [{ base64: PNG_BASE64, fileName: 'chart.png' }] }))
+		expect(added.added).toHaveLength(1)
+		const attachmentPath = added.added[0].path as string
+		expect(vault.paths()).toContain(attachmentPath)
+		expect(vault.frontmatter(POSITION).attachments).toEqual([added.added[0].token])
+
+		expect(await api.removeAttachment({ position: 'POS-00001', attachment: 'missing.png' })).toMatchObject({ ok: false, error: { code: 'ATTACHMENT_NOT_FOUND' } })
+		data(await api.removeAttachment({ position: 'POS-00001', attachment: attachmentPath }))
+		expect(vault.frontmatter(POSITION).attachments ?? null).toBeNull()
+		expect(vault.paths()).toContain(attachmentPath)
+		expect(data(await api.checkHealth()).issues).toMatchObject([{ type: 'orphan_attachment', path: attachmentPath }])
+	})
+
+	it('creates a full news entry, links and unlinks context on an existing position', async () => {
+		const { vault, api } = await seeded()
+		const news = data(await api.createEntry({ kind: 'news', name: 'CPI beat', impact: 'high', tags: ['#Macro'], description: 'Hot print', body: 'Core CPI above consensus.' }))
+		expect(news.path).toBe(`${ROOT}/news/CPI beat.md`)
+		expect(vault.frontmatter(news.path)).toMatchObject({ lucr_type: 'news', impact: 'high', description: 'Hot print' })
+		expect(vault.content(news.path)).toContain('Core CPI above consensus.')
+		expect(await api.createEntry({ kind: 'news', name: 'cpi beat' })).toMatchObject({ ok: false, error: { code: 'NAME_CONFLICT' } })
+		expect(await api.createEntry({ kind: 'key_level', name: 'Weekly open', impact: 'high' })).toMatchObject({ ok: false, error: { code: 'INVALID_VALUE', field: 'impact' } })
+
+		expect(data(await api.linkContext({ position: 'POS-00001', kind: 'news', name: 'cpi beat' }))).toMatchObject({ linked: 'appended', created: false, name: 'CPI beat' })
+		expect(data(await api.linkContext({ position: 'POS-00001', kind: 'news', name: 'CPI beat' }))).toMatchObject({ linked: 'exists' })
+		expect(data(await api.linkContext({ position: 'POS-00001', kind: 'confluence', name: 'HTF trend' }))).toMatchObject({ linked: 'appended', created: true })
+		expect(vault.paths()).toContain(`${ROOT}/analyses/HTF trend.md`)
+		expect(data(await api.getPosition({ position: 'POS-00001' })).links).toEqual({ news: ['CPI beat'], key_level: ['Range high'], confluence: ['HTF trend'], market_analysis: [] })
+		expect(vault.content(POSITION)).toContain('First note.')
+
+		data(await api.unlinkContext({ position: 'POS-00001', kind: 'key_levels', name: 'range high' }))
+		expect(data(await api.getPosition({ position: 'POS-00001' })).links.key_level).toEqual([])
+		expect(vault.paths()).toContain(`${ROOT}/analyses/Range high.md`)
+		expect(await api.unlinkContext({ position: 'POS-00001', kind: 'key_level', name: 'Range high' })).toMatchObject({ ok: false, error: { code: 'ENTRY_NOT_FOUND' } })
+
+		data(await api.updateEntry({ entry: 'CPI beat', impact: 'low', tags: [], body: 'Follow-up.' }))
+		expect(vault.frontmatter(news.path)).toMatchObject({ impact: 'low', tags: null })
+		expect(vault.content(news.path)).toContain('Core CPI above consensus.\n\nFollow-up.')
+	})
+
+	it('creates, assigns, updates and removes a playbook', async () => {
+		const { vault, api } = await seeded()
+		const playbook = data(await api.createPlaybook({ name: 'Breakout', description: 'Range breaks', criteria: [{ name: 'Trend', confluences: ['HTF trend', 'Break of structure'] }] }))
+		expect(playbook.path).toBe(`${ROOT}/playbooks/Breakout.md`)
+		expect(vault.content(playbook.path)).toContain('# [[Trend]]\n\n## [[HTF trend]]\n\n## [[Break of structure]]')
+		expect(vault.paths()).toEqual(expect.arrayContaining([`${ROOT}/analyses/HTF trend.md`, `${ROOT}/criteria/Trend.md`]))
+		expect(await api.createPlaybook({ name: 'Breakout' })).toMatchObject({ ok: false, error: { code: 'NAME_CONFLICT' } })
+		expect(await api.createPlaybook({ name: 'Bad', criteria: [{ name: 'A', confluences: [] }] })).toMatchObject({ ok: false, error: { code: 'INVALID_VALUE', field: 'criteria' } })
+
+		data(await api.setPlaybook({ position: 'POS-00001', playbook: 'breakout' }))
+		expect(vault.frontmatter(POSITION).playbook).toBe('[[Breakout]]')
+		expect(data(await api.listPositions({ playbook: 'Breakout' })).total).toBe(1)
+
+		data(await api.updatePlaybook({ playbook: 'Breakout', criteria: [{ name: 'Trend', confluences: ['HTF trend'] }, { name: 'Entry', confluences: ['Retest'] }] }))
+		expect(vault.content(playbook.path)).toContain('# [[Entry]]\n\n## [[Retest]]')
+		expect(vault.content(playbook.path)).not.toContain('Break of structure')
+
+		data(await api.removePlaybook({ position: 'POS-00001' }))
+		expect(vault.frontmatter(POSITION).playbook ?? null).toBeNull()
+	})
+
+	it('creates templates and edits symbol parameters', async () => {
+		const { vault, api } = await seeded()
+		const template = data(await api.createTemplate({ name: 'Swing', body: '# Notes\n\n## Thesis\n' }))
+		expect(vault.frontmatter(template.path)).toMatchObject({ lucr_type: 'template', name: 'Swing' })
+		expect(vault.content(template.path)).toContain('## Thesis')
+		expect(data(await api.listEntries({ kind: 'template' })).total).toBe(1)
+
+		data(await api.updateSymbol({ symbol: 'SOLUSDT.P', fee_value: 0.05 }))
+		expect(vault.frontmatter(`${ROOT}/symbols/SBL-Binance-SOLUSDT.P.md`).fee_value).toBe(0.05)
+		expect(await api.updateSymbol({ symbol: 'NOPE', fee_value: 1 })).toMatchObject({ ok: false, error: { code: 'ENTRY_NOT_FOUND' } })
+	})
+
+	it('renames only after a confirmed preview and updates links', async () => {
+		const { vault, api } = await seeded()
+		const preview = await api.renameEntry({ entry: 'Range high', newName: 'Weekly range high' })
+		expect(preview).toMatchObject({ ok: true, needsConfirmation: true })
+		const { scope, confirmToken } = data(preview)
+		expect(scope.linksUpdatedIn).toEqual([POSITION])
+		expect(vault.paths()).toContain(`${ROOT}/analyses/Range high.md`)
+
+		expect(await api.renameEntry({ entry: 'Range high', newName: 'Weekly range high', confirmToken: 'deadbeef' })).toMatchObject({ ok: false, error: { code: 'CONFIRMATION_INVALID' } })
+		expect(await api.renameEntry({ entry: 'POS-00001', newName: 'X' })).toMatchObject({ ok: false, error: { code: 'INVALID_VALUE' } })
+
+		data(await api.renameEntry({ entry: 'Range high', newName: 'Weekly range high', confirmToken }))
+		expect(vault.paths()).toContain(`${ROOT}/analyses/Weekly range high.md`)
+		expect(data(await api.getPosition({ position: 'POS-00001' })).links.key_level).toEqual(['Weekly range high'])
+	})
+
+	it('deletes only after a confirmed preview, with the same cascade as the UI', async () => {
+		const { vault, api } = await seeded()
+		const preview = data(await api.deleteEntry({ entry: 'Range high' }))
+		expect(preview.scope).toMatchObject({ trash: { key_level: `${ROOT}/analyses/Range high.md` }, unlinkedFromPositions: [POSITION] })
+		expect(vault.trashed).toEqual([])
+		data(await api.deleteEntry({ entry: 'Range high', confirmToken: preview.confirmToken }))
+		expect(vault.trashed).toEqual([`${ROOT}/analyses/Range high.md`])
+		expect(vault.content(POSITION)).not.toContain('[[Range high]]')
+
+		const account = data(await api.deleteEntry({ entry: 'Binance', kind: 'account' }))
+		expect(account.scope.trash).toMatchObject({ account: `${ROOT}/accounts/ACC-Binance.md`, symbols: [`${ROOT}/symbols/SBL-Binance-SOLUSDT.P.md`], positions: [POSITION] })
+		expect(vault.paths()).toContain(POSITION)
+		data(await api.deleteEntry({ entry: 'Binance', kind: 'account', confirmToken: account.confirmToken }))
+		expect(vault.paths()).not.toContain(POSITION)
+		expect(await api.deleteEntry({ entry: `${ROOT}/platforms/Binance.md` })).toMatchObject({ ok: false })
+	})
+
+	it('reports notes broken by hand edits', async () => {
+		const { vault, api } = await seeded()
+		expect(data(await api.checkHealth())).toMatchObject({ healthy: true, issues: [] })
+		const file = fileAt(vault.app, POSITION)
+		await vault.app.vault.process(file, (content) => content.replace('## [[Range high]]', '## [[Range high]]\n\n## [[Gone]]'))
+		expect(data(await api.checkHealth()).issues).toMatchObject([{ type: 'broken_link', path: POSITION }])
+		await vault.app.vault.process(file, (content) => content.replace('lucr_type: "position"', 'lucr_type: "positon"'))
+		const report = data(await api.checkHealth())
+		expect(report.healthy).toBe(false)
+		expect(report.issues).toEqual(expect.arrayContaining([expect.objectContaining({ type: 'invalid_note', path: POSITION })]))
+	})
+
+	it('logs agent writes and undoes them unless the user edited the note since', async () => {
+		const { vault, api } = await seeded()
+		const before = vault.content(POSITION)
+		const updated = await api.updatePosition({ position: 'POS-00001', target_price: 160 })
+		const linked = await api.linkContext({ position: 'POS-00001', kind: 'news', name: 'FOMC' })
+		expect(updated).toMatchObject({ ok: true, activityId: 'act-0001' })
+		expect(data(await api.listAgentActivity()).activity).toMatchObject([
+			{ id: 'act-0002', operation: 'linkContext', created: [`${ROOT}/news/FOMC.md`], modified: [POSITION] },
+			{ id: 'act-0001', operation: 'updatePosition', modified: [POSITION] },
+		])
+		expect(linked).toMatchObject({ ok: true })
+
+		data(await api.undo())
+		expect(vault.paths()).not.toContain(`${ROOT}/news/FOMC.md`)
+		expect(vault.frontmatter(POSITION).target_price).toBe(160)
+		data(await api.undo({ id: 'act-0001' }))
+		expect(vault.content(POSITION)).toBe(before)
+		expect(await api.undo({ id: 'act-0001' })).toMatchObject({ ok: false, error: { code: 'UNDO_UNAVAILABLE' } })
+
+		data(await api.updatePosition({ position: 'POS-00001', target_price: 170 }))
+		await vault.app.vault.process(fileAt(vault.app, POSITION), (content) => `${content}\nuser edit\n`)
+		expect(await api.undo()).toMatchObject({ ok: false, error: { code: 'CONFLICT' } })
+		expect(vault.content(POSITION)).toContain('user edit')
+	})
+
+	it('opens any entry for the user', async () => {
+		const { api } = await seeded()
+		expect(data(await api.open({ entry: 'POS-00001' }))).toMatchObject({ kind: 'position', viewType: 'lucrjournal-position-view' })
+		expect(data(await api.open({ entry: 'Range high' }))).toMatchObject({ kind: 'key_level', viewType: 'markdown' })
 	})
 })
