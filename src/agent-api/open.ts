@@ -3,9 +3,11 @@ import { Platform, TFile, normalizePath, type App, type WorkspaceLeaf } from 'ob
 import { LUCR_POSITION_VIEW_TYPE } from '../constant'
 import { PositionDomain } from '../domains'
 import { getToken, requiresJournalUpgrade } from '../session/storage'
-import { createPositionFileViewState } from '../views/domain-file-routing'
+import { createMarkdownFileViewState, createPlaybookFileViewState, createPositionFileViewState } from '../views/domain-file-routing'
 
+import { readArgs, readRequiredText } from './args'
 import { agentError, formatCandidates } from './errors'
+import { locateAny } from './locate'
 import { waitForValue } from './wait'
 
 const OPEN_TIMEOUT_MS = 5000
@@ -139,6 +141,27 @@ async function openPositionViewOnce(app: App, path: string): Promise<OpenPositio
 	}
 
 	return { data: { path, viewType: LUCR_POSITION_VIEW_TYPE, reusedTab: existingLeaf !== undefined } }
+}
+
+/** Show any LucrJournal entry to the user: positions and playbooks in their own views, everything else as a note. */
+export async function openEntryView(app: App, rawInput: unknown) {
+	const args = readArgs('open', rawInput, ['entry'])
+	const entry = locateAny(app, readRequiredText(args, 'entry', 'Pass `entry` as a vault-relative path or a unique note name.'), 'entry')
+	if (entry.kind === 'position') {
+		const opened = await openPositionView(app, { path: entry.file.path })
+		return { data: { kind: entry.kind, ...opened.data } }
+	}
+	const viewState = entry.kind === 'playbook' ? createPlaybookFileViewState(entry.file.path) : createMarkdownFileViewState(entry.file.path)
+	const leaf = app.workspace.getLeaf('tab')
+	try {
+		await leaf.setViewState(viewState)
+		app.workspace.setActiveLeaf(leaf, { focus: true })
+		await app.workspace.revealLeaf(leaf)
+	} catch (error: unknown) {
+		leaf.detach()
+		throw agentError('OPEN_FAILED', `Obsidian could not open ${entry.file.path}: ${error instanceof Error ? error.message : String(error)}.`, 'Make sure Obsidian is not showing a modal, then retry once.', { field: 'entry', received: entry.file.path })
+	}
+	return { data: { kind: entry.kind, path: entry.file.path, viewType: viewState.type, reusedTab: false } }
 }
 
 function readPath(rawInput: unknown): string {

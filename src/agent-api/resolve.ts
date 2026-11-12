@@ -563,7 +563,7 @@ export function resolvePlaybook(app: App, requested: string): { basename: string
 	throw agentError(
 		matches.length > 1 ? 'PLAYBOOK_AMBIGUOUS' : 'PLAYBOOK_NOT_FOUND',
 		`Playbook ${JSON.stringify(requested)} ${matches.length > 1 ? 'matches several playbooks' : 'does not exist'}. Existing playbooks: ${formatCandidates(names)}.`,
-		'Retry with an exact name from candidates if one clearly matches; otherwise drop `playbook` (it can be linked later in the UI). This API never creates playbooks.',
+		'Retry with an exact name from candidates if one clearly matches; otherwise drop `playbook`, or create it first with createPlaybook when the user asked for a new one.',
 		{ field: 'playbook', received: requested, candidates: names },
 	)
 }
@@ -582,7 +582,7 @@ export function resolveTemplate(app: App, requested: string): { name: string; pa
 	throw agentError(
 		matches.length > 1 ? 'TEMPLATE_AMBIGUOUS' : 'TEMPLATE_NOT_FOUND',
 		`Position template ${JSON.stringify(requested)} ${matches.length > 1 ? 'matches several templates' : 'does not exist'}. Existing position templates: ${formatCandidates(names)}.`,
-		'Retry with an exact name from candidates, or drop `template` to use the default body. This API never creates templates.',
+		'Retry with an exact name from candidates, or drop `template` to use the default body. Create one with createTemplate only when the user asked for a new template.',
 		{ field: 'template', received: requested, candidates: names },
 	)
 }
