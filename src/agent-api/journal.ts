@@ -3,8 +3,10 @@ import { TFile, type App } from 'obsidian'
 import { LUCR_TRADE_ROOT_DIR } from '../constant'
 
 import { AgentApiError, agentError } from './errors'
+import { waitForValue } from './wait'
 
 const MAX_ACTIVITY_RECORDS = 50
+const REINDEX_TIMEOUT_MS = 5000
 
 type FileSnapshot = { path: string; before: string; after: string }
 
@@ -20,7 +22,11 @@ export type AgentActivity = {
 	undone: boolean
 }
 
-type ActivityRecord = AgentActivity & { snapshots: FileSnapshot[] }
+type ActivityRecord = AgentActivity & {
+	snapshots: FileSnapshot[]
+	/** Text of each created note as the agent left it; binary files map to null. */
+	createdContents: Map<string, string | null>
+}
 
 export type WriteOptions = {
 	operation: string
@@ -32,6 +38,8 @@ export type WriteOptions = {
 	removed?: string[]
 	/** Set for renames: the file at its new path is not a file this call created, so a rollback must not trash it. */
 	skipCreatedTracking?: boolean
+	/** Paths to report as created when tracking is skipped (the new path of a rename). */
+	created?: string[]
 }
 
 /**
@@ -43,8 +51,51 @@ export type WriteOptions = {
 export class AgentJournal {
 	private readonly records: ActivityRecord[] = []
 	private sequence = 0
+	private queue: Promise<unknown> = Promise.resolve()
 
-	async run<T>(app: App, options: WriteOptions, write: () => Promise<T>): Promise<T & { activityId: string }> {
+	/**
+	 * Run writes one at a time. Two calls that plan against the same vault state
+	 * would pick the same next position id and roll back each other's files.
+	 */
+	async serial<T>(task: () => Promise<T>): Promise<T> {
+		const next = this.queue.then(task, task)
+		this.queue = next.catch(() => undefined)
+		return await next
+	}
+
+	/** Record a write that did its own rollback (createPosition) so it shows in the log and can be undone. */
+	async note(app: App, operation: string, summary: string, created: string[]): Promise<string> {
+		return (await this.push(app, { operation, summary, created, snapshots: [], removed: [], undoable: true })).id
+	}
+
+	private async push(app: App, input: { operation: string; summary: string; created: string[]; snapshots: FileSnapshot[]; removed: string[]; undoable: boolean }): Promise<ActivityRecord> {
+		const createdContents = new Map<string, string | null>()
+		for (const path of input.created) {
+			const file = app.vault.getAbstractFileByPath(path)
+			createdContents.set(path, file instanceof TFile && file.extension === 'md' ? await app.vault.read(file) : null)
+		}
+		this.sequence += 1
+		const record: ActivityRecord = {
+			id: `act-${String(this.sequence).padStart(4, '0')}`,
+			at: new Date().toISOString(),
+			operation: input.operation,
+			summary: input.summary,
+			created: input.created,
+			modified: input.snapshots.map((snapshot) => snapshot.path),
+			removed: input.removed,
+			undoable: input.undoable,
+			undone: false,
+			snapshots: input.snapshots,
+			createdContents,
+		}
+		this.records.push(record)
+		if (this.records.length > MAX_ACTIVITY_RECORDS) {
+			this.records.shift()
+		}
+		return record
+	}
+
+	async run<T>(app: App, options: WriteOptions, write: () => Promise<T>): Promise<T & { activityId?: string; unchanged?: boolean }> {
 		const pathsBefore = new Set(listJournalPaths(app))
 		const befores = new Map<string, string>()
 		for (const file of options.touch) {
@@ -73,23 +124,14 @@ export class AgentJournal {
 			}
 		}
 
-		this.sequence += 1
-		const record: ActivityRecord = {
-			id: `act-${String(this.sequence).padStart(4, '0')}`,
-			at: new Date().toISOString(),
-			operation: options.operation,
-			summary: options.summary,
-			created,
-			modified: snapshots.map((snapshot) => snapshot.path),
-			removed: options.removed ?? [],
-			undoable: options.undoable !== false,
-			undone: false,
-			snapshots,
+		await waitForReindex(app, [...befores.keys()])
+		const removed = options.removed ?? []
+		const reportedCreated = options.skipCreatedTracking === true ? options.created ?? [] : created
+		if (reportedCreated.length === 0 && snapshots.length === 0 && removed.length === 0) {
+			// Nothing on disk changed: keep the undo log for real changes.
+			return { ...result, unchanged: true }
 		}
-		this.records.push(record)
-		if (this.records.length > MAX_ACTIVITY_RECORDS) {
-			this.records.shift()
-		}
+		const record = await this.push(app, { operation: options.operation, summary: options.summary, created: reportedCreated, snapshots, removed, undoable: options.undoable !== false })
 		return { ...result, activityId: record.id }
 	}
 
@@ -97,7 +139,7 @@ export class AgentJournal {
 		return this.records
 			.slice(-limit)
 			.reverse()
-			.map(({ snapshots: _snapshots, ...activity }) => activity)
+			.map(({ snapshots: _snapshots, createdContents: _createdContents, ...activity }) => activity)
 	}
 
 	async undo(app: App, id: string | null): Promise<AgentActivity> {
@@ -124,19 +166,42 @@ export class AgentJournal {
 			)
 		}
 
-		const changedSince = []
+		const changedSince: string[] = []
 		for (const snapshot of record.snapshots) {
 			const file = app.vault.getAbstractFileByPath(snapshot.path)
 			if (!(file instanceof TFile) || !sameIgnoringModified(await app.vault.read(file), snapshot.after)) {
 				changedSince.push(snapshot.path)
 			}
 		}
+		const missing: string[] = []
+		for (const [path, content] of record.createdContents) {
+			const file = app.vault.getAbstractFileByPath(path)
+			if (!(file instanceof TFile)) {
+				missing.push(path)
+			} else if (content !== null && !sameIgnoringModified(await app.vault.read(file), content)) {
+				changedSince.push(path)
+			}
+		}
+		if (missing.length > 0) {
+			throw agentError(
+				'UNDO_UNAVAILABLE',
+				`Cannot undo ${record.id}: ${missing.join(', ')} no longer exists at that path (renamed, moved or deleted since).`,
+				'Nothing was changed. Use deleteEntry on the note under its current name if it should go.',
+				{ field: 'id', received: record.id, details: { missing } },
+			)
+		}
 		if (changedSince.length > 0) {
+			const later = this.records
+				.filter((candidate) => candidate !== record && !candidate.undone && this.records.indexOf(candidate) > this.records.indexOf(record))
+				.filter((candidate) => [...candidate.modified, ...candidate.created].some((path) => changedSince.includes(path)))
+				.map((candidate) => candidate.id)
 			throw agentError(
 				'CONFLICT',
-				`Cannot undo ${record.id}: these notes were edited after the agent wrote them: ${changedSince.join(', ')}.`,
-				'Tell the user which notes changed and let them decide; do not overwrite their edits.',
-				{ details: { changedSince } },
+				`Cannot undo ${record.id}: these notes changed after that operation: ${changedSince.join(', ')}.`,
+				later.length > 0
+					? `Later agent operations touched them: undo ${[...later].reverse().join(', ')} first (newest first). If it still conflicts, the user edited the notes; tell them and do not overwrite their edits.`
+					: 'The user edited them in Obsidian. Tell the user which notes changed and let them decide; do not overwrite their edits.',
+				{ details: { changedSince, laterOperations: later } },
 			)
 		}
 
@@ -153,7 +218,7 @@ export class AgentJournal {
 			}
 		}
 		record.undone = true
-		const { snapshots: _snapshots, ...activity } = record
+		const { snapshots: _snapshots, createdContents: _createdContents, ...activity } = record
 		return activity
 	}
 
@@ -210,4 +275,14 @@ function listJournalPaths(app: App): string[] {
 function sameIgnoringModified(left: string, right: string): boolean {
 	const strip = (content: string) => content.replace(/^modified:.*$/m, '')
 	return strip(left) === strip(right)
+}
+
+/** Obsidian drops a note from its metadata cache while it re-reads it; wait so the next call can find the note again. */
+async function waitForReindex(app: App, paths: string[]): Promise<void> {
+	for (const path of paths) {
+		await waitForValue(() => {
+			const file = app.vault.getAbstractFileByPath(path)
+			return !(file instanceof TFile) || app.metadataCache.getFileCache(file)?.frontmatter !== undefined ? true : null
+		}, REINDEX_TIMEOUT_MS)
+	}
 }

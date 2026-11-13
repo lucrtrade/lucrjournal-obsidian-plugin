@@ -242,7 +242,8 @@ function splitAttachmentName(fileName: string): { baseName: string; extension: s
 	const base = fileName.split(/[\\/]/).pop() ?? fileName
 	const dotIndex = base.lastIndexOf('.')
 	const extension = dotIndex === -1 ? '' : base.slice(dotIndex + 1).toLowerCase()
-	return { baseName: (dotIndex === -1 ? base : base.slice(0, dotIndex)).trim(), extension }
+	// `#` and `^` start a heading / block reference inside a wikilink, so a file named with them cannot be linked.
+	return { baseName: (dotIndex === -1 ? base : base.slice(0, dotIndex)).replace(/[#^]/g, '-').trim(), extension }
 }
 
 function baseNameOf(path: string): string {

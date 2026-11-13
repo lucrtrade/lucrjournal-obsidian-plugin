@@ -14,7 +14,7 @@ import {
 	SymbolDomain,
 	TemplateDomain,
 } from '../domains'
-import { getFileBasename } from '../utils'
+import { getFileBasename, sanitizeObsidianFileName } from '../utils'
 
 import { agentError, formatCandidates } from './errors'
 
@@ -114,6 +114,15 @@ export function locatePosition(app: App, reference: string, field = 'position'):
 	if (byName.length === 1) {
 		return byName[0]!
 	}
+	const onDisk = app.vault.getMarkdownFiles().find((file) => file.path === asPath || (file.path.startsWith(`${LUCR_TRADE_ROOT_DIR}/positions/`) && getFileBasename(file).toLowerCase() === wanted.toLowerCase()))
+	if (onDisk !== undefined) {
+		throw agentError(
+			'POSITION_NOT_FOUND',
+			`${onDisk.path} exists, but LucrJournal cannot read it as a position right now: either Obsidian is still indexing it after a change, or one of its properties was edited into an invalid value.`,
+			'Do not recreate it. Retry once after a second; if it still fails, call checkHealth and tell the user which property to correct in Obsidian.',
+			{ field, received: reference, details: { path: onDisk.path } },
+		)
+	}
 	throw agentError(
 		'POSITION_NOT_FOUND',
 		`No LucrJournal position matches ${JSON.stringify(reference)}.`,
@@ -139,8 +148,8 @@ export function locateEntry(app: App, kind: EntryKind, reference: string, field 
 	if (byPath !== undefined) {
 		return byPath
 	}
-	const key = trimmed.replace(/^\[\[|\]\]$/g, '').toLowerCase()
-	const matches = entries.filter((entry) => entryNames(entry).some((name) => name.toLowerCase() === key))
+	const keys = referenceKeys(trimmed)
+	const matches = entries.filter((entry) => entryNames(entry).some((name) => keys.includes(name.toLowerCase())))
 	if (matches.length === 1) {
 		return matches[0]!
 	}
@@ -169,8 +178,8 @@ export function locateAny(app: App, reference: string, field = 'path'): LocatedE
 	if (byPath !== undefined) {
 		return byPath
 	}
-	const key = (trimmed.replace(/\.md$/i, '').split('/').pop() ?? trimmed).toLowerCase()
-	const matches = all.filter((entry) => getFileBasename(entry.file).toLowerCase() === key)
+	const keys = [...referenceKeys(trimmed), (trimmed.replace(/\.md$/i, '').split('/').pop() ?? trimmed).toLowerCase()]
+	const matches = all.filter((entry) => keys.includes(getFileBasename(entry.file).toLowerCase()))
 	if (matches.length === 1) {
 		return matches[0]!
 	}
@@ -188,6 +197,17 @@ export function locateAny(app: App, reference: string, field = 'path'): LocatedE
 		`Pass the vault-relative path under ${LUCR_TRADE_ROOT_DIR}/ or the exact file name; call listEntries or listPositions to find it.`,
 		{ field, received: reference },
 	)
+}
+
+/** A name as the agent wrote it, and as LucrJournal stores it once file-name characters are replaced. */
+export function referenceKeys(reference: string): string[] {
+	const plain = cleanEntryName(reference).replace(/\.md$/i, '')
+	return [...new Set([plain.toLowerCase(), sanitizeObsidianFileName(plain).toLowerCase()])]
+}
+
+/** Drop the wikilink brackets an agent may copy along with a note name. */
+export function cleanEntryName(value: string): string {
+	return value.trim().replace(/^!?\[\[/, '').replace(/\]\]$/, '').trim()
 }
 
 function entryNames(entry: LocatedEntry): string[] {

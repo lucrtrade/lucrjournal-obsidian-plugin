@@ -38,6 +38,7 @@ export async function checkHealth(app: App, rawInput: unknown) {
 		issues.push(...(await inspectPosition(app, position, referencedAttachments)))
 	}
 	issues.push(...findOrphanSymbols(app), ...findOrphanAttachments(app, referencedAttachments))
+	issues.push(...findUnresolvedLinks(app, issues))
 
 	const counts: Record<string, number> = {}
 	for (const issue of issues) {
@@ -164,4 +165,18 @@ function findOrphanAttachments(app: App, referencedAttachments: Set<string>): He
 			message: 'No note references this image.',
 			fix: 'Ask the user whether it can be deleted; the agent API does not delete attachment files.',
 		}))
+}
+
+/** Links Obsidian itself could not resolve (inline text links, playbook headings) that the checks above did not already name. */
+function findUnresolvedLinks(app: App, known: readonly HealthIssue[]): HealthIssue[] {
+	return Object.entries(app.metadataCache.unresolvedLinks ?? {})
+		.filter(([sourcePath]) => sourcePath.startsWith(`${LUCR_TRADE_ROOT_DIR}/`))
+		.flatMap(([sourcePath, links]) => Object.keys(links)
+			.filter((linkpath) => !known.some((issue) => issue.path === sourcePath && issue.message.includes(linkpath)))
+			.map((linkpath) => ({
+				type: 'broken_link' as const,
+				path: sourcePath,
+				message: `Links to [[${linkpath}]], which does not exist.`,
+				fix: 'Tell the user; create the missing note, or let them remove the link.',
+			})))
 }

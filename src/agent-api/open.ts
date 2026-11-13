@@ -90,6 +90,17 @@ async function openPositionViewOnce(app: App, path: string): Promise<OpenPositio
 		)
 	}
 
+	// A note that is already indexed as another kind will never become a position; do not wait for it.
+	const indexedType: unknown = app.metadataCache.getFileCache(file)?.frontmatter?.lucr_type
+	if (typeof indexedType === 'string' && indexedType.trim().toLowerCase() !== 'position') {
+		throw agentError(
+			'POSITION_NOT_FOUND',
+			`${path} is a ${indexedType} note, not a position.`,
+			'Use `open({ entry })` for notes that are not positions, or pass a position path.',
+			{ field: 'path', received: path },
+		)
+	}
+
 	const isPosition = await waitForValue(() => PositionDomain.refine(app.metadataCache.getFileCache(file)?.frontmatter ?? null) === null ? null : true, OPEN_TIMEOUT_MS)
 	if (isPosition === null) {
 		throw agentError(
