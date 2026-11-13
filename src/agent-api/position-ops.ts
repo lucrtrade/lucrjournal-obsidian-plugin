@@ -242,10 +242,9 @@ export async function removeAttachment(app: App, journal: AgentJournal, rawInput
 	const args = readArgs('removeAttachment', rawInput, REMOVE_ATTACHMENT_FIELDS)
 	const { entry, dryRun } = await openTarget(app, args)
 	const wanted = readRequiredText(args, 'attachment', 'Pass `attachment` as a token, path or file name from getPosition `attachments`.')
-	const wantedName = attachmentFileName(wanted)
 	const current = resolvePositionAttachments(rawFrontmatter(app, entry))
-	const remaining = current.filter((token) => token !== wanted && attachmentFileName(token) !== wantedName)
-	if (remaining.length === current.length) {
+	const removed = pickAttachments(app, entry.file.path, current, wanted)
+	if (removed.length === 0) {
 		throw agentError(
 			'ATTACHMENT_NOT_FOUND',
 			`${entry.file.path} has no attachment matching ${JSON.stringify(wanted)}.`,
@@ -253,7 +252,7 @@ export async function removeAttachment(app: App, journal: AgentJournal, rawInput
 			{ field: 'attachment', received: wanted, candidates: current },
 		)
 	}
-	const removed = current.filter((token) => !remaining.includes(token))
+	const remaining = current.filter((token) => !removed.includes(token))
 	if (dryRun) {
 		return { dryRun: true, data: { path: entry.file.path, removed, attachments: remaining } }
 	}
@@ -270,10 +269,55 @@ export async function removeAttachment(app: App, journal: AgentJournal, rawInput
 	})
 }
 
-function attachmentFileName(value: string): string {
+/**
+ * The attachment tokens `wanted` names: the exact token, else the same file
+ * (a path is compared as a full path, so two images with one file name in
+ * different folders stay apart), else a bare file name that must be unique.
+ */
+function pickAttachments(app: App, sourcePath: string, current: string[], wanted: string): string[] {
+	const exact = current.filter((token) => token === wanted)
+	if (exact.length > 0) {
+		return exact
+	}
+	const wantedTarget = rawAttachmentTarget(wanted)
+	if (wantedTarget.includes('/')) {
+		const wantedPath = resolvedAttachmentTarget(app, sourcePath, wanted)
+		return current.filter((token) => resolvedAttachmentTarget(app, sourcePath, token) === wantedPath || rawAttachmentTarget(token) === wantedTarget)
+	}
+	const byName = current.filter((token) => fileNameOf(resolvedAttachmentTarget(app, sourcePath, token)) === wantedTarget)
+	const files = [...new Set(byName.map((token) => resolvedAttachmentTarget(app, sourcePath, token)))]
+	if (files.length > 1) {
+		throw agentError(
+			'ENTRY_AMBIGUOUS',
+			`${JSON.stringify(wanted)} matches ${files.length} different attachments of ${sourcePath}.`,
+			'Pass the full token or vault path from getPosition `attachments` instead of the file name.',
+			{ field: 'attachment', received: wanted, candidates: byName },
+		)
+	}
+	return byName
+}
+
+/** The link target or URL written in a token, path or file name, lower-cased, without resolving it. */
+function rawAttachmentTarget(value: string): string {
 	const parsed = parseAttachmentToken(value)
 	const target = parsed === null ? value : parsed.kind === 'vault' ? parsed.linkpath : parsed.url
-	return (target.split('/').pop() ?? target).toLowerCase()
+	return target.trim().replace(/^\.?\//, '').toLowerCase()
+}
+
+/** The vault path a token resolves to from the position note (or its raw target when it does not resolve), lower-cased. */
+function resolvedAttachmentTarget(app: App, sourcePath: string, value: string): string {
+	const parsed = parseAttachmentToken(value)
+	if (parsed?.kind === 'vault') {
+		const file = app.metadataCache.getFirstLinkpathDest(parsed.linkpath.trim().replace(/^\.?\//, ''), sourcePath)
+		if (file !== null) {
+			return file.path.toLowerCase()
+		}
+	}
+	return rawAttachmentTarget(value)
+}
+
+function fileNameOf(target: string): string {
+	return target.split('/').pop() ?? target
 }
 
 function isLinked(content: string, sectionTitle: string, basename: string): boolean {
@@ -333,8 +377,25 @@ export async function unlinkContext(app: App, journal: AgentJournal, rawInput: u
 	}
 
 	return await journal.run(app, { operation: 'unlinkContext', summary: `Unlinked ${kind} "${outcome.name}" from ${getFileBasename(entry.file)}`, touch: [entry.file] }, async () => {
-		await removeSectionEntryFromPosition({ app, linkpath: linked.linkpath, positionFile: entry.file, sectionStart: linked.sectionStart, sectionTitle: group.sectionTitle })
+		// A hand edit can link the same note twice; remove every heading so `unlinked: true` holds. Last first, so earlier offsets stay valid.
+		for (let pass = 0; pass < MAX_UNLINK_PASSES; pass += 1) {
+			const next = linkedHeadingsTo(app, entry.file.path, await app.vault.read(entry.file), group.sectionTitle, linked.file.path).pop()
+			if (next === undefined || !(await removeSectionEntryFromPosition({ app, linkpath: next.linkpath, positionFile: entry.file, sectionStart: next.start, sectionTitle: group.sectionTitle }))) {
+				break
+			}
+		}
 		return { dryRun: false, ...(await describeResult(app, entry.file, outcome)) }
+	})
+}
+
+const MAX_UNLINK_PASSES = 20
+
+/** `## [[...]]` headings in one top-level section of a position that resolve to `targetPath`, in source order. */
+function linkedHeadingsTo(app: App, positionPath: string, content: string, sectionTitle: string, targetPath: string): { linkpath: string; start: number }[] {
+	const body = extractSections(content, 1).find((section) => section.title === sectionTitle)?.body ?? ''
+	return extractSections(body, 2).flatMap((section) => {
+		const linkpath = parseWikilinkHeading(section.title)?.linkpath
+		return linkpath !== undefined && app.metadataCache.getFirstLinkpathDest(linkpath, positionPath)?.path === targetPath ? [{ linkpath, start: section.start }] : []
 	})
 }
 

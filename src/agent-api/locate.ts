@@ -205,9 +205,12 @@ export function referenceKeys(reference: string): string[] {
 	return [...new Set([plain.toLowerCase(), sanitizeObsidianFileName(plain).toLowerCase()])]
 }
 
-/** Drop the wikilink brackets an agent may copy along with a note name. */
+/** Drop the wikilink brackets (and a `|alias`) an agent may copy along with a note name. */
 export function cleanEntryName(value: string): string {
-	return value.trim().replace(/^!?\[\[/, '').replace(/\]\]$/, '').trim()
+	const trimmed = value.trim()
+	const unwrapped = trimmed.replace(/^!?\[\[/, '').replace(/\]\]$/, '')
+	// File names never contain `|` (it is replaced on save), so inside a wikilink it can only start an alias.
+	return (unwrapped === trimmed ? unwrapped : unwrapped.split('|')[0] ?? '').trim()
 }
 
 function entryNames(entry: LocatedEntry): string[] {
