@@ -1,3 +1,5 @@
+/// <reference types="vitest/importMeta" />
+
 import { TFile, type App } from 'obsidian'
 
 import { LUCR_TRADE_ROOT_DIR } from '../constant'
@@ -103,12 +105,13 @@ export class AgentJournal {
 				befores.set(file.path, await app.vault.read(file))
 			}
 		}
+		const removable = (options.removed ?? []).filter((path) => app.vault.getAbstractFileByPath(path) !== null)
 
 		let result: T
 		try {
 			result = await write()
 		} catch (error: unknown) {
-			throw await this.rollback(app, options.skipCreatedTracking === true ? null : pathsBefore, befores, error)
+			throw await this.rollback(app, options.skipCreatedTracking === true ? null : pathsBefore, befores, error, removable)
 		}
 
 		const created = options.skipCreatedTracking === true ? [] : listJournalPaths(app).filter((path) => !pathsBefore.has(path))
@@ -124,9 +127,10 @@ export class AgentJournal {
 			}
 		}
 
-		await waitForReindex(app, [...befores.keys()])
 		const removed = options.removed ?? []
 		const reportedCreated = options.skipCreatedTracking === true ? options.created ?? [] : created
+		// Created notes too: the next call (updateEntry, getPosition, ...) must find them.
+		await waitForReindex(app, [...befores.keys(), ...reportedCreated.filter((path) => path.endsWith('.md'))])
 		if (reportedCreated.length === 0 && snapshots.length === 0 && removed.length === 0) {
 			// Nothing on disk changed: keep the undo log for real changes.
 			return { ...result, unchanged: true }
@@ -191,10 +195,7 @@ export class AgentJournal {
 			)
 		}
 		if (changedSince.length > 0) {
-			const later = this.records
-				.filter((candidate) => candidate !== record && !candidate.undone && this.records.indexOf(candidate) > this.records.indexOf(record))
-				.filter((candidate) => [...candidate.modified, ...candidate.created].some((path) => changedSince.includes(path)))
-				.map((candidate) => candidate.id)
+			const later = this.laterOperationsTouching(record, changedSince)
 			throw agentError(
 				'CONFLICT',
 				`Cannot undo ${record.id}: these notes changed after that operation: ${changedSince.join(', ')}.`,
@@ -202,6 +203,22 @@ export class AgentJournal {
 					? `Later agent operations touched them: undo ${[...later].reverse().join(', ')} first (newest first). If it still conflicts, the user edited the notes; tell them and do not overwrite their edits.`
 					: 'The user edited them in Obsidian. Tell the user which notes changed and let them decide; do not overwrite their edits.',
 				{ details: { changedSince, laterOperations: later } },
+			)
+		}
+		// Trashing a created note that another note now links to would leave that link pointing at nothing.
+		const ownPaths = new Set([...record.created, ...record.modified])
+		const linkingNotes = [...new Set(record.created.flatMap((path) => linkedFrom(app, path)))].filter((path) => !ownPaths.has(path)).sort()
+		if (linkingNotes.length > 0) {
+			// Only the newest operation on each linking note is suggested: undoing an older one (e.g. the
+			// createPosition of the linking note) would remove more than the link.
+			const later = [...new Set(linkingNotes.flatMap((path) => this.laterOperationsTouching(record, [path]).slice(-1)))]
+			throw agentError(
+				'CONFLICT',
+				`Cannot undo ${record.id}: ${linkingNotes.join(', ')} now link to a note it created, and removing that note would leave broken links.`,
+				later.length > 0
+					? `Later agent operations probably added those links: undo ${[...later].reverse().join(', ')} first (newest first), then retry.`
+					: 'Remove those links first (unlinkContext for a position), or keep the note.',
+				{ details: { linkedFrom: linkingNotes, laterOperations: later } },
 			)
 		}
 
@@ -222,16 +239,38 @@ export class AgentJournal {
 		return activity
 	}
 
-	private async rollback(app: App, pathsBefore: ReadonlySet<string> | null, befores: ReadonlyMap<string, string>, cause: unknown): Promise<AgentApiError> {
-		const leftovers: string[] = []
+	/** Ids of agent operations after `record` that are not undone and created or modified any of `paths`. */
+	private laterOperationsTouching(record: ActivityRecord, paths: readonly string[]): string[] {
+		const start = this.records.indexOf(record)
+		return this.records
+			.filter((candidate, index) => index > start && !candidate.undone)
+			.filter((candidate) => [...candidate.modified, ...candidate.created].some((path) => paths.includes(path)))
+			.map((candidate) => candidate.id)
+	}
+
+	/**
+	 * Undo a failed write: restore touched notes and trash files it created.
+	 * `removable` lists notes the write was allowed to trash or move; one that
+	 * is gone cannot be put back from here, so it is reported instead of
+	 * claiming nothing changed.
+	 */
+	private async rollback(app: App, pathsBefore: ReadonlySet<string> | null, befores: ReadonlyMap<string, string>, cause: unknown, removable: readonly string[]): Promise<AgentApiError> {
+		const leftovers = new Set<string>()
 		for (const [path, before] of befores) {
 			const file = app.vault.getAbstractFileByPath(path)
 			try {
-				if (file instanceof TFile && (await app.vault.read(file)) !== before) {
+				if (!(file instanceof TFile)) {
+					leftovers.add(path)
+				} else if ((await app.vault.read(file)) !== before) {
 					await app.vault.process(file, () => before)
 				}
 			} catch {
-				leftovers.push(path)
+				leftovers.add(path)
+			}
+		}
+		for (const path of removable) {
+			if (app.vault.getAbstractFileByPath(path) === null) {
+				leftovers.add(path)
 			}
 		}
 		for (const path of pathsBefore === null ? [] : listJournalPaths(app).filter((candidate) => !pathsBefore.has(candidate))) {
@@ -241,7 +280,7 @@ export class AgentJournal {
 					await app.fileManager.trashFile(file)
 				}
 			} catch {
-				leftovers.push(path)
+				leftovers.add(path)
 			}
 		}
 
@@ -252,12 +291,13 @@ export class AgentJournal {
 				`The write failed unexpectedly: ${cause instanceof Error ? cause.message : String(cause)}.`,
 				'Report this message to the user; run `obsidian dev:errors` in the same vault for the stack trace.',
 			)
-		if (leftovers.length > 0) {
+		if (leftovers.size > 0) {
+			const paths = [...leftovers].sort()
 			return agentError(
 				'ROLLBACK_FAILED',
-				`${causeError.payload.message} Rolling back also failed for: ${leftovers.join(', ')}.`,
+				`${causeError.payload.message} Rolling back also failed for: ${paths.join(', ')}.`,
 				'Tell the user exactly which files could not be restored; do not retry until they have checked them.',
-				{ details: { cause: causeError.payload, leftovers } },
+				{ details: { cause: causeError.payload, leftovers: paths } },
 			)
 		}
 		return new AgentApiError({ ...causeError.payload, message: `${causeError.payload.message} Nothing was changed.` })
@@ -271,18 +311,69 @@ function listJournalPaths(app: App): string[] {
 		.filter((path) => path.startsWith(`${LUCR_TRADE_ROOT_DIR}/`))
 }
 
-/** The plugin rewrites `modified` on its own a moment after any edit; that alone is not a user change. */
+const FRONTMATTER_BLOCK = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/
+
+/**
+ * The plugin rewrites the `modified` property on its own a moment after any
+ * edit; that alone is not a user change. Only the frontmatter key is ignored:
+ * a body line that happens to start with `modified:` is the user's text.
+ */
 function sameIgnoringModified(left: string, right: string): boolean {
-	const strip = (content: string) => content.replace(/^modified:.*$/m, '')
+	const strip = (content: string) => {
+		const frontmatter = FRONTMATTER_BLOCK.exec(content)?.[0]
+		return frontmatter === undefined ? content : `${frontmatter.replace(/^modified:.*(?:\r?\n)?/gm, '')}${content.slice(frontmatter.length)}`
+	}
 	return strip(left) === strip(right)
+}
+
+/** Notes whose links resolve to `targetPath`. */
+function linkedFrom(app: App, targetPath: string): string[] {
+	return Object.entries(app.metadataCache.resolvedLinks ?? {})
+		.filter(([sourcePath, links]) => sourcePath !== targetPath && (links[targetPath] ?? 0) > 0)
+		.map(([sourcePath]) => sourcePath)
 }
 
 /** Obsidian drops a note from its metadata cache while it re-reads it; wait so the next call can find the note again. */
 async function waitForReindex(app: App, paths: string[]): Promise<void> {
 	for (const path of paths) {
-		await waitForValue(() => {
+		await waitForValue(async () => {
 			const file = app.vault.getAbstractFileByPath(path)
-			return !(file instanceof TFile) || app.metadataCache.getFileCache(file)?.frontmatter !== undefined ? true : null
+			return !(file instanceof TFile) || await isIndexed(app, file) ? true : null
 		}, REINDEX_TIMEOUT_MS)
 	}
+}
+
+type IndexedVersion = { mtime: number; size: number }
+
+/**
+ * True once Obsidian has parsed the version of the note that is on disk now.
+ * Right after a write the cache still answers with the previous version, then
+ * drops the note while it re-reads it, so "has frontmatter" alone passes too
+ * early. Obsidian records the mtime and size it indexed; when that record is
+ * not available, fall back to "has frontmatter".
+ */
+export async function isIndexed(app: App, file: TFile): Promise<boolean> {
+	if (app.metadataCache.getFileCache(file)?.frontmatter === undefined) {
+		return false
+	}
+	const indexed = (app.metadataCache as unknown as { fileCache?: Record<string, IndexedVersion | undefined> }).fileCache
+	if (indexed === undefined) {
+		return true
+	}
+	const version = indexed[file.path]
+	const onDisk = await app.vault.adapter.stat(file.path)
+	return version !== undefined && onDisk !== null && version.mtime === onDisk.mtime && version.size === onDisk.size
+}
+
+if (import.meta.vitest) {
+	const { describe, expect, it } = import.meta.vitest
+
+	describe('sameIgnoringModified', () => {
+		it('ignores only the frontmatter modified property', () => {
+			expect(sameIgnoringModified('---\nmodified: 1\na: 1\n---\nbody', '---\nmodified: 2\na: 1\n---\nbody')).toBe(true)
+			expect(sameIgnoringModified('---\na: 1\n---\nbody', '---\na: 1\nmodified: 2\n---\nbody')).toBe(true)
+			expect(sameIgnoringModified('---\na: 1\n---\nmodified: draft', '---\na: 1\n---\nmodified: final')).toBe(false)
+			expect(sameIgnoringModified('modified: draft\nbody', 'modified: final\nbody')).toBe(false)
+		})
+	})
 }

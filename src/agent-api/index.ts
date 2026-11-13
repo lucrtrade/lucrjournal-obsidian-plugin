@@ -1,5 +1,5 @@
 import { readArgs, readNumber, readText } from './args'
-import { persistAttachment } from './attachments'
+import { isAttachmentDryRun, persistAttachment } from './attachments'
 import { describeAgentApi } from './describe'
 import { createEntry, createPlaybook, createTemplate, deleteEntry, renameEntry, updateEntry, updatePlaybook, updateSymbol } from './entry-ops'
 import { agentError, runAgentCall } from './errors'
@@ -108,6 +108,9 @@ export function createAgentApi(plugin: { app: App; manifest: { id: string } }) {
 		/** Store an agent-supplied image in `LucrJournal/attachments/YYYY-MM/` and return its wikilink. */
 		saveAttachment: (rawInput: unknown) => runAgentCall(async () => {
 			assertAgentSession(app)
+			if (isAttachmentDryRun(rawInput)) {
+				return { dryRun: true, data: await persistAttachment(app, rawInput) }
+			}
 			return await journal.serial(() => journal.run(app, { operation: 'saveAttachment', summary: 'Stored an image in the attachments folder', touch: [] }, async () => ({ data: await persistAttachment(app, rawInput) })))
 		}),
 		/** Handler for `obsidian://lucrjournal-open-position?vault=<id>&file=<vault-relative path>`. */

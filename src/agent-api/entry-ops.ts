@@ -22,10 +22,10 @@ import { buildRenamedEntryPath, getFileBasename, parseWikilinkHeading, sanitizeO
 
 import { hasArg, readArgs, readBodyText, readBoolean, readEnum, readNumber, readRequiredText, readStringList, readText, type AgentArgs } from './args'
 import { AgentApiError, agentError, formatCandidates } from './errors'
+import { isIndexed, type AgentJournal } from './journal'
 import {
 	cleanEntryName,
 	CONTEXT_KINDS,
-	contentRev,
 	displayName,
 	domainOf,
 	ENTRY_KINDS,
@@ -40,7 +40,6 @@ import {
 import { LINK_KIND_CONFIG, resolveLink } from './resolve'
 import { waitForValue } from './wait'
 
-import type { AgentJournal } from './journal'
 import type { CriteriaFormValue } from '../domains/core/form'
 
 const INDEX_TIMEOUT_MS = 20_000
@@ -128,13 +127,19 @@ async function appendBody(app: App, file: TFile, body: string | null) {
 	}
 }
 
-async function waitForKind(app: App, path: string, lucrType: string): Promise<TFile> {
-	const file = await waitForValue(() => {
+/** Wait until the note is indexed and listed by its domain, so the next call (updateEntry, listEntries) finds it. */
+async function waitForKind(app: App, path: string, kind: EntryKind): Promise<TFile> {
+	const file = await waitForValue(async () => {
 		const candidate = app.vault.getAbstractFileByPath(path)
-		return candidate instanceof TFile && app.metadataCache.getFileCache(candidate)?.frontmatter?.lucr_type === lucrType ? candidate : null
+		return candidate instanceof TFile
+			&& app.metadataCache.getFileCache(candidate)?.frontmatter?.lucr_type === kind
+			&& await isIndexed(app, candidate)
+			&& listKind(app, kind).some((entry) => entry.file.path === path)
+			? candidate
+			: null
 	}, INDEX_TIMEOUT_MS)
 	if (file === null) {
-		throw agentError('METADATA_TIMEOUT', `Obsidian did not index ${path} as a ${lucrType} note within ${INDEX_TIMEOUT_MS / 1000}s.`, 'Obsidian may be busy; wait a few seconds and check the note before retrying.', { details: { path } })
+		throw agentError('METADATA_TIMEOUT', `Obsidian did not index ${path} as a ${kind} note within ${INDEX_TIMEOUT_MS / 1000}s.`, 'Obsidian may be busy; wait a few seconds and check the note before retrying.', { details: { path } })
 	}
 	return file
 }
@@ -194,7 +199,9 @@ export async function createEntry(app: App, journal: AgentJournal, rawInput: unk
 		// The metadata cache lags behind the write, so report the values the domain just saved.
 		const saved = await applyPatch(app, { kind, file }, kind === 'news' && description !== null && description !== '' ? { ...rest, description } : rest)
 		await appendBody(app, file, body)
-		return { dryRun: false, data: { kind, name: getFileBasename(file), path: file.path, frontmatter: saved ?? app.metadataCache.getFileCache(file)?.frontmatter ?? null } }
+		// The patch and body made Obsidian re-read the note; it is briefly unlisted until that finishes.
+		await waitForKind(app, file.path, kind)
+		return { dryRun: false, data:{ kind, name: getFileBasename(file), path: file.path, frontmatter: saved ?? app.metadataCache.getFileCache(file)?.frontmatter ?? null } }
 	})
 }
 
@@ -220,6 +227,14 @@ export async function updateEntry(app: App, journal: AgentJournal, rawInput: unk
 	})
 }
 
+/** Wikilinks and embeds in `content` whose target names the note `linkpath` (any folder, any case, with or without `.md`). */
+function countLinksTo(content: string, linkpath: string): number {
+	const wanted = linkpath.toLowerCase()
+	return [...content.matchAll(/\[\[([^\]|#^]+)/g)]
+		.filter((match) => (match[1] ?? '').trim().split('/').pop()?.replace(/\.md$/i, '').toLowerCase() === wanted)
+		.length
+}
+
 function referencingPaths(app: App, targetPath: string): string[] {
 	return Object.entries(app.metadataCache.resolvedLinks ?? {})
 		.filter(([sourcePath, links]) => sourcePath !== targetPath && (links[targetPath] ?? 0) > 0)
@@ -229,24 +244,41 @@ function referencingPaths(app: App, targetPath: string): string[] {
 
 /**
  * Destructive operations run in two calls: the first returns what would be
- * affected plus a token derived from that exact scope, the second repeats the
+ * affected plus a one-time token for that exact scope, the second repeats the
  * call with the token. A token stops matching as soon as the scope changes.
  */
 function confirmOrPreview(args: AgentArgs, operation: string, scope: Record<string, unknown>): { confirmed: boolean; token: string } {
-	const token = contentRev(JSON.stringify({ operation, scope }))
+	const expected = JSON.stringify({ operation, scope })
 	const given = readText(args, 'confirmToken')
 	if (given === null) {
+		const token = newConfirmToken()
+		pendingConfirmations.set(token, expected)
+		if (pendingConfirmations.size > MAX_PENDING_CONFIRMATIONS) {
+			pendingConfirmations.delete(pendingConfirmations.keys().next().value ?? '')
+		}
 		return { confirmed: false, token }
 	}
-	if (given !== token) {
+	// The full scope is compared, not a hash of it, so a token can only confirm the exact preview it came from.
+	if (pendingConfirmations.get(given) !== expected) {
 		throw agentError(
 			'CONFIRMATION_INVALID',
-			`\`confirmToken\` does not match the current scope of ${operation}; the vault changed since the preview, or the token belongs to another call.`,
+			`\`confirmToken\` does not match the current scope of ${operation}; the vault changed since the preview, the token belongs to another call, or it was already used.`,
 			`Call ${operation} again without \`confirmToken\`, show the user the new scope, and retry with the new token.`,
 			{ field: 'confirmToken', received: given },
 		)
 	}
-	return { confirmed: true, token }
+	pendingConfirmations.delete(given)
+	return { confirmed: true, token: given }
+}
+
+const MAX_PENDING_CONFIRMATIONS = 100
+/** Preview tokens handed out in this Obsidian session, each mapped to the exact operation and scope it confirms. */
+const pendingConfirmations = new Map<string, string>()
+
+function newConfirmToken(): string {
+	const bytes = new Uint8Array(8)
+	crypto.getRandomValues(bytes)
+	return [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
 function previewResult(operation: string, scope: Record<string, unknown>, token: string) {
@@ -282,9 +314,16 @@ export async function renameEntry(app: App, journal: AgentJournal, rawInput: unk
 	if (!confirmation.confirmed) {
 		return previewResult('renameEntry', scope, confirmation.token)
 	}
-	return await journal.run(app, { operation: 'renameEntry', summary: `Renamed ${entry.kind} "${getFileBasename(entry.file)}" to "${newName}"`, touch: [], undoable: false, skipCreatedTracking: true, created: [nextPath], removed: [entry.file.path] }, async () => {
+	return await journal.run(app, { operation: 'renameEntry', summary: `Renamed ${entry.kind} "${getFileBasename(entry.file)}" to "${newName}"`, touch: [entry.file], undoable: false, skipCreatedTracking: true, created: [nextPath], removed: [entry.file.path] }, async () => {
 		await app.fileManager.renameFile(entry.file, nextPath)
-		await syncRenamedDocumentTitle(app, entry.file, newName)
+		try {
+			await syncRenamedDocumentTitle(app, entry.file, newName)
+		} catch (error: unknown) {
+			// Move the note back (Obsidian rewrites the links again) so a failed call leaves the vault as it was;
+			// if this fails too, the journal reports the old path as not restored.
+			await app.fileManager.renameFile(entry.file, scope.rename.from)
+			throw error
+		}
 		return { needsConfirmation: false, data: { kind: entry.kind, path: nextPath, previousPath: scope.rename.from, linksUpdatedIn: scope.linksUpdatedIn } }
 	})
 }
@@ -302,7 +341,50 @@ async function playbooksNaming(app: App, name: string): Promise<string[]> {
 	return paths
 }
 
-type DeletionPlan = { scope: Record<string, unknown>; removed: string[]; execute: () => Promise<void> }
+/** `touch`: existing notes the delete rewrites (not trashes); they are restored if a later step fails. */
+type DeletionPlan = { scope: Record<string, unknown>; removed: string[]; touch?: TFile[]; execute: () => Promise<void> }
+
+/** A context note or playbook: positions lose their `## [[entry]]` headings and playbook property, like the UI delete. */
+async function planLinkedEntryDeletion(app: App, entry: LocatedEntry): Promise<DeletionPlan> {
+	const linkpath = getFileBasename(entry.file)
+	const referencing: TFile[] = []
+	// Positions whose every link to the entry is a `## [[entry]]` heading or the playbook property: deleting cleans them fully.
+	const fullyCleaned = new Set<string>()
+	for (const position of listKind(app, 'position')) {
+		const playbook = parseWikilinkHeading(typeof position.fm.playbook === 'string' ? position.fm.playbook : '')?.linkpath
+		const content = await app.vault.read(position.file)
+		const headings = content.split('\n').filter((line) => line.startsWith('## ') && parseWikilinkHeading(line.replace(/^##\s+/, '').trim())?.linkpath === linkpath).length
+		const cleared = headings + (playbook === linkpath ? 1 : 0)
+		if (cleared > 0) {
+			referencing.push(position.file)
+			if (countLinksTo(content, linkpath) <= cleared) {
+				fullyCleaned.add(position.file.path)
+			}
+		}
+	}
+	const orphans = (await listOrphanPrivateConfluenceEntriesForDeletedPlaybook(app, entry.file)).map((confluence) => confluence.file)
+	const playbooksUsingIt = entry.kind === 'confluence' ? await playbooksNaming(app, linkpath) : []
+	return {
+		scope: {
+			trash: { [entry.kind]: entry.file.path, privateConfluences: orphans.map((file) => file.path) },
+			unlinkedFromPositions: referencing.map((file) => file.path),
+			// These keep a link that will point to nothing; LucrJournal does not rewrite them.
+			linksLeftBroken: [...new Set([...playbooksUsingIt, ...referencingPaths(app, entry.file.path).filter((path) => !fullyCleaned.has(path))])].sort(),
+		},
+		removed: [entry.file.path, ...orphans.map((file) => file.path)],
+		touch: referencing,
+		execute: async () => {
+			for (const positionFile of referencing) {
+				await removeAllSectionEntriesFromPositionByLinkpath({ app, linkpath, positionFile })
+				await removePositionPlaybookFrontmatterByLinkpath({ app, linkpath, positionFile })
+			}
+			for (const orphan of orphans) {
+				await app.fileManager.trashFile(orphan)
+			}
+			await app.fileManager.trashFile(entry.file)
+		},
+	}
+}
 
 async function planDeletion(app: App, entry: LocatedEntry): Promise<DeletionPlan> {
 	switch (entry.kind) {
@@ -340,39 +422,8 @@ async function planDeletion(app: App, entry: LocatedEntry): Promise<DeletionPlan
 		case 'key_level':
 		case 'confluence':
 		case 'market_analysis':
-		case 'playbook': {
-			const linkpath = getFileBasename(entry.file)
-			const positions = listKind(app, 'position')
-			const referencing: TFile[] = []
-			for (const position of positions) {
-				const playbook = parseWikilinkHeading(typeof position.fm.playbook === 'string' ? position.fm.playbook : '')?.linkpath
-				const content = await app.vault.read(position.file)
-				if (playbook === linkpath || content.split('\n').some((line) => parseWikilinkHeading(line.replace(/^##\s+/, '').trim())?.linkpath === linkpath && line.startsWith('## '))) {
-					referencing.push(position.file)
-				}
-			}
-			const orphans = (await listOrphanPrivateConfluenceEntriesForDeletedPlaybook(app, entry.file)).map((confluence) => confluence.file)
-			const playbooksUsingIt = entry.kind === 'confluence' ? await playbooksNaming(app, linkpath) : []
-			return {
-				scope: {
-					trash: { [entry.kind]: entry.file.path, privateConfluences: orphans.map((file) => file.path) },
-					unlinkedFromPositions: referencing.map((file) => file.path),
-					// These keep a link that will point to nothing; LucrJournal does not rewrite them.
-					linksLeftBroken: [...new Set([...playbooksUsingIt, ...referencingPaths(app, entry.file.path)])].sort(),
-				},
-				removed: [entry.file.path, ...orphans.map((file) => file.path)],
-				execute: async () => {
-					for (const positionFile of referencing) {
-						await removeAllSectionEntriesFromPositionByLinkpath({ app, linkpath, positionFile })
-						await removePositionPlaybookFrontmatterByLinkpath({ app, linkpath, positionFile })
-					}
-					for (const orphan of orphans) {
-						await app.fileManager.trashFile(orphan)
-					}
-					await app.fileManager.trashFile(entry.file)
-				},
-			}
-		}
+		case 'playbook':
+			return await planLinkedEntryDeletion(app, entry)
 		case 'criteria': {
 			const usedBy = await playbooksNaming(app, getFileBasename(entry.file))
 			if (usedBy.length > 0) {
@@ -397,7 +448,7 @@ export async function deleteEntry(app: App, journal: AgentJournal, rawInput: unk
 	if (!confirmation.confirmed) {
 		return previewResult('deleteEntry', plan.scope, confirmation.token)
 	}
-	return await journal.run(app, { operation: 'deleteEntry', summary: `Deleted ${entry.kind} "${displayName(entry)}"`, touch: [], undoable: false, skipCreatedTracking: true, removed: plan.removed }, async () => {
+	return await journal.run(app, { operation: 'deleteEntry', summary: `Deleted ${entry.kind} "${displayName(entry)}"`, touch: plan.touch ?? [], undoable: false, skipCreatedTracking: true, removed: plan.removed }, async () => {
 		await plan.execute()
 		return { needsConfirmation: false, data: { kind: entry.kind, trashed: plan.removed, scope: plan.scope } }
 	})

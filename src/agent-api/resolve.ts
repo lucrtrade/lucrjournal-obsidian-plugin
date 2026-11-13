@@ -613,10 +613,31 @@ export type ResolvedLink = {
 	frontmatter: Record<string, unknown> | null
 }
 
+/**
+ * A link may be given as a vault path or file name from listEntries
+ * (`LucrJournal/news/CPI beat.md`, `CPI beat.md`); both name the note's title.
+ * A LucrJournal path that does not exist is an error instead of a new note
+ * titled after the path.
+ */
+function linkTitle(app: App, name: string, field: string): string {
+	const trimmed = name.trim()
+	if (trimmed.includes('/')) {
+		const path = normalizePath(/\.md$/i.test(trimmed) ? trimmed : `${trimmed}.md`)
+		const file = app.vault.getAbstractFileByPath(path)
+		if (file instanceof TFile) {
+			return getFileBasename(file)
+		}
+		if (path.startsWith(`${LUCR_TRADE_ROOT_DIR}/`)) {
+			throw agentError('ENTRY_NOT_FOUND', `${field} entry ${JSON.stringify(name)} looks like a vault path, but no note exists there.`, 'Pass the title of the note (e.g. "CPI beat") to link or create it, or a path from listEntries.', { field, received: name })
+		}
+	}
+	return trimmed.replace(/\.md$/i, '')
+}
+
 export function resolveLink(app: App, kind: LinkKind, name: string): ResolvedLink {
 	const config = LINK_KIND_CONFIG[kind]
 	const field = `links.${kind}`
-	const basename = sanitizeObsidianFileName(name).trim()
+	const basename = sanitizeObsidianFileName(linkTitle(app, name, field)).trim()
 	if (basename === '') {
 		throw agentError('INVALID_VALUE', `${field} entry ${JSON.stringify(name)} is empty after removing characters that are not allowed in file names.`, 'Use a readable name made of letters, digits and spaces.', { field, received: name })
 	}

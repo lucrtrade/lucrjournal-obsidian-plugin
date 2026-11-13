@@ -1073,7 +1073,8 @@ describe('agent api operations beyond createPosition', () => {
 	it('deletes only after a confirmed preview, with the same cascade as the UI', async () => {
 		const { vault, api } = await seeded()
 		const preview = data(await api.deleteEntry({ entry: 'Range high' }))
-		expect(preview.scope).toMatchObject({ trash: { key_level: `${ROOT}/analyses/Range high.md` }, unlinkedFromPositions: [POSITION] })
+		// The heading link is removed by the delete, so the position is not reported as left broken.
+		expect(preview.scope).toMatchObject({ trash: { key_level: `${ROOT}/analyses/Range high.md` }, unlinkedFromPositions: [POSITION], linksLeftBroken: [] })
 		expect(vault.trashed).toEqual([])
 		data(await api.deleteEntry({ entry: 'Range high', confirmToken: preview.confirmToken }))
 		expect(vault.trashed).toEqual([`${ROOT}/analyses/Range high.md`])
@@ -1148,6 +1149,128 @@ describe('agent api operations beyond createPosition', () => {
 		const count = data(await api.listAgentActivity({ limit: 50 })).activity.length
 		expect(await api.removePlaybook({ position: 'POS-00001' })).toMatchObject({ ok: true, unchanged: true })
 		expect(data(await api.listAgentActivity({ limit: 50 })).activity).toHaveLength(count)
+	})
+
+	it('reports a position as left broken only when it keeps a link the delete does not remove', async () => {
+		const { vault, api } = await seeded()
+		await vault.app.vault.process(fileAt(vault.app, POSITION), (content) => `${content}\nSee [[Range high|the range]] again.\n`)
+		const preview = data(await api.deleteEntry({ entry: 'Range high' }))
+		expect(preview.scope).toMatchObject({ unlinkedFromPositions: [POSITION], linksLeftBroken: [POSITION] })
+	})
+
+	it('does not undo a created note that another note links to since', async () => {
+		const { vault, api } = await seeded()
+		const created = await api.createEntry({ kind: 'news', name: 'Linked later' })
+		const linked = await api.linkContext({ position: 'POS-00001', kind: 'news', name: 'Linked later' })
+		const createdId = (created as { activityId?: string }).activityId
+		const linkedId = (linked as { activityId?: string }).activityId
+		expect(await api.undo({ id: createdId })).toMatchObject({ ok: false, error: { code: 'CONFLICT', details: { linkedFrom: [POSITION], laterOperations: [linkedId] } } })
+		expect(vault.paths()).toContain(`${ROOT}/news/Linked later.md`)
+
+		data(await api.undo({ id: linkedId }))
+		data(await api.undo({ id: createdId }))
+		expect(vault.paths()).not.toContain(`${ROOT}/news/Linked later.md`)
+	})
+
+	it('treats a body line starting with "modified:" as a user edit', async () => {
+		const { vault, api } = await seeded()
+		const created = await api.createTemplate({ name: 'Body modified', body: 'modified: draft' })
+		const path = data(created).path as string
+		await vault.app.vault.process(fileAt(vault.app, path), (content) => content.replace('modified: draft', 'modified: final'))
+		expect(await api.undo({ id: (created as { activityId?: string }).activityId })).toMatchObject({ ok: false, error: { code: 'CONFLICT' } })
+		expect(vault.content(path)).toContain('modified: final')
+	})
+
+	it('removes an attachment by full path without touching a same-named image in another folder', async () => {
+		const { vault, api } = await seeded()
+		const first = `[[${ROOT}/attachments/a/chart.png]]`
+		const second = `[[${ROOT}/attachments/b/chart.png]]`
+		await vault.app.fileManager.processFrontMatter(fileAt(vault.app, POSITION), (frontmatter: Record<string, unknown>) => {
+			frontmatter.attachments = [first, second]
+		})
+		expect(await api.removeAttachment({ position: 'POS-00001', attachment: 'chart.png' })).toMatchObject({ ok: false, error: { code: 'ENTRY_AMBIGUOUS', candidates: [first, second] } })
+		expect(data(await api.removeAttachment({ position: 'POS-00001', attachment: `${ROOT}/attachments/a/chart.png` }))).toMatchObject({ removed: [first], attachments: [second] })
+		expect(vault.frontmatter(POSITION).attachments).toEqual([second])
+		expect(data(await api.removeAttachment({ position: 'POS-00001', attachment: 'chart.png' }))).toMatchObject({ removed: [second] })
+	})
+
+	it('links an existing note given by file name or vault path instead of creating one named after it', async () => {
+		const { vault, api } = await seeded()
+		data(await api.createEntry({ kind: 'news', name: 'CPI beat' }))
+		expect(data(await api.linkContext({ position: 'POS-00001', kind: 'news', name: 'CPI beat.md' }))).toMatchObject({ name: 'CPI beat', created: false, linked: 'appended' })
+		expect(data(await api.linkContext({ position: 'POS-00001', kind: 'news', name: `${ROOT}/news/CPI beat.md` }))).toMatchObject({ name: 'CPI beat', linked: 'exists' })
+		expect(await api.linkContext({ position: 'POS-00001', kind: 'news', name: `${ROOT}/news/Missing.md` })).toMatchObject({ ok: false, error: { code: 'ENTRY_NOT_FOUND' } })
+		expect(vault.paths().filter((path) => path.startsWith(`${ROOT}/news/`))).toEqual([`${ROOT}/news/CPI beat.md`])
+	})
+
+	it('unlinks every heading of a note that a hand edit linked twice', async () => {
+		const { vault, api } = await seeded()
+		await vault.app.vault.process(fileAt(vault.app, POSITION), (content) => content.replace('## [[Range high]]', '## [[Range high]]\n\n## [[Range high]]'))
+		expect(data(await api.getPosition({ position: 'POS-00001' })).links.key_level).toEqual(['Range high', 'Range high'])
+		expect(data(await api.unlinkContext({ position: 'POS-00001', kind: 'key_level', name: 'Range high' }))).toMatchObject({ unlinked: true })
+		expect(data(await api.getPosition({ position: 'POS-00001' })).links.key_level).toEqual([])
+		expect(vault.content(POSITION)).not.toContain('[[Range high]]')
+		expect(vault.content(POSITION)).toContain('First note.')
+	})
+
+	it('previews saveAttachment without writing', async () => {
+		const { vault, api } = await seeded()
+		const before = data(await api.listAgentActivity({ limit: 50 })).activity.length
+		const preview = await api.saveAttachment({ base64: PNG_BASE64, fileName: 'dry.png', dryRun: true })
+		expect(preview).toMatchObject({ ok: true, dryRun: true, data: { bytes: expect.any(Number) } })
+		expect(vault.paths()).not.toContain((preview as unknown as { data: { path: string } }).data.path)
+		expect(data(await api.listAgentActivity({ limit: 50 })).activity).toHaveLength(before)
+		expect(await api.saveAttachment({ base64: PNG_BASE64, fileName: 'dry.png', dryRun: 'yes' })).toMatchObject({ ok: false, error: { code: 'INVALID_VALUE', field: 'dryRun' } })
+		const saved = data(await api.saveAttachment({ base64: PNG_BASE64, fileName: 'dry.png' }))
+		expect(vault.paths()).toContain(saved.path)
+	})
+
+	it('restores the positions a failed delete already unlinked', async () => {
+		const { vault, api } = await seeded()
+		const before = vault.content(POSITION)
+		const preview = data(await api.deleteEntry({ entry: 'Range high' }))
+		const fileManager = vault.app.fileManager as unknown as { trashFile: (file: TFile) => Promise<void> }
+		fileManager.trashFile = async () => {
+			throw new Error('trash failed')
+		}
+		expect(await api.deleteEntry({ entry: 'Range high', confirmToken: preview.confirmToken })).toMatchObject({ ok: false, error: { code: 'INTERNAL_ERROR' } })
+		expect(vault.content(POSITION)).toBe(before)
+		expect(vault.paths()).toContain(`${ROOT}/analyses/Range high.md`)
+	})
+
+	it('moves a renamed note back when a later rename step fails', async () => {
+		const { vault, api } = await seeded()
+		const preview = data(await api.renameEntry({ entry: 'Range high', newName: 'Range top' }))
+		const fileVault = vault.app.vault as unknown as { read: (file: TFile) => Promise<string> }
+		const read = fileVault.read.bind(fileVault)
+		fileVault.read = async (file: TFile) => {
+			if (file.path.endsWith('Range top.md')) {
+				throw new Error('read failed')
+			}
+			return await read(file)
+		}
+		expect(await api.renameEntry({ entry: 'Range high', newName: 'Range top', confirmToken: preview.confirmToken })).toMatchObject({ ok: false, error: { code: 'INTERNAL_ERROR' } })
+		expect(vault.paths()).toContain(`${ROOT}/analyses/Range high.md`)
+		expect(vault.paths()).not.toContain(`${ROOT}/analyses/Range top.md`)
+		expect(vault.content(POSITION)).toContain('[[Range high]]')
+	})
+
+	it('accepts a confirm token once, only for the preview it came from', async () => {
+		const { api } = await seeded()
+		data(await api.createEntry({ kind: 'news', name: 'Again' }))
+		const first = data(await api.deleteEntry({ entry: 'Again' }))
+		const second = data(await api.deleteEntry({ entry: 'Again' }))
+		expect(second.confirmToken).not.toBe(first.confirmToken)
+		expect(await api.deleteEntry({ entry: 'Range high', confirmToken: first.confirmToken })).toMatchObject({ ok: false, error: { code: 'CONFIRMATION_INVALID' } })
+		data(await api.deleteEntry({ entry: 'Again', confirmToken: first.confirmToken }))
+		data(await api.createEntry({ kind: 'news', name: 'Again' }))
+		// Same entry, same scope: the used token still does not confirm the new note.
+		expect(await api.deleteEntry({ entry: 'Again', confirmToken: first.confirmToken })).toMatchObject({ ok: false, error: { code: 'CONFIRMATION_INVALID' } })
+	})
+
+	it('locates an entry given as a wikilink with an alias', async () => {
+		const { api } = await seeded()
+		expect(data(await api.updateEntry({ entry: '[[Range high|the range]]', description: 'Weekly', dryRun: true }))).toMatchObject({ path: `${ROOT}/analyses/Range high.md` })
 	})
 
 	it('gives concurrent createPosition calls distinct ids', async () => {

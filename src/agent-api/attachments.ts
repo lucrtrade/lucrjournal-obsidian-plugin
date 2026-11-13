@@ -163,10 +163,32 @@ export async function persistAttachment(
 	rawInput: unknown,
 	now: Date = new Date(),
 ): Promise<SavedAttachment> {
-	const source = parseAttachmentSource(rawInput, 'attachment')
+	const { source: sourceInput, dryRun } = splitDryRun(rawInput)
+	const source = parseAttachmentSource(sourceInput, 'attachment')
 	const plan = planAttachment(app, source, now)
-	await writeAttachment(app, plan)
+	if (!dryRun) {
+		await writeAttachment(app, plan)
+	}
 	return { path: plan.path, token: plan.token, embed: plan.embed, bytes: plan.bytes }
+}
+
+/** `saveAttachment` also takes `dryRun` next to the image source fields. */
+export function isAttachmentDryRun(rawInput: unknown): boolean {
+	return splitDryRun(rawInput).dryRun
+}
+
+function splitDryRun(raw: unknown): { source: unknown; dryRun: boolean } {
+	if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+		return { source: raw, dryRun: false }
+	}
+	const { dryRun, ...source } = raw as Record<string, unknown>
+	if (dryRun === undefined) {
+		return { source: raw, dryRun: false }
+	}
+	if (dryRun !== undefined && dryRun !== null && typeof dryRun !== 'boolean') {
+		throw agentError('INVALID_VALUE', '`dryRun` must be true or false.', 'Pass `dryRun: true` or omit it.', { field: 'dryRun', received: dryRun })
+	}
+	return { source, dryRun: dryRun === true }
 }
 
 function readAttachmentBytes(source: AttachmentSource): Uint8Array {
