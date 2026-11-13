@@ -83,7 +83,7 @@ function invalidDatetime(value: string, field: string, timeZone: string) {
 	return agentError(
 		'INVALID_VALUE',
 		`\`${field}\` must be a date with time like "2026-11-09 14:30" or "2026-11-09T14:30:00+08:00", received ${JSON.stringify(value)}.`,
-		`Pass \`${field}\` as YYYY-MM-DD HH:mm[:ss] (read in the plugin time zone ${timeZone}) or as ISO 8601 with an offset; omit it to use the current time.`,
+		`Pass \`${field}\` as YYYY-MM-DD HH:mm[:ss] (read in the plugin time zone ${timeZone}) or as ISO 8601 with an offset (e.g. 2026-11-09T10:00:00+08:00).`,
 		{ field, received: value },
 	)
 }

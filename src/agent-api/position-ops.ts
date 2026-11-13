@@ -16,9 +16,9 @@ import { hasArg, readArgs, readBodyText, readBoolean, readEnum, readNumber, read
 import { parseAttachmentSource, planAttachment, writeAttachment, type AttachmentPlan } from './attachments'
 import { datetimeToEpoch, normalizeAgentDatetime } from './datetime'
 import { agentError } from './errors'
-import { contentRev, locatePosition, toContextKind, type ContextKind, type LocatedEntry } from './locate'
+import { cleanEntryName, contentRev, locatePosition, referenceKeys, toContextKind, type ContextKind, type LocatedEntry } from './locate'
 import { resolveQuantityPatch } from './plan'
-import { LINK_KIND_CONFIG, resolveLink, resolvePlaybook } from './resolve'
+import { assertRiskDirection, LINK_KIND_CONFIG, resolveLink, resolvePlaybook } from './resolve'
 import { waitForValue } from './wait'
 
 import type { LinkKind } from './input'
@@ -27,6 +27,7 @@ import type { AgentJournal } from './journal'
 const INDEX_TIMEOUT_MS = 20_000
 const PRICE_FIELDS = ['entry_price', 'stop_loss', 'target_price', 'exit_price'] as const
 const SIZE_FIELDS = ['lots', 'contract', 'notional_value', 'amount'] as const
+const CLEARABLE_FIELDS = ['stop_loss', 'target_price'] as const
 const COMMON_FIELDS = ['position', 'ifRev', 'dryRun'] as const
 const UPDATE_POSITION_FIELDS = [...COMMON_FIELDS, ...PRICE_FIELDS, ...SIZE_FIELDS, 'opened_at', 'closed_at', 'confidence', 'status', 'notes'] as const
 const ADD_ATTACHMENTS_FIELDS = [...COMMON_FIELDS, 'attachments'] as const
@@ -69,9 +70,19 @@ function buildPositionPatch(app: App, args: Record<string, unknown>, entry: Loca
 	const timeZone = getCurrentTimeZoneSetting()
 	const patch: Record<string, unknown> = {}
 	for (const field of PRICE_FIELDS) {
-		if (hasArg(args, field)) {
-			patch[field] = readPositiveNumber(args, field)
+		if (!hasArg(args, field)) {
+			continue
 		}
+		const value = readPositiveNumber(args, field)
+		if (value === null && !(CLEARABLE_FIELDS as readonly string[]).includes(field)) {
+			throw agentError(
+				'INVALID_VALUE',
+				`\`${field}\` cannot be cleared with null.`,
+				field === 'exit_price' ? 'Omit `exit_price`, or pass `status: "open"` alone to reopen the position.' : `Pass a number for \`${field}\` or omit it.`,
+				{ field, received: null },
+			)
+		}
+		patch[field] = value
 	}
 	if (hasArg(args, 'confidence')) {
 		const confidence = readNumber(args, 'confidence')
@@ -101,22 +112,49 @@ function buildPositionPatch(app: App, args: Record<string, unknown>, entry: Loca
 		Object.assign(patch, resolveQuantityPatch(sizes, symbol.fm.name, symbol.fm.type ?? null))
 	}
 
+	applyLifecycle(args, entry, patch)
+	assertMergedRiskDirection(entry, patch)
+	return patch
+}
+
+/** Resolve the open/closed status of the patch and check that the position does not close before it opens. */
+function applyLifecycle(args: Record<string, unknown>, entry: LocatedEntry, patch: Record<string, unknown>) {
 	const status = readEnum(args, 'status', ['open', 'close', 'closed'] as const)
 	if (status === 'open') {
+		if (patch.exit_price != null || patch.closed_at != null) {
+			throw agentError(
+				'INVALID_VALUE',
+				'`status: "open"` reopens the position, but the same call also passes `exit_price` or `closed_at`, which close it.',
+				'To reopen, pass `status: "open"` alone. To correct the exit of a closed position, pass `exit_price` / `closed_at` without `status`.',
+				{ field: 'status', received: status },
+			)
+		}
 		// A position stays closed while either close marker is set, so reopening has to clear both.
 		patch.status = 'open'
-		patch.exit_price = patch.exit_price ?? null
-		patch.closed_at = patch.closed_at ?? null
+		patch.exit_price = null
+		patch.closed_at = null
 	} else if (status !== null || patch.exit_price != null || patch.closed_at != null) {
 		patch.status = 'close'
 	}
 
 	const openedAt = (patch.opened_at ?? entry.fm.opened_at ?? null) as string | null
-	const closedAt = (patch.closed_at ?? null) as string | null
+	const closedAt = (Object.prototype.hasOwnProperty.call(patch, 'closed_at') ? patch.closed_at : entry.fm.closed_at ?? null) as string | null
 	if (openedAt !== null && closedAt !== null && datetimeToEpoch(closedAt) < datetimeToEpoch(openedAt)) {
-		throw agentError('INVALID_VALUE', `\`closed_at\` (${closedAt}) is earlier than \`opened_at\` (${openedAt}).`, 'Swap or correct the two times.', { field: 'closed_at', received: { opened_at: openedAt, closed_at: closedAt } })
+		throw agentError('INVALID_VALUE', `\`closed_at\` (${closedAt}) is earlier than \`opened_at\` (${openedAt}).`, 'Swap or correct the two times.', { field: patch.closed_at != null ? 'closed_at' : 'opened_at', received: { opened_at: openedAt, closed_at: closedAt } })
 	}
-	return patch
+}
+
+/** Same wording and code as createPosition when the merged prices contradict the position side. */
+function assertMergedRiskDirection(entry: LocatedEntry, patch: Record<string, unknown>) {
+	const side = entry.fm.side
+	if (side !== 'LONG' && side !== 'SHORT') {
+		return
+	}
+	const merged = (field: 'entry_price' | 'stop_loss' | 'target_price') => {
+		const value = Object.prototype.hasOwnProperty.call(patch, field) ? patch[field] : entry.fm[field]
+		return typeof value === 'number' ? value : null
+	}
+	assertRiskDirection(side, { entry_price: merged('entry_price'), stop_loss: merged('stop_loss'), target_price: merged('target_price') })
 }
 
 function previewPosition(app: App, entry: LocatedEntry, patch: Record<string, unknown>): Record<string, unknown> {
@@ -154,6 +192,9 @@ export async function updatePosition(app: App, journal: AgentJournal, rawInput: 
 	const changes = diffRecords(before, previewPosition(app, entry, patch))
 	if (dryRun) {
 		return { dryRun: true, data: { path: entry.file.path, changes, notesAppended: notes } }
+	}
+	if (Object.keys(changes).length === 0 && notes === null) {
+		return { dryRun: false, ...(await describeResult(app, entry.file, { changes, notesAppended: null, unchanged: true })) }
 	}
 
 	return await journal.run(app, { operation: 'updatePosition', summary: `Updated ${getFileBasename(entry.file)}`, touch: [entry.file] }, async () => {
@@ -245,7 +286,7 @@ export async function linkContext(app: App, journal: AgentJournal, rawInput: unk
 	const args = readArgs('linkContext', rawInput, LINK_FIELDS)
 	const { entry, content, dryRun } = await openTarget(app, args)
 	const kind = toContextKind(readRequiredText(args, 'kind', 'Pass `kind` as news, key_level, confluence or market_analysis.'), 'kind')
-	const link = resolveLink(app, linkKindOf(kind), readRequiredText(args, 'name', 'Pass `name`, the title of the note to link.'))
+	const link = resolveLink(app, linkKindOf(kind), cleanEntryName(readRequiredText(args, 'name', 'Pass `name`, the title of the note to link.')))
 	const config = LINK_KIND_CONFIG[link.kind]
 	const alreadyLinked = isLinked(content, config.sectionTitle, link.basename)
 	const outcome = { kind, name: link.basename, entryPath: link.path, created: link.create, linked: alreadyLinked ? 'exists' : 'appended' }
@@ -277,7 +318,7 @@ export async function unlinkContext(app: App, journal: AgentJournal, rawInput: u
 	const groups = await PositionDomain.listContextGroups(app, entry.file)
 	const group = groups.find((candidate) => candidate.kind === kind)
 	const linkedEntries = group === undefined || group.kind === 'playbook' ? [] : group.linkedEntries
-	const linked = linkedEntries.find((candidate) => getFileBasename(candidate.file).toLowerCase() === name.toLowerCase())
+	const linked = linkedEntries.find((candidate) => referenceKeys(name).includes(getFileBasename(candidate.file).toLowerCase()))
 	if (linked === undefined || group === undefined || group.kind === 'playbook') {
 		throw agentError(
 			'ENTRY_NOT_FOUND',

@@ -21,8 +21,9 @@ import { listOrphanPrivateConfluenceEntriesForDeletedPlaybook } from '../ui/dash
 import { buildRenamedEntryPath, getFileBasename, parseWikilinkHeading, sanitizeObsidianFileName } from '../utils'
 
 import { hasArg, readArgs, readBodyText, readBoolean, readEnum, readNumber, readRequiredText, readStringList, readText, type AgentArgs } from './args'
-import { agentError, formatCandidates } from './errors'
+import { AgentApiError, agentError, formatCandidates } from './errors'
 import {
+	cleanEntryName,
 	CONTEXT_KINDS,
 	contentRev,
 	displayName,
@@ -138,14 +139,23 @@ async function waitForKind(app: App, path: string, lucrType: string): Promise<TF
 	return file
 }
 
-async function applyPatch(app: App, entry: { kind: EntryKind; file: TFile }, patch: Record<string, unknown>) {
+async function applyPatch(app: App, entry: { kind: EntryKind; file: TFile }, patch: Record<string, unknown>): Promise<unknown> {
 	if (Object.keys(patch).length === 0) {
-		return
+		return null
 	}
 	try {
-		await domainOf(entry.kind).updateFields(app, entry.file, patch)
+		return await domainOf(entry.kind).updateFields(app, entry.file, patch)
 	} catch (error: unknown) {
 		throw agentError('INVALID_VALUE', `LucrJournal rejected the change to ${entry.file.path}: ${error instanceof Error ? error.message : String(error)}.`, 'Correct the values and retry.', { received: patch })
+	}
+}
+
+function resolveNewEntry(app: App, kind: ContextKind, name: string) {
+	try {
+		return resolveLink(app, linkKindOf(kind), name)
+	} catch (error: unknown) {
+		// resolveLink words its errors for `createPosition({ links })`; here the offending input is `name`.
+		throw error instanceof AgentApiError ? new AgentApiError({ ...error.payload, field: 'name' }) : error
 	}
 }
 
@@ -153,15 +163,25 @@ async function applyPatch(app: App, entry: { kind: EntryKind; file: TFile }, pat
 export async function createEntry(app: App, journal: AgentJournal, rawInput: unknown) {
 	const args = readArgs('createEntry', rawInput, CREATE_ENTRY_FIELDS)
 	const kind = toContextKind(readRequiredText(args, 'kind', 'Pass `kind` as news, key_level, confluence or market_analysis.'), 'kind')
-	const name = readRequiredText(args, 'name', 'Pass `name`, the title of the note.')
+	const name = cleanEntryName(readRequiredText(args, 'name', 'Pass `name`, the title of the note.'))
 	const patch = readEntryPatch(args, kind)
 	const body = readBodyText(args, 'body')
-	const link = resolveLink(app, linkKindOf(kind), name)
+	const link = resolveNewEntry(app, kind, name)
 	if (!link.create) {
 		throw agentError('NAME_CONFLICT', `A ${kind} named ${JSON.stringify(link.basename)} already exists at ${link.path}.`, 'Use updateEntry to change it, or choose a more specific name.', { field: 'name', received: name, details: { path: link.path } })
 	}
 	if (readBoolean(args, 'dryRun')) {
-		return { dryRun: true, data: { kind, name: link.basename, path: link.path, frontmatter: { ...link.frontmatter, ...patch }, body } }
+		return {
+			dryRun: true,
+			data: {
+				kind,
+				name: link.basename,
+				path: link.path,
+				frontmatter: { ...link.frontmatter, ...patch },
+				body,
+				...(typeof patch.source === 'string' ? { note: 'On the real call LucrJournal tries to fetch the article text from `source` into the note; your `body` is appended after it.' } : {}),
+			},
+		}
 	}
 
 	const config = LINK_KIND_CONFIG[link.kind]
@@ -171,9 +191,10 @@ export async function createEntry(app: App, journal: AgentJournal, rawInput: unk
 		const create = config.domain.createEntry.bind(config.domain) as unknown as (runtimeApp: App, value: Record<string, string>) => Promise<{ file: { path: string } }>
 		const created = await create(app, formValue)
 		const file = await waitForKind(app, created.file.path, kind)
-		await applyPatch(app, { kind, file }, kind === 'news' && description !== null && description !== '' ? { ...rest, description } : rest)
+		// The metadata cache lags behind the write, so report the values the domain just saved.
+		const saved = await applyPatch(app, { kind, file }, kind === 'news' && description !== null && description !== '' ? { ...rest, description } : rest)
 		await appendBody(app, file, body)
-		return { dryRun: false, data: { kind, name: getFileBasename(file), path: file.path, frontmatter: app.metadataCache.getFileCache(file)?.frontmatter ?? null } }
+		return { dryRun: false, data: { kind, name: getFileBasename(file), path: file.path, frontmatter: saved ?? app.metadataCache.getFileCache(file)?.frontmatter ?? null } }
 	})
 }
 
@@ -261,11 +282,24 @@ export async function renameEntry(app: App, journal: AgentJournal, rawInput: unk
 	if (!confirmation.confirmed) {
 		return previewResult('renameEntry', scope, confirmation.token)
 	}
-	return await journal.run(app, { operation: 'renameEntry', summary: `Renamed ${entry.kind} "${getFileBasename(entry.file)}" to "${newName}"`, touch: [], undoable: false, skipCreatedTracking: true }, async () => {
+	return await journal.run(app, { operation: 'renameEntry', summary: `Renamed ${entry.kind} "${getFileBasename(entry.file)}" to "${newName}"`, touch: [], undoable: false, skipCreatedTracking: true, created: [nextPath], removed: [entry.file.path] }, async () => {
 		await app.fileManager.renameFile(entry.file, nextPath)
 		await syncRenamedDocumentTitle(app, entry.file, newName)
 		return { needsConfirmation: false, data: { kind: entry.kind, path: nextPath, previousPath: scope.rename.from, linksUpdatedIn: scope.linksUpdatedIn } }
 	})
+}
+
+/** Playbooks whose criteria structure names this criteria or confluence. */
+async function playbooksNaming(app: App, name: string): Promise<string[]> {
+	const paths: string[] = []
+	for (const playbook of listKind(app, 'playbook')) {
+		const sections = await loadPlaybookCriteriaSections(app, playbook.file)
+		const names = sections.flatMap((section) => [section.criteriaName, ...section.confluences.map((confluence) => confluence.name)])
+		if (names.some((candidate) => candidate.toLowerCase() === name.toLowerCase())) {
+			paths.push(playbook.file.path)
+		}
+	}
+	return paths
 }
 
 type DeletionPlan = { scope: Record<string, unknown>; removed: string[]; execute: () => Promise<void> }
@@ -318,8 +352,14 @@ async function planDeletion(app: App, entry: LocatedEntry): Promise<DeletionPlan
 				}
 			}
 			const orphans = (await listOrphanPrivateConfluenceEntriesForDeletedPlaybook(app, entry.file)).map((confluence) => confluence.file)
+			const playbooksUsingIt = entry.kind === 'confluence' ? await playbooksNaming(app, linkpath) : []
 			return {
-				scope: { trash: { [entry.kind]: entry.file.path, privateConfluences: orphans.map((file) => file.path) }, unlinkedFromPositions: referencing.map((file) => file.path) },
+				scope: {
+					trash: { [entry.kind]: entry.file.path, privateConfluences: orphans.map((file) => file.path) },
+					unlinkedFromPositions: referencing.map((file) => file.path),
+					// These keep a link that will point to nothing; LucrJournal does not rewrite them.
+					linksLeftBroken: [...new Set([...playbooksUsingIt, ...referencingPaths(app, entry.file.path)])].sort(),
+				},
 				removed: [entry.file.path, ...orphans.map((file) => file.path)],
 				execute: async () => {
 					for (const positionFile of referencing) {
@@ -333,9 +373,15 @@ async function planDeletion(app: App, entry: LocatedEntry): Promise<DeletionPlan
 				},
 			}
 		}
-		case 'criteria':
+		case 'criteria': {
+			const usedBy = await playbooksNaming(app, getFileBasename(entry.file))
+			if (usedBy.length > 0) {
+				throw agentError('INVALID_VALUE', `Criteria ${JSON.stringify(getFileBasename(entry.file))} is still used by ${usedBy.join(', ')}.`, 'Remove it from those playbooks with updatePlaybook first.', { field: 'entry', received: entry.file.path, candidates: usedBy })
+			}
+			return { scope: { trash: { criteria: entry.file.path } }, removed: [entry.file.path], execute: async () => await app.fileManager.trashFile(entry.file) }
+		}
 		case 'platform':
-			throw agentError('INVALID_VALUE', `A ${entry.kind} note is managed by LucrJournal and cannot be deleted directly.`, entry.kind === 'platform' ? 'Delete the account that uses it; an unused platform goes with it.' : 'Remove the criteria from its playbooks with updatePlaybook.', { field: 'entry', received: entry.file.path })
+			throw agentError('INVALID_VALUE', 'A platform note is managed by LucrJournal and cannot be deleted directly.', 'Delete the account that uses it; an unused platform goes with it.', { field: 'entry', received: entry.file.path })
 		default:
 			entry.kind satisfies never
 			throw new Error('Unknown entry kind')
@@ -375,6 +421,10 @@ function readCriteria(args: AgentArgs): CriteriaFormValue | null {
 		if (typeof section !== 'object' || section === null) {
 			throw invalid()
 		}
+		const unknownKeys = Object.keys(section).filter((key) => key !== 'name' && key !== 'confluences')
+		if (unknownKeys.length > 0) {
+			throw agentError('UNKNOWN_FIELD', `Unknown field(s) in a criteria group: ${formatCandidates(unknownKeys)}.`, 'A criteria group only has `name` and `confluences`.', { field: 'criteria', received: unknownKeys, candidates: ['name', 'confluences'] })
+		}
 		const { name, confluences } = section as { name?: unknown; confluences?: unknown }
 		if (typeof name !== 'string' || name.trim() === '' || !Array.isArray(confluences) || confluences.length === 0 || confluences.some((item) => typeof item !== 'string' || item.trim() === '')) {
 			throw invalid()
@@ -403,6 +453,39 @@ function toPlaybookError(error: unknown, field: string) {
 	}
 }
 
+/**
+ * A playbook creates the confluence and criteria notes it names. Find the names
+ * that are already taken by a note of another kind, and list what is missing,
+ * so a dry run reports the same conflict the real write would hit.
+ */
+function planPlaybookDependencies(app: App, criteria: CriteriaFormValue) {
+	const notes = app.vault.getMarkdownFiles()
+	const kindOf = (name: string): { path: string; lucrType: unknown } | null => {
+		const key = sanitizeObsidianFileName(name).toLowerCase()
+		const file = notes.find((candidate) => getFileBasename(candidate).toLowerCase() === key)
+		return file === undefined ? null : { path: file.path, lucrType: app.metadataCache.getFileCache(file)?.frontmatter?.lucr_type }
+	}
+	const willCreate: Array<{ kind: 'criteria' | 'confluence'; name: string }> = []
+	const wanted = criteria.flatMap((section) => [
+		{ kind: 'criteria' as const, name: section.criteriaName },
+		...section.confluences.map((confluence) => ({ kind: 'confluence' as const, name: confluence.name })),
+	])
+	for (const dependency of wanted) {
+		const existing = kindOf(dependency.name)
+		if (existing === null) {
+			willCreate.push(dependency)
+		} else if (existing.lucrType !== dependency.kind) {
+			throw agentError(
+				'NAME_CONFLICT',
+				`The ${dependency.kind} name ${JSON.stringify(dependency.name)} is already used by another note (${existing.path}); LucrJournal file names must be unique.`,
+				`Choose a different name for this ${dependency.kind}.`,
+				{ field: 'criteria', received: dependency.name, details: { conflictingPath: existing.path } },
+			)
+		}
+	}
+	return willCreate
+}
+
 /** Create a playbook with its criteria groups; missing confluences and criteria notes are created with it. */
 export async function createPlaybook(app: App, journal: AgentJournal, rawInput: unknown) {
 	const args = readArgs('createPlaybook', rawInput, CREATE_PLAYBOOK_FIELDS)
@@ -413,8 +496,9 @@ export async function createPlaybook(app: App, journal: AgentJournal, rawInput: 
 	if (conflict !== undefined) {
 		throw agentError('NAME_CONFLICT', `Another note already uses the name ${JSON.stringify(name)} (${conflict.path}).`, 'Choose a more specific name, or use updatePlaybook when it is the playbook you mean.', { field: 'name', received: name })
 	}
+	const willCreate = planPlaybookDependencies(app, criteria)
 	if (readBoolean(args, 'dryRun')) {
-		return { dryRun: true, data: { name, description: description === '' ? null : description, criteria: criteria.map((section) => ({ name: section.criteriaName, confluences: section.confluences.map((confluence) => confluence.name) })) } }
+		return { dryRun: true, data: { name, description: description === '' ? null : description, criteria: criteria.map((section) => ({ name: section.criteriaName, confluences: section.confluences.map((confluence) => confluence.name) })), willCreate } }
 	}
 	return await journal.run(app, { operation: 'createPlaybook', summary: `Created playbook "${name}"`, touch: [] }, async () => {
 		try {
@@ -436,8 +520,19 @@ export async function updatePlaybook(app: App, journal: AgentJournal, rawInput: 
 		throw agentError('INVALID_VALUE', 'updatePlaybook was called without anything to change.', 'Pass `description` and/or `criteria`.')
 	}
 	const previous = await loadPlaybookCriteriaSections(app, entry.file)
+	const willCreate = criteria === null ? [] : planPlaybookDependencies(app, criteria)
 	if (readBoolean(args, 'dryRun')) {
-		return { dryRun: true, data: { path: entry.file.path, previousCriteria: previous, criteria: criteria ?? previous, note: 'Saving criteria replaces the whole playbook body; free text in it is not kept.' } }
+		return {
+			dryRun: true,
+			data: {
+				path: entry.file.path,
+				...(hasDescription ? { description: { from: entry.fm.description ?? null, to: readText(args, 'description') } } : {}),
+				previousCriteria: previous,
+				criteria: criteria ?? previous,
+				willCreate,
+				...(criteria === null ? {} : { note: 'Saving criteria replaces the whole playbook body; free text in it is not kept.' }),
+			},
+		}
 	}
 	return await journal.run(app, { operation: 'updatePlaybook', summary: `Updated playbook "${getFileBasename(entry.file)}"`, touch: [entry.file] }, async () => {
 		if (hasDescription) {
@@ -459,6 +554,10 @@ export async function createTemplate(app: App, journal: AgentJournal, rawInput: 
 	const args = readArgs('createTemplate', rawInput, CREATE_TEMPLATE_FIELDS)
 	const name = readRequiredText(args, 'name', 'Pass `name`, the template title.')
 	const body = readText(args, 'body')
+	const duplicate = listKind(app, 'template').find((template) => typeof template.fm.name === 'string' && template.fm.name.trim().toLowerCase() === name.toLowerCase())
+	if (duplicate !== undefined) {
+		throw agentError('NAME_CONFLICT', `A template named ${JSON.stringify(name)} already exists (${duplicate.file.path}); a second one could not be picked by name.`, 'Choose a different template name.', { field: 'name', received: name, details: { conflictingPath: duplicate.file.path } })
+	}
 	if (readBoolean(args, 'dryRun')) {
 		return { dryRun: true, data: { name, body } }
 	}
@@ -505,13 +604,35 @@ export async function updateSymbol(app: App, journal: AgentJournal, rawInput: un
 	if (Object.keys(patch).length === 0) {
 		throw agentError('INVALID_VALUE', 'updateSymbol was called without anything to change.', 'Pass at least one of: type, fee_value, contract_unit.')
 	}
+	const before = { ...(app.metadataCache.getFileCache(entry.file)?.frontmatter ?? entry.fm) } as Record<string, unknown>
+	let preview: Record<string, unknown>
+	try {
+		preview = SymbolDomain.previewPatch(app, before, patch).record
+	} catch (error: unknown) {
+		throw agentError('INVALID_VALUE', `LucrJournal rejected the symbol change: ${error instanceof Error ? error.message : String(error)}.`, 'Correct the values and retry (fee_value must be above 0 and fit the symbol type; contract_unit must be positive).', { received: patch })
+	}
+	// The symbol model silently drops or rounds values it does not accept; report that instead of a false success.
+	const ignored = Object.keys(patch).find((field) => JSON.stringify(preview[field] ?? null) !== JSON.stringify(patch[field] ?? null))
+	if (ignored !== undefined) {
+		throw agentError(
+			'INVALID_VALUE',
+			`\`${ignored}\` = ${JSON.stringify(patch[ignored])} would be stored as ${JSON.stringify(preview[ignored] ?? null)} for a ${typeof preview.type === 'string' ? preview.type : 'symbol of unknown type'}.`,
+			ignored === 'contract_unit' ? 'contract_unit must be a positive whole number and can only be set on CFD symbols; omit it otherwise.' : `Pass a value LucrJournal accepts for \`${ignored}\`, or omit it.`,
+			{ field: ignored, received: patch[ignored] },
+		)
+	}
+	const changes = Object.fromEntries(
+		[...new Set([...Object.keys(before), ...Object.keys(preview)])]
+			.filter((field) => field !== 'modified' && JSON.stringify(before[field] ?? null) !== JSON.stringify(preview[field] ?? null))
+			.map((field) => [field, { from: before[field] ?? null, to: preview[field] ?? null }]),
+	)
 	if (readBoolean(args, 'dryRun')) {
-		return { dryRun: true, data: { path: entry.file.path, changes: patch } }
+		return { dryRun: true, data: { path: entry.file.path, changes } }
 	}
 	return await journal.run(app, { operation: 'updateSymbol', summary: `Updated symbol "${displayName(entry)}"`, touch: [entry.file] }, async () => {
 		try {
 			const updated = await SymbolDomain.updateFields(app, entry.file, patch)
-			return { dryRun: false, data: { path: entry.file.path, frontmatter: updated } }
+			return { dryRun: false, data: { path: entry.file.path, changes, frontmatter: updated } }
 		} catch (error: unknown) {
 			throw agentError('INVALID_VALUE', `LucrJournal rejected the symbol change: ${error instanceof Error ? error.message : String(error)}.`, 'Correct the values and retry (fee_value must fit the symbol type; contract_unit must be positive and is fixed for crypto and futures).', { received: patch })
 		}
