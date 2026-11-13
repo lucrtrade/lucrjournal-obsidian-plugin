@@ -930,6 +930,7 @@ describe('agent api operations beyond createPosition', () => {
 		expect(vault.content(POSITION)).toContain('First note.\n\nClosed at the range high.')
 		expect(data(await api.listPositions({ status: 'closed' })).total).toBe(1)
 
+		expect(await api.updatePosition({ position: 'POS-00001', opened_at: '2027-01-01 00:00' })).toMatchObject({ ok: false, error: { code: 'INVALID_VALUE', field: 'opened_at' } })
 		data(await api.updatePosition({ position: 'POS-00001', status: 'open' }))
 		expect(vault.frontmatter(POSITION)).toMatchObject({ status: 'open', exit_price: null, closed_at: null })
 	})
@@ -937,12 +938,17 @@ describe('agent api operations beyond createPosition', () => {
 	it('rejects invalid position changes without writing', async () => {
 		const { vault, api } = await seeded()
 		const before = vault.content(POSITION)
-		expect(await api.updatePosition({ position: 'POS-00001', stop_loss: 160 })).toMatchObject({ ok: false, error: { code: 'INVALID_VALUE' } })
 		expect(await api.updatePosition({ position: 'POS-00001', lots: 1 })).toMatchObject({ ok: false, error: { code: 'QUANTITY_CONFLICT' } })
 		expect(await api.updatePosition({ position: 'POS-00001', profit: 5 })).toMatchObject({ ok: false, error: { code: 'UNKNOWN_FIELD', field: 'profit' } })
 		expect(await api.updatePosition({ position: 'POS-00001', notes: '# Title' })).toMatchObject({ ok: false, error: { code: 'INVALID_VALUE', field: 'notes' } })
 		expect(await api.updatePosition({ position: 'POS-00001' })).toMatchObject({ ok: false, error: { code: 'INVALID_VALUE' } })
+		expect(await api.updatePosition({ position: 'POS-00001', stop_loss: 160 })).toMatchObject({ ok: false, error: { code: 'RISK_DIRECTION' } })
+		expect(await api.updatePosition({ position: 'POS-00001', entry_price: null })).toMatchObject({ ok: false, error: { code: 'INVALID_VALUE', field: 'entry_price' } })
+		expect(await api.updatePosition({ position: 'POS-00001', status: 'open', exit_price: 150 })).toMatchObject({ ok: false, error: { code: 'INVALID_VALUE', field: 'status' } })
+		expect(await api.listPositions({ limit: 0 })).toMatchObject({ ok: false, error: { code: 'INVALID_VALUE', field: 'limit' } })
 		expect(vault.content(POSITION)).toBe(before)
+		expect(await api.updatePosition({ position: 'POS-00001', entry_price: 142 })).toMatchObject({ ok: true, data: { unchanged: true } })
+		expect(data(await api.listAgentActivity()).activity).toMatchObject([{ id: 'act-0001', operation: 'createPosition' }])
 	})
 
 	it('detects a note the user changed after the agent read it', async () => {
@@ -1093,29 +1099,71 @@ describe('agent api operations beyond createPosition', () => {
 		expect(report.issues).toEqual(expect.arrayContaining([expect.objectContaining({ type: 'invalid_note', path: POSITION })]))
 	})
 
-	it('logs agent writes and undoes them unless the user edited the note since', async () => {
+	it('logs agent writes and undoes them unless the note changed since', async () => {
 		const { vault, api } = await seeded()
 		const before = vault.content(POSITION)
 		const updated = await api.updatePosition({ position: 'POS-00001', target_price: 160 })
 		const linked = await api.linkContext({ position: 'POS-00001', kind: 'news', name: 'FOMC' })
-		expect(updated).toMatchObject({ ok: true, activityId: 'act-0001' })
-		expect(data(await api.listAgentActivity()).activity).toMatchObject([
-			{ id: 'act-0002', operation: 'linkContext', created: [`${ROOT}/news/FOMC.md`], modified: [POSITION] },
-			{ id: 'act-0001', operation: 'updatePosition', modified: [POSITION] },
-		])
+		expect(updated).toMatchObject({ ok: true, activityId: 'act-0002' })
 		expect(linked).toMatchObject({ ok: true })
+		expect(data(await api.listAgentActivity()).activity).toMatchObject([
+			{ id: 'act-0003', operation: 'linkContext', created: [`${ROOT}/news/FOMC.md`], modified: [POSITION] },
+			{ id: 'act-0002', operation: 'updatePosition', modified: [POSITION] },
+			{ id: 'act-0001', operation: 'createPosition', created: expect.arrayContaining([POSITION]) },
+		])
+		expect(await api.listAgentActivity({ limit: 0 })).toMatchObject({ ok: false, error: { code: 'INVALID_VALUE', field: 'limit' } })
+
+		// Out of order: the later agent operation is named, not the user.
+		const outOfOrder = await api.undo({ id: 'act-0002' })
+		expect(outOfOrder).toMatchObject({ ok: false, error: { code: 'CONFLICT', details: { laterOperations: ['act-0003'] } } })
 
 		data(await api.undo())
 		expect(vault.paths()).not.toContain(`${ROOT}/news/FOMC.md`)
 		expect(vault.frontmatter(POSITION).target_price).toBe(160)
-		data(await api.undo({ id: 'act-0001' }))
+		data(await api.undo({ id: 'act-0002' }))
 		expect(vault.content(POSITION)).toBe(before)
-		expect(await api.undo({ id: 'act-0001' })).toMatchObject({ ok: false, error: { code: 'UNDO_UNAVAILABLE' } })
+		expect(await api.undo({ id: 'act-0002' })).toMatchObject({ ok: false, error: { code: 'UNDO_UNAVAILABLE' } })
 
 		data(await api.updatePosition({ position: 'POS-00001', target_price: 170 }))
 		await vault.app.vault.process(fileAt(vault.app, POSITION), (content) => `${content}\nuser edit\n`)
-		expect(await api.undo()).toMatchObject({ ok: false, error: { code: 'CONFLICT' } })
+		expect(await api.undo()).toMatchObject({ ok: false, error: { code: 'CONFLICT', details: { laterOperations: [] } } })
 		expect(vault.content(POSITION)).toContain('user edit')
+	})
+
+	it('does not undo a created note the user edited or renamed, and skips no-op records', async () => {
+		const { vault, api } = await seeded()
+		const edited = await api.createEntry({ kind: 'news', name: 'Edited later' })
+		await vault.app.vault.process(fileAt(vault.app, `${ROOT}/news/Edited later.md`), (content) => `${content}\nhuman paragraph\n`)
+		expect(await api.undo({ id: (edited as { activityId?: string }).activityId })).toMatchObject({ ok: false, error: { code: 'CONFLICT' } })
+		expect(vault.paths()).toContain(`${ROOT}/news/Edited later.md`)
+
+		const renamed = await api.createEntry({ kind: 'news', name: 'Rename me' })
+		const preview = data(await api.renameEntry({ entry: 'Rename me', newName: 'Renamed' }))
+		const done = await api.renameEntry({ entry: 'Rename me', newName: 'Renamed', confirmToken: preview.confirmToken })
+		expect(done).toMatchObject({ ok: true })
+		expect(await api.undo({ id: (renamed as { activityId?: string }).activityId })).toMatchObject({ ok: false, error: { code: 'UNDO_UNAVAILABLE' } })
+		expect(vault.paths()).toContain(`${ROOT}/news/Renamed.md`)
+		expect(data(await api.listAgentActivity()).activity[0]).toMatchObject({ operation: 'renameEntry', created: [`${ROOT}/news/Renamed.md`], removed: [`${ROOT}/news/Rename me.md`] })
+
+		const count = data(await api.listAgentActivity({ limit: 50 })).activity.length
+		expect(await api.removePlaybook({ position: 'POS-00001' })).toMatchObject({ ok: true, unchanged: true })
+		expect(data(await api.listAgentActivity({ limit: 50 })).activity).toHaveLength(count)
+	})
+
+	it('gives concurrent createPosition calls distinct ids', async () => {
+		const vault = baseVault()
+		const api = createAgentApi({ app: vault.app, manifest: { id: 'lucrjournal' } })
+		const results = await Promise.all([1, 2, 3, 4].map((index) => api.createPosition({ symbol: 'sol', side: 'LONG', entry_price: 140 + index, stop_loss: 130 })))
+		expect(results.map((result) => result.ok)).toEqual([true, true, true, true])
+		expect(vault.paths().filter((path) => path.includes('/positions/'))).toEqual([1, 2, 3, 4].map((index) => `${ROOT}/positions/POS-0000${index}.md`))
+		expect(vault.trashed).toEqual([])
+	})
+
+	it('explains a position whose properties were damaged instead of calling it missing', async () => {
+		const { vault, api } = await seeded()
+		await vault.app.vault.process(fileAt(vault.app, POSITION), (content) => content.replace('lucr_type: "position"', 'lucr_type: "positon"'))
+		const result = await api.getPosition({ position: 'POS-00001' })
+		expect(result).toMatchObject({ ok: false, error: { code: 'POSITION_NOT_FOUND', details: { path: POSITION } } })
 	})
 
 	it('opens any entry for the user', async () => {

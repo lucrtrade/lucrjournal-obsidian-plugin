@@ -1,7 +1,7 @@
-import { type App } from 'obsidian'
+import { TFile, type App } from 'obsidian'
 
 import { resolvePositionAttachments } from '../attachments/position-attachments'
-import { AccountDomain, derivePositionAccountWikilink, PositionDomain, SymbolDomain, type Position } from '../domains'
+import { AccountDomain, derivePositionAccountWikilink, loadPlaybookCriteriaSections, PositionDomain, SymbolDomain, type Position } from '../domains'
 import { POSITION_NOTES_SECTION } from '../domains/position/body'
 import { getCurrentTimeZoneSetting } from '../settings/plugin-settings'
 import { getFileBasename, parseWikilinkHeading } from '../utils'
@@ -9,6 +9,7 @@ import { extractSection } from '../utils/markdown-sections'
 
 import { readArgs, readEnum, readNumber, readRequiredText, readText } from './args'
 import { datetimeToEpoch, normalizeAgentDatetime } from './datetime'
+import { agentError } from './errors'
 import { contentRev, displayName, ENTRY_KINDS, listKind, locatePosition, type EntryKind, type LocatedEntry } from './locate'
 
 const LIST_POSITIONS_FIELDS = ['symbol', 'account', 'status', 'side', 'from', 'to', 'playbook', 'limit'] as const
@@ -52,7 +53,13 @@ function readBoundary(args: Record<string, unknown>, field: 'from' | 'to', timeZ
 
 function readLimit(args: Record<string, unknown>): number {
 	const limit = readNumber(args, 'limit')
-	return limit === null ? DEFAULT_LIMIT : Math.max(1, Math.min(MAX_LIMIT, Math.floor(limit)))
+	if (limit === null) {
+		return DEFAULT_LIMIT
+	}
+	if (!Number.isInteger(limit) || limit < 1) {
+		throw agentError('INVALID_VALUE', `\`limit\` must be a whole number from 1 to ${MAX_LIMIT}, received ${limit}.`, 'Pass a positive integer or omit `limit`.', { field: 'limit', received: limit })
+	}
+	return Math.min(MAX_LIMIT, limit)
 }
 
 export function listPositions(app: App, rawInput: unknown) {
@@ -61,7 +68,8 @@ export function listPositions(app: App, rawInput: unknown) {
 	const symbol = readText(args, 'symbol')?.toLowerCase() ?? null
 	const account = readText(args, 'account')?.toLowerCase() ?? null
 	const playbook = readText(args, 'playbook')?.toLowerCase() ?? null
-	const status = readEnum(args, 'status', ['open', 'closed'] as const)
+	const statusInput = readEnum(args, 'status', ['open', 'closed', 'close'] as const)
+	const status = statusInput === 'close' ? 'closed' : statusInput
 	const side = readEnum(args, 'side', ['LONG', 'SHORT'] as const)
 	const from = readBoundary(args, 'from', timeZone)
 	const to = readBoundary(args, 'to', timeZone)
@@ -129,7 +137,7 @@ function accountNameOf(app: App, entry: LocatedEntry): string | null {
 	return account === undefined ? null : AccountDomain.toDisplayName(account.fm)
 }
 
-export function listEntries(app: App, rawInput: unknown) {
+export async function listEntries(app: App, rawInput: unknown) {
 	const args = readArgs('listEntries', rawInput, LIST_ENTRIES_FIELDS)
 	const kind = readEnum(args, 'kind', ENTRY_KINDS.filter((candidate) => candidate !== 'position'))
 	if (kind === null) {
@@ -141,5 +149,15 @@ export function listEntries(app: App, rawInput: unknown) {
 		.map((entry) => summarizeEntry(app, entry))
 		.filter((entry) => query === null || entry.name.toLowerCase().includes(query))
 		.sort((left, right) => left.name.localeCompare(right.name))
-	return { data: { kind, total: matches.length, truncated: matches.length > limit, entries: matches.slice(0, limit) } }
+	const page = matches.slice(0, limit)
+	if (kind !== 'playbook') {
+		return { data: { kind, total: matches.length, truncated: matches.length > limit, entries: page } }
+	}
+	const entries = []
+	for (const playbook of page) {
+		const file = app.vault.getAbstractFileByPath(playbook.path)
+		const sections = file instanceof TFile ? await loadPlaybookCriteriaSections(app, file) : []
+		entries.push({ ...playbook, criteria: sections.map((section) => ({ name: section.criteriaName, confluences: section.confluences.map((confluence) => confluence.name) })) })
+	}
+	return { data: { kind, total: matches.length, truncated: matches.length > limit, entries } }
 }
