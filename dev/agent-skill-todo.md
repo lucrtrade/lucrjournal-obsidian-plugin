@@ -73,7 +73,13 @@
 
 - [ ] 新增只读 `getEntry`，返回条目的属性和正文（目前 `listEntries` 不返回正文，agent 改完条目后无法核对）
 - [ ] `listEntries` 增加按日期筛选、按时间排序和翻页（目前"今天的条目"靠 agent 自己按 `created` 筛，超过 500 条会漏）
-- [ ] 插件设置里加按钮，在用户库里生成 `AGENTS.md`，告诉进入库目录的 agent 不要直接改文件
+- [ ] 插件设置里加"连接 AI agent"按钮。目标流程：用户装插件 → 点按钮 → 在库文件夹里打开 Claude Code / Codex，说"给我创建一个仓位"，agent 就先加载 `lucrjournal` skill 再操作
+  - 把 `skills/lucrjournal` 写进库里的 `.claude/skills/lucrjournal`（Claude Code）和 `.agents/skills/lucrjournal`（Codex）。社区插件安装时只下载 `main.js`、`manifest.json`、`styles.css`，所以 skill 文件要在构建时打包进插件
+  - 在库根目录生成 `AGENTS.md`（Codex 读）和 `CLAUDE.md`（Claude Code 读，只写一行 `@AGENTS.md`）。内容：涉及仓位、新闻、关键位、confluence、市场分析、策略手册或 `LucrJournal/` 的请求，先加载 `lucrjournal` skill；不直接创建、修改、移动、改名或删除 `LucrJournal/` 下的文件；skill 不可用时告诉用户，不要改用手改文件
+  - 库里已有 `AGENTS.md` / `CLAUDE.md` 时不覆盖用户内容，只追加 LucrJournal 这一段
+  - 插件更新后 skill 跟着更新，保证 skill 和 agent API 版本一致
+  - 检查 Obsidian 命令行功能（Settings → General → Command line interface）是否已打开，没开就提醒用户
+  - 现在 `lucrjournal_local_test` 里的 skill 是指向本仓库的软链接（手动装的，用于测试）；按钮做好后删掉软链接，用按钮装一次实测，并确认 agent 在只说"给我创建一个仓位"时会先加载 skill
 - [ ] MCP 接入，支持没有命令行的 agent（Claude 桌面版、ChatGPT 等）
 - [ ] 删除策略手册时，其条件文件不会一起删除，需要单独清理
 - [ ] 改名预览依赖 Obsidian 索引：外部程序刚写入文件就确认改名时，预览可能少列引用文件（已知限制）
