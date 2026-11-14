@@ -2,10 +2,13 @@
 
 ## [Unreleased]
 
+## [0.1.18]
+
 - Agent API v2: `describe()` plus read operations (`listPositions`, `getPosition`, `listEntries`, `checkHealth`, `listAgentActivity`)
 - Agent API v2: edit existing positions (`updatePosition`, `addAttachments`, `removeAttachment`, `linkContext`, `unlinkContext`, `setPlaybook`, `removePlaybook`)
 - Agent API v2: manage context notes, playbooks, templates and symbols (`createEntry`, `updateEntry`, `createPlaybook`, `updatePlaybook`, `createTemplate`, `updateSymbol`), open any entry (`open`)
 - Agent API v2: `renameEntry` and `deleteEntry` run as preview then confirm; every write is rolled back on failure, logged for the session and revertible with `undo`
+- Skill: one `lucrjournal` skill replaces `lucrjournal-create-position` and covers every agent API v2 operation through `scripts/lucr.sh` / `scripts/lucr.ps1`; install it with `npx skills add lucrtrade/lucrjournal-obsidian-plugin`, and remove the old skill (`npx skills remove lucrjournal-create-position`, or delete its folder)
 
 ## [0.1.17]
 
