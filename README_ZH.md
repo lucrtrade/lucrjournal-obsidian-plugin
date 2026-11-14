@@ -31,6 +31,22 @@ LucrJournal 已上架 Obsidian 社区插件商店（id：`lucrjournal`）。
 
 需要 Obsidian 1.11.4 或更高版本。手动安装：把 `manifest.json`、`main.js`、`styles.css`、`onnxruntime-web/` 和 `ocr/` 复制到 `VaultFolder/.obsidian/plugins/lucrjournal/`，然后重新加载 Obsidian。
 
+## 用 AI agent 操作
+
+能执行命令行的 AI agent（Claude Code、Codex、Cursor 等）可以替你记日志：按你的口述记一笔仓位，把当天的新闻和 Confluence 关联上去，平仓，修改策略手册，或撤销它自己的改动。它们通过插件的 agent 接口操作，链接和属性始终保持一致，不会直接改动 `LucrJournal/` 下的文件。
+
+前提：Obsidian 桌面版 1.12 或更高版本保持打开，已开启 **设置 → 通用 → 命令行界面**，并且在这个库里登录了 LucrJournal。
+
+为你的 agent 安装 skill：
+
+```bash
+npx skills add lucrtrade/lucrjournal-obsidian-plugin
+```
+
+也可以把 [`skills/lucrjournal`](skills/lucrjournal) 复制到 agent 的 skills 目录（Claude Code 为 `~/.claude/skills/lucrjournal`）。之后直接对它说，例如：
+
+> 我今天上午在币安 142 开了个 SOL 多单，止损 138，0.5 个币，理由是大周期趋势向上。今天 CPI 超预期。帮我记到 LucrJournal。
+
 ## 文档
 
 使用指南、字段参考和常见问题：<https://lucrjournal.lucrtrade.com/docs/>
