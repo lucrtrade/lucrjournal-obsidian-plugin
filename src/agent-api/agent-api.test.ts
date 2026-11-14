@@ -326,8 +326,8 @@ describe('agent api createPosition', () => {
 		expect(result.data.open).toEqual({
 			uri: 'obsidian://lucrjournal-open-position?vault=test-vault-id&file=LucrJournal%2Fpositions%2FPOS-00001.md',
 			bash: 'open "obsidian://lucrjournal-open-position?vault=test-vault-id&file=LucrJournal%2Fpositions%2FPOS-00001.md"'
-				+ ' && (open -a Obsidian 2>/dev/null || true)'
-				+ ' && obsidian vault=test-vault-id eval code="app.plugins.plugins.lucrjournal.api.openPosition({ path: \'LucrJournal/positions/POS-00001.md\' })"',
+				+ ' && (open -a Obsidian 2>/dev/null || true);'
+				+ ' obsidian vault=test-vault-id eval code="app.plugins.plugins.lucrjournal.api.openPosition({ path: \'LucrJournal/positions/POS-00001.md\' })"',
 			powershell: 'Start-Process \'obsidian://lucrjournal-open-position?vault=test-vault-id&file=LucrJournal%2Fpositions%2FPOS-00001.md\';'
 				+ ' obsidian vault=test-vault-id eval "code=app.plugins.plugins.lucrjournal.api.openPosition({ path: \'LucrJournal/positions/POS-00001.md\' })"',
 		})
@@ -675,8 +675,9 @@ describe('agent api createPosition', () => {
 		expect(windows.bash).toContain('powershell.exe -NoProfile -Command "Start-Process ')
 		expect(windows.bash).not.toContain('start ""')
 		expect(mac.bash).toContain('open "obsidian://')
-		// Focus is best-effort: a missing/renamed bundle must not break the verification step.
-		expect(mac.bash).toContain('(open -a Obsidian 2>/dev/null || true) && obsidian vault=')
+		// Focus is best-effort: a failed URL handler or a missing/renamed bundle must not skip the verification step.
+		expect(mac.bash).toContain('(open -a Obsidian 2>/dev/null || true); obsidian vault=')
+		expect(windows.bash).toContain('Start-Process \'obsidian://lucrjournal-open-position?vault=2b770fde7df4a65c&file=LucrJournal%2Fpositions%2FPOS-00012.md\'"; obsidian vault=')
 		expect(windows.powershell).toBe(mac.powershell)
 	})
 
@@ -1081,6 +1082,7 @@ describe('agent api operations beyond createPosition', () => {
 		expect(vault.content(POSITION)).not.toContain('[[Range high]]')
 
 		const account = data(await api.deleteEntry({ entry: 'Binance', kind: 'account' }))
+		expect(account.scope.linksLeftBroken).toEqual([])
 		expect(account.scope.trash).toMatchObject({ account: `${ROOT}/accounts/ACC-Binance.md`, symbols: [`${ROOT}/symbols/SBL-Binance-SOLUSDT.P.md`], positions: [POSITION] })
 		expect(vault.paths()).toContain(POSITION)
 		data(await api.deleteEntry({ entry: 'Binance', kind: 'account', confirmToken: account.confirmToken }))
@@ -1172,6 +1174,19 @@ describe('agent api operations beyond createPosition', () => {
 		expect(vault.paths()).not.toContain(`${ROOT}/news/Linked later.md`)
 	})
 
+	it('does not send the agent to undo a deletion that cannot be undone', async () => {
+		const { api } = await seeded()
+		const closed = await api.updatePosition({ position: 'POS-00001', exit_price: 150 })
+		const preview = data(await api.deleteEntry({ entry: 'Range high' }))
+		const deleted = await api.deleteEntry({ entry: 'Range high', confirmToken: preview.confirmToken })
+		const deletedId = (deleted as { activityId?: string }).activityId
+		const result = await api.undo({ id: (closed as { activityId?: string }).activityId })
+		expect(result).toMatchObject({ ok: false, error: { code: 'CONFLICT', details: { laterOperations: [deletedId] } } })
+		const fix = (result as unknown as { error: { fix: string } }).error.fix
+		expect(fix).toContain('cannot be undone')
+		expect(fix).not.toContain('first (newest first)')
+	})
+
 	it('treats a body line starting with "modified:" as a user edit', async () => {
 		const { vault, api } = await seeded()
 		const created = await api.createTemplate({ name: 'Body modified', body: 'modified: draft' })
@@ -1211,6 +1226,18 @@ describe('agent api operations beyond createPosition', () => {
 		expect(data(await api.getPosition({ position: 'POS-00001' })).links.key_level).toEqual([])
 		expect(vault.content(POSITION)).not.toContain('[[Range high]]')
 		expect(vault.content(POSITION)).toContain('First note.')
+	})
+
+	it('accepts saveAttachment input as base64 JSON, like every other operation (what lucr.sh sends)', async () => {
+		const { vault, api } = await seeded()
+		const encoded = (input: unknown) => btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(input))))
+		const preview = await api.saveAttachment(encoded({ base64: PNG_BASE64, fileName: 'chart enc.png', dryRun: true }))
+		expect(preview).toMatchObject({ ok: true, dryRun: true })
+		const saved = data(await api.saveAttachment(encoded({ base64: PNG_BASE64, fileName: 'chart enc.png' })))
+		expect(vault.paths()).toContain(saved.path)
+		expect(await api.saveAttachment('not base64 at all')).toMatchObject({ ok: false, error: { code: 'INVALID_VALUE' } })
+		const broken = await api.listEntries(btoa('{ "kind": "news",'))
+		expect(broken).toMatchObject({ ok: false, error: { code: 'INVALID_VALUE', message: expect.stringContaining('malformed JSON') } })
 	})
 
 	it('previews saveAttachment without writing', async () => {
