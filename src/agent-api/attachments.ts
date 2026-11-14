@@ -7,6 +7,7 @@ import {
 } from '../attachments/position-attachments'
 import { LUCR_TRADE_ATTACHMENTS_DIR, LUCR_TRADE_ROOT_DIR } from '../constant'
 
+import { decodeBase64Json } from './args'
 import { agentError } from './errors'
 import { loadDesktopModule, type NodeFs } from './node-runtime'
 
@@ -172,12 +173,18 @@ export async function persistAttachment(
 	return { path: plan.path, token: plan.token, embed: plan.embed, bytes: plan.bytes }
 }
 
+function isAbsolutePath(value: string): boolean {
+	return value.startsWith('/') || /^[A-Za-z]:[\\/]/.test(value)
+}
+
 /** `saveAttachment` also takes `dryRun` next to the image source fields. */
 export function isAttachmentDryRun(rawInput: unknown): boolean {
 	return splitDryRun(rawInput).dryRun
 }
 
-function splitDryRun(raw: unknown): { source: unknown; dryRun: boolean } {
+function splitDryRun(input: unknown): { source: unknown; dryRun: boolean } {
+	// A string is an image path (the v1 call shape) unless it is base64 JSON, the form every other operation accepts.
+	const raw = typeof input === 'string' && !isAbsolutePath(input.trim()) ? decodeBase64Json('saveAttachment', input) : input
 	if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
 		return { source: raw, dryRun: false }
 	}

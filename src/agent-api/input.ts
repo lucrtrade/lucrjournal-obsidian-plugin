@@ -1,5 +1,6 @@
 /// <reference types="vitest/importMeta" />
 
+import { decodeBase64Json as decodeAgentJson } from './args'
 import { agentError, formatCandidates } from './errors'
 
 import type { AttachmentSourceInput } from './attachments'
@@ -117,17 +118,7 @@ export function parseCreatePositionInput(input: unknown): CreatePositionInput {
  * there pass the input as base64-encoded UTF-8 JSON instead of an object literal.
  */
 function decodeBase64Json(encoded: string): unknown {
-	try {
-		const bytes = Uint8Array.from(atob(encoded.trim()), (character) => character.charCodeAt(0))
-		return JSON.parse(new TextDecoder().decode(bytes)) as unknown
-	} catch (error: unknown) {
-		throw agentError(
-			'INVALID_VALUE',
-			`createPosition received a string that is not base64-encoded UTF-8 JSON (${error instanceof Error ? error.message : 'decode failed'}).`,
-			'Pass an object literal, or base64-encode the UTF-8 bytes of the JSON input, e.g. [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json)) in PowerShell.',
-			{ received: encoded.slice(0, 80) },
-		)
-	}
+	return decodeAgentJson('createPosition', encoded)
 }
 
 function readSymbol(record: Record<string, unknown>): string {

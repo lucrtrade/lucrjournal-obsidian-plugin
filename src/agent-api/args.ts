@@ -30,16 +30,28 @@ export function readArgs(operation: string, input: unknown, allowed: readonly st
 	return record
 }
 
-function decodeBase64Json(operation: string, encoded: string): unknown {
+export function decodeBase64Json(operation: string, encoded: string): unknown {
+	let json: string
 	try {
 		const bytes = Uint8Array.from(atob(encoded.trim()), (character) => character.charCodeAt(0))
-		return JSON.parse(new TextDecoder().decode(bytes)) as unknown
+		json = new TextDecoder('utf-8', { fatal: true }).decode(bytes)
 	} catch {
 		throw agentError(
 			'INVALID_VALUE',
 			`${operation} received a string that is not base64-encoded UTF-8 JSON.`,
 			'Pass an object literal, or base64-encode the UTF-8 bytes of the JSON input.',
 			{ received: encoded.slice(0, 80) },
+		)
+	}
+	try {
+		return JSON.parse(json) as unknown
+	} catch (error: unknown) {
+		// The transport worked; the JSON itself is broken, so re-encoding would not help.
+		throw agentError(
+			'INVALID_VALUE',
+			`${operation} received malformed JSON: ${error instanceof Error ? error.message : String(error)}.`,
+			'Fix the JSON syntax (quotes, commas, brackets) and send it again.',
+			{ received: json.slice(0, 80) },
 		)
 	}
 }
