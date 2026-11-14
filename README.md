@@ -31,6 +31,22 @@ LucrJournal is listed in the Obsidian community plugin store (id: `lucrjournal`)
 
 Requires Obsidian 1.11.4 or later. For a manual install, copy `manifest.json`, `main.js`, `styles.css`, `onnxruntime-web/`, and `ocr/` into `VaultFolder/.obsidian/plugins/lucrjournal/` and reload Obsidian.
 
+## Use with an AI agent
+
+AI coding agents that can run shell commands (Claude Code, Codex, Cursor, …) can keep the journal for you: log a trade you describe, link today's news and confluences, close a position, edit playbooks, or undo their own changes. They work through the plugin's agent API, so links and properties stay consistent, and they never edit the files under `LucrJournal/` directly.
+
+Requirements: the Obsidian desktop app 1.12 or later, running, with **Settings → General → Command line interface** enabled, and LucrJournal signed in in the vault.
+
+Install the skill for your agent:
+
+```bash
+npx skills add lucrtrade/lucrjournal-obsidian-plugin
+```
+
+Or copy [`skills/lucrjournal`](skills/lucrjournal) into your agent's skills folder (for Claude Code: `~/.claude/skills/lucrjournal`). Then just ask, for example:
+
+> I opened a SOL long on Binance at 142 this morning, stop 138, 0.5 SOL, because the higher-timeframe trend is up. CPI came in hot today. Log it in LucrJournal.
+
 ## Documentation
 
 Guides, field reference, and FAQs: <https://lucrjournal.lucrtrade.com/docs/>
