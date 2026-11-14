@@ -61,9 +61,9 @@
 
 ### 发布前
 
-- [ ] 实测 README 里的安装命令 `npx skills add lucrtrade/lucrjournal-obsidian-plugin`
-- [ ] 更新 PR 描述（测试数、第二轮修复、新 skill）并推送
-- [ ] skill 要求 agent API v2：发布包含 v2 的插件版本后，用户才能使用
+- [x] 实测 README 里的安装命令 `npx skills add lucrtrade/lucrjournal-obsidian-plugin`（skills 1.8.1，用本分支内容装到 Claude Code 和 Codex，文件与仓库一致，`lucr.sh` 保留执行权限，装好的脚本在测试库里 `describe` / `listPositions` 正常，退出码 0/1/2 正确）
+- [x] 更新 PR 描述（测试数、第二轮修复、新 skill）并推送
+- [x] skill 要求 agent API v2：随 0.1.18 一起发布；插件仍是 v1 时脚本返回 `LUCRJOURNAL_API_TOO_OLD` 并提示更新插件
 
 ### 需要你决定
 
