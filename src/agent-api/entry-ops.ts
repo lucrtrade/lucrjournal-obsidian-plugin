@@ -439,11 +439,25 @@ async function planDeletion(app: App, entry: LocatedEntry): Promise<DeletionPlan
 	}
 }
 
+/**
+ * Every deletion scope says which surviving notes keep a link to something it trashes (an account's
+ * positions linked from an analysis, ...), so the agent can always show `linksLeftBroken` to the user.
+ * Context-note and playbook plans compute it themselves, leaving out positions they clean up.
+ */
+function withLinksLeftBroken(app: App, plan: DeletionPlan): DeletionPlan {
+	if (plan.scope.linksLeftBroken !== undefined) {
+		return plan
+	}
+	const removed = new Set(plan.removed)
+	const linking = plan.removed.flatMap((path) => referencingPaths(app, path)).filter((path) => !removed.has(path))
+	return { ...plan, scope: { ...plan.scope, linksLeftBroken: [...new Set(linking)].sort() } }
+}
+
 /** Move an entry (and whatever the UI would delete with it) to the trash, after a confirmed preview. */
 export async function deleteEntry(app: App, journal: AgentJournal, rawInput: unknown) {
 	const args = readArgs('deleteEntry', rawInput, DELETE_ENTRY_FIELDS)
 	const entry = locateReferenced(app, args)
-	const plan = await planDeletion(app, entry)
+	const plan = withLinksLeftBroken(app, await planDeletion(app, entry))
 	const confirmation = confirmOrPreview(args, 'deleteEntry', plan.scope)
 	if (!confirmation.confirmed) {
 		return previewResult('deleteEntry', plan.scope, confirmation.token)

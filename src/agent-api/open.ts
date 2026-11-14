@@ -46,7 +46,9 @@ export function buildOpenPositionCommands(
 			: `xdg-open "${uri}"`
 	return {
 		uri,
-		bash: `${bashActivate} && obsidian vault=${vaultId} eval code="${code}"`,
+		// `;`, not `&&`: bringing Obsidian forward is best-effort (a sandboxed shell may have no URL handler),
+		// and the `obsidian eval` that opens and verifies the view must run either way.
+		bash: `${bashActivate}; obsidian vault=${vaultId} eval code="${code}"`,
 		powershell: `Start-Process '${uri}'; obsidian vault=${vaultId} eval "code=${code}"`,
 	}
 }

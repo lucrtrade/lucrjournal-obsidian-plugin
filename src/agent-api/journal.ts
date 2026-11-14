@@ -196,12 +196,16 @@ export class AgentJournal {
 		}
 		if (changedSince.length > 0) {
 			const later = this.laterOperationsTouching(record, changedSince)
+			const permanent = later.filter((id) => this.records.find((candidate) => candidate.id === id)?.undoable === false)
 			throw agentError(
 				'CONFLICT',
 				`Cannot undo ${record.id}: these notes changed after that operation: ${changedSince.join(', ')}.`,
-				later.length > 0
-					? `Later agent operations touched them: undo ${[...later].reverse().join(', ')} first (newest first). If it still conflicts, the user edited the notes; tell them and do not overwrite their edits.`
-					: 'The user edited them in Obsidian. Tell the user which notes changed and let them decide; do not overwrite their edits.',
+				permanent.length > 0
+					// A rename or deletion cannot be undone, so "undo the later ones first" would be a dead end.
+					? `Later operations ${permanent.join(', ')} renamed or deleted something and cannot be undone, so ${record.id} cannot be undone either. Make the change forward instead (e.g. updatePosition with the old values) after reading the note again, and tell the user.`
+					: later.length > 0
+						? `Later agent operations touched them: undo ${[...later].reverse().join(', ')} first (newest first). If it still conflicts, the user edited the notes; tell them and do not overwrite their edits.`
+						: 'The user edited them in Obsidian; do not overwrite their edits. If the operation only changed fields (a price, a stop, the status), set those back with updatePosition and the latest rev, which keeps the user\'s text; otherwise tell the user which notes changed and let them decide.',
 				{ details: { changedSince, laterOperations: later } },
 			)
 		}

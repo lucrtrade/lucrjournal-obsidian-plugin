@@ -254,7 +254,8 @@ async function rollback(app: App, plan: PositionPlan, scope: ExecutionScope, cau
 			...causeError.payload,
 			message: `${causeError.payload.message} The written files were kept in the vault; nothing was deleted.`,
 			fix: 'Wait for Obsidian to finish indexing, then check the created notes before retrying; retry only if a note is incomplete.',
-			details: { ...causeError.payload.details, keptPaths: plan.files.map((file) => file.path) },
+			// Only what is on disk: a timeout on an early step (the account) leaves later planned files unwritten.
+			details: { ...causeError.payload.details, keptPaths: plan.files.map((file) => file.path).filter((path) => app.vault.getAbstractFileByPath(path) !== null) },
 		})
 	}
 
