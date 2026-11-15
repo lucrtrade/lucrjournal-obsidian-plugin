@@ -1,3 +1,5 @@
+import { AGENT_RULES } from './rules'
+
 type OperationDoc = {
 	name: string
 	type: 'read' | 'write' | 'destructive'
@@ -297,12 +299,8 @@ export function describeAgentApi(version: number) {
 	return {
 		data: {
 			version,
-			rules: [
-				'Never create, edit, move or delete files under LucrJournal/ directly; use these operations.',
-				'Read before you write: the user edits the same journal in Obsidian. Pass `rev` back as `ifRev`.',
-				'Every result is { ok: true, ... } or { ok: false, error: { code, message, fix } }; follow `error.fix`.',
-				'Destructive operations return `needsConfirmation: true` first; show the scope to the user before confirming.',
-			],
+			rules: AGENT_RULES.map(({ rule, api }) => `${rule} ${api}`),
+			results: 'Every result is { ok: true, ... } or { ok: false, error: { code, message, fix } }; follow `error.fix`.',
 			operations: AGENT_OPERATIONS,
 		},
 	}
