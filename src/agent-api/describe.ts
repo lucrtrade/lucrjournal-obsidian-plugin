@@ -65,12 +65,12 @@ const AGENT_OPERATIONS: readonly OperationDoc[] = [
 	{
 		name: 'createPosition',
 		type: 'write',
-		summary: 'Record a new position. Missing accounts, symbols and linked notes are created; a failure is rolled back, except METADATA_TIMEOUT, which keeps the written files (listed in error.details.keptPaths): check them before retrying.',
+		summary: 'Record a new position. Missing symbols and linked notes are created, and a missing account in a vault without accounts or with createAccount; a failure is rolled back, except METADATA_TIMEOUT, which keeps the written files (listed in error.details.keptPaths): check them before retrying.',
 		fields: {
 			symbol: 'Instrument exactly as written or shown. Required.',
-			account: 'Account or exchange name; created when missing.',
+			account: 'Account or exchange name. Created when the vault has no account yet; otherwise a name that matches none returns ACCOUNT_NOT_FOUND with the existing accounts as candidates.',
 			platform: 'Only when creating an account whose name is not the exchange.',
-			createAccount: 'true to confirm a new account after a typo warning.',
+			createAccount: 'true to create the account after ACCOUNT_NOT_FOUND, when no candidate can be the account the user means or the user confirms it is new.',
 			side: 'LONG | SHORT (buy / sell also accepted); inferred from prices when omitted.',
 			entry_price: 'Positive number.',
 			stop_loss: 'Positive number.',

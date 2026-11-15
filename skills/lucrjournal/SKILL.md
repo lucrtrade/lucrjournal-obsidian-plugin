@@ -14,7 +14,7 @@ LucrJournal stores a trading journal as linked Markdown notes under `LucrJournal
 3. **Change only what the user means.** "这笔" / "that trade" is the position this conversation is about (the one you just created or found). Notes you did not create in this conversation belong to the user: change one only when the user names it or confirms it. When a reference could mean several positions, list them and ask.
 4. **Read before you change.** Before changing a position, call `getPosition` and pass its `rev` as `ifRev` to every operation that accepts it; the user edits the same journal in Obsidian.
 5. **Destructive operations need the user's yes.** `renameEntry` and `deleteEntry` first return a scope and a token. Show the scope — for a rename `scope.rename` and `scope.linksUpdatedIn`, for a delete everything including `linksLeftBroken` — and confirm only after the user agrees.
-6. **Pass what the user said, raw.** The plugin normalizes symbols (`sol` → `SOLUSDT.P` on a perpetual account), accounts (币安 → Binance is fine to translate; spelling is checked), sides and times. Do not compute derived fields (profit, risk, fee); the plugin does.
+6. **Pass what the user said, raw.** The plugin normalizes symbols (`sol` → `SOLUSDT.P` on a perpetual account), accounts (币安 → Binance is fine to translate; a name that matches no existing account returns `ACCOUNT_NOT_FOUND` with the existing ones instead of creating a second account), sides and times. Do not compute derived fields (profit, risk, fee); the plugin does.
 
 ## Calling the API
 

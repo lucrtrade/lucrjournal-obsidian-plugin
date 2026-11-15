@@ -517,11 +517,11 @@ describe('agent api createPosition', () => {
 		expect(!result.ok && result.error.message).toContain('Also:')
 	})
 
-	it('creates a missing account (and its preset platform) before the symbol and position', async () => {
+	it('creates a confirmed new account (and its preset platform) before the symbol and position', async () => {
 		const vault = baseVault()
 		const api = createAgentApi({ app: vault.app, manifest: { id: 'lucrjournal' } })
 
-		const dry = await api.createPosition({ account: 'okx', symbol: 'solusdt', side: 'LONG', dryRun: true })
+		const dry = await api.createPosition({ account: 'okx', createAccount: true, symbol: 'solusdt', side: 'LONG', dryRun: true })
 		expect(dry.ok && dry.data.files?.map((file) => [file.kind, file.path])).toEqual([
 			['platform', `${ROOT}/platforms/OKX.md`],
 			['account', `${ROOT}/accounts/ACC-OKX.md`],
@@ -530,7 +530,7 @@ describe('agent api createPosition', () => {
 		])
 		expect(vault.paths()).not.toContain(`${ROOT}/accounts/ACC-OKX.md`)
 
-		const result = await api.createPosition({ account: 'okx', symbol: 'solusdt', side: 'LONG', entry_price: 140, exit_price: 150, amount: 100 })
+		const result = await api.createPosition({ account: 'okx', createAccount: true, symbol: 'solusdt', side: 'LONG', entry_price: 140, exit_price: 150, amount: 100 })
 		expect(result.ok && result.data.resolved).toMatchObject({ account: { value: 'OKX', created: true }, symbol: { value: 'SOLUSDT', created: true } })
 		expect(result.ok && result.data.created).toEqual([
 			`${ROOT}/platforms/OKX.md`,
@@ -552,6 +552,25 @@ describe('agent api createPosition', () => {
 		expect(result.ok && result.data.resolved).toMatchObject({ account: { value: 'FTMO Challenge', created: true } })
 		expect(vault.frontmatter(`${ROOT}/accounts/ACC-FTMO Challenge.md`)).toMatchObject({ platform: '[[MetaTrader]]', name: 'FTMO Challenge' })
 		expect(vault.paths()).toContain(`${ROOT}/platforms/MetaTrader.md`)
+	})
+
+	it('lists the existing accounts instead of creating one whose name matches none of them', async () => {
+		const vault = baseVault(secondAccount())
+		const api = createAgentApi({ app: vault.app, manifest: { id: 'lucrjournal' } })
+		const before = vault.paths()
+		const chineseName = String.fromCodePoint(0x5E01, 0x5B89)
+
+		for (const call of [{}, { dryRun: true }]) {
+			await expect(api.createPosition({ account: chineseName, symbol: 'sol', side: 'LONG', ...call })).resolves.toMatchObject({
+				ok: false,
+				error: { code: 'ACCOUNT_NOT_FOUND', field: 'account', candidates: ['Binance', 'FTMO'] },
+			})
+		}
+		expect(vault.paths()).toEqual(before)
+		await expect(api.createPosition({ account: 'Binance', symbol: 'sol', side: 'LONG', dryRun: true })).resolves.toMatchObject({
+			ok: true,
+			data: { resolved: { account: { value: 'Binance' } } },
+		})
 	})
 
 	it('rejects a likely typo of an existing account unless createAccount confirms it', async () => {
@@ -640,7 +659,7 @@ describe('agent api createPosition', () => {
 		const api = createAgentApi({ app: vault.app, manifest: { id: 'lucrjournal' } })
 		vault.failOnCreate(`${ROOT}/accounts/ACC-Desk.md`)
 
-		const result = await api.createPosition({ account: 'Desk', platform: 'MetaTrader', symbol: 'XAUUSD', side: 'LONG' })
+		const result = await api.createPosition({ account: 'Desk', platform: 'MetaTrader', createAccount: true, symbol: 'XAUUSD', side: 'LONG' })
 
 		expect(result.ok).toBe(false)
 		expect(vault.paths()).not.toContain(`${ROOT}/platforms/MetaTrader.md`)
