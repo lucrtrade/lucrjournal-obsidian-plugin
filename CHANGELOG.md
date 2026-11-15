@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.1.19]
+
+- Agent API: once the vault has accounts, `createPosition` (and its `dryRun`) no longer creates a second account for a name that matches none of them (币安 next to Binance); it returns `ACCOUNT_NOT_FOUND` with the lookalikes, or every existing account, as `candidates`, and creates the account only with `createAccount: true`. A vault with no account yet still creates it directly
+- Agent API: `describe()` returns the same six rules as the skill, adding "search before you create", "change only what the user means" and "pass what the user said, raw"; the result format moved to `results`
+- Skill: explain when to retry `ACCOUNT_NOT_FOUND` with a candidate, when to pass `createAccount: true` and report the new account, and when to ask the user
+
 ## [0.1.18]
 
 - Agent API v2: `describe()` plus read operations (`listPositions`, `getPosition`, `listEntries`, `checkHealth`, `listAgentActivity`)
