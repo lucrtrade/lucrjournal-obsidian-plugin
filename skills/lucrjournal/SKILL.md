@@ -9,12 +9,12 @@ LucrJournal stores a trading journal as linked Markdown notes under `LucrJournal
 
 ## Rules
 
-1. **Never create, edit, move, rename or delete anything under `LucrJournal/` yourself** — no file tools, no `obsidian create` / `append` / `move`, no scripts of your own; only this skill's `lucr.sh` / `lucr.ps1`. Hand-made links and properties are exactly what breaks the journal. If no operation does what the user wants, say so.
+1. **Never create, edit, move, rename or delete anything under `LucrJournal/` yourself.** No file tools, no `obsidian create` / `append` / `move`, no scripts of your own; only this skill's `lucr.sh` / `lucr.ps1`. Hand-made links and properties are exactly what breaks the journal. If no operation does what the user wants, say so.
 2. **Search before you create.** Before linking or creating a news / key level / confluence / market analysis note, list the existing ones and reuse a match. `linkContext` reuses a note of the same kind only when its name matches (case, `.md` and reserved characters aside; a vault path works too); any other name silently becomes a new, empty note, or a `NAME_CONFLICT` if another kind uses that name. A `LucrJournal/...` path that does not exist returns `ENTRY_NOT_FOUND`.
 3. **Change only what the user means.** "这笔" / "that trade" is the position this conversation is about (the one you just created or found). Notes you did not create in this conversation belong to the user: change one only when the user names it or confirms it. When a reference could mean several positions, list them and ask.
 4. **Read before you change.** Before changing a position, call `getPosition` and pass its `rev` as `ifRev` to every operation that accepts it; the user edits the same journal in Obsidian.
 5. **Destructive operations need the user's yes.** `renameEntry` and `deleteEntry` first return a scope and a token. Show the scope — for a rename `scope.rename` and `scope.linksUpdatedIn`, for a delete everything including `linksLeftBroken` — and confirm only after the user agrees.
-6. **Pass what the user said, raw.** The plugin normalizes symbols (`sol` → `SOLUSDT.P` on a perpetual account), accounts (币安 → Binance is fine to translate; spelling is checked), sides and times. Do not compute derived fields (profit, risk, fee); the plugin does.
+6. **Pass what the user said, raw.** The plugin normalizes symbols (`sol` → `SOLUSDT.P` on a perpetual account), accounts (币安 → Binance is fine to translate; a name that matches no existing account returns `ACCOUNT_NOT_FOUND` with the existing ones instead of creating a second account), sides and times. Do not compute derived fields (profit, risk, fee); the plugin does.
 
 ## Calling the API
 

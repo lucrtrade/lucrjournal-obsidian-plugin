@@ -27,3 +27,6 @@ build-assets/
 dist
 
 .clawpatch
+
+# Local working notes (test plans, todo), never committed.
+dev-notes/

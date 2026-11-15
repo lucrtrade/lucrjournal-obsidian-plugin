@@ -134,8 +134,10 @@ export function resolveAccount(app: App, request: AccountRequest, rawSymbol: str
 
 /**
  * The requested account does not exist: plan creating it (and its platform note)
- * the same way the New account form does. Names that look like a typo of an
- * existing account are rejected unless `createAccount` confirms them.
+ * the same way the New account form does. Once the vault has accounts, a name
+ * that matches none of them is rejected unless `createAccount` confirms it:
+ * an agent passing the user's words (Binance's Chinese name) would otherwise split
+ * one exchange into two accounts without anyone noticing.
  */
 function planAccountCreation(app: App, request: AccountRequest, accounts: ResolvedAccount[]): Resolution<ResolvedAccount> {
 	const requested = request.account ?? ''
@@ -144,13 +146,15 @@ function planAccountCreation(app: App, request: AccountRequest, accounts: Resolv
 		throw agentError('INVALID_VALUE', `\`account\` ${JSON.stringify(requested)} is empty after removing characters not allowed in file names.`, 'Pass the exchange or broker name, e.g. "OKX".', { field: 'account', received: requested })
 	}
 
-	const lookalikes = accounts.filter((account) => accountKeys(account).some((key) => isLikelyTypo(normalizeKey(displayName), key)))
-	if (lookalikes.length > 0 && !request.createAccount) {
-		const candidates = lookalikes.map((account) => account.displayName)
+	if (accounts.length > 0 && !request.createAccount) {
+		const lookalikes = accounts.filter((account) => accountKeys(account).some((key) => isLikelyTypo(normalizeKey(displayName), key)))
+		const candidates = (lookalikes.length > 0 ? lookalikes : accounts).slice(0, 20).map((account) => account.displayName)
 		throw agentError(
 			'ACCOUNT_NOT_FOUND',
-			`Account ${JSON.stringify(requested)} does not exist, and it looks like a misspelling of ${formatCandidates(candidates)}.`,
-			'If the user meant one of candidates, retry with that exact name. If it really is a new account, retry with `createAccount: true` and it will be created.',
+			lookalikes.length > 0
+				? `Account ${JSON.stringify(requested)} does not exist, and it looks like a misspelling of ${formatCandidates(candidates)}.`
+				: `Account ${JSON.stringify(requested)} matches none of the existing accounts: ${formatCandidates(candidates)}.`,
+			'If one of candidates is the same account in another spelling or language, retry with that exact name. If none of them can be the account the user means (another exchange), or the user says it is new, retry with `createAccount: true` and report the new account. Otherwise ask the user first.',
 			{ field: 'account', received: requested, candidates },
 		)
 	}
